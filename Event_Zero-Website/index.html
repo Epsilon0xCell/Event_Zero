@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event Zero: malware analysis, two modes</title>
+<meta name="description" content="Event Zero is my malware analysis tool. Local offline static analysis in pure Python, or an autonomous Docker mode where Gemini directs the tools.">
+<!-- pages-campaign site for Epsilon0xCell/Event_Zero; source of truth: Event_Zero-Website/ on the default branch -->
+<!-- I wrote this page the way the tool feels to use: a terminal on a dark desk.
+     Event Zero lives in a shell, so its site does too. The capture further down
+     is a real run, not a mockup. I would rather show the tool working than
+     describe it working. -->
+<style>
+  /* I keep the whole palette inside the terminal family: black green-tinted
+     background, one phosphor green for anything that matters, amber only for
+     the warnings, because in the lab amber means stop and read. */
+  :root{
+    --bg:#060a08; --panel:#0b120d; --panel2:#0e1710; --line:#1e3325;
+    --ink:#d9e8dd; --dim:#8fae97; --phos:#57e389; --amber:#e8b339;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65}
+  a{color:var(--phos)}
+  .topbar{display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid var(--line);font-family:var(--mono)}
+  .topbar img{width:38px;height:38px;border-radius:8px}
+  .topbar .name{font-weight:700;letter-spacing:.04em}
+  .topbar .spacer{flex:1}
+  .topbar a{font-size:.86rem;text-decoration:none}
+  .topbar a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:36px;max-width:1180px;margin:0 auto;padding:40px 28px 0}
+  h1{font-family:var(--mono);font-size:2.5rem;line-height:1.12;font-weight:700}
+  h1 .zero{color:var(--phos)}
+  .lede{font-size:1.13rem;color:var(--ink);margin-top:18px}
+  .lede p{margin-bottom:14px}
+  .statusline{font-family:var(--mono);font-size:.84rem;color:var(--dim);border:1px solid var(--line);background:var(--panel);padding:10px 14px;margin-top:22px}
+  .statusline b{color:var(--phos);font-weight:600}
+  figure.evidence{border:1px solid var(--line);background:var(--panel);padding:10px}
+  figure.evidence img{width:100%;display:block}
+  figure.evidence figcaption{font-family:var(--mono);font-size:.78rem;color:var(--dim);padding:9px 4px 2px}
+  .badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .badges img{height:22px}
+  main{max-width:1180px;margin:0 auto;padding:0 28px 70px}
+  section{margin-top:52px}
+  h2{font-family:var(--mono);font-size:1.06rem;letter-spacing:.06em;text-transform:uppercase;color:var(--phos);border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:20px}
+  h2 .prompt{color:var(--dim)}
+  /* The terminal window is the centre of this page on purpose. I put the run
+     up high because nobody reads past the first screen, and one real run says
+     more than three paragraphs of me explaining static analysis. */
+  .term{border:1px solid var(--line);background:#040705;border-radius:8px;overflow:hidden}
+  .term .bar{display:flex;gap:8px;align-items:center;background:var(--panel2);padding:9px 14px;font-family:var(--mono);font-size:.8rem;color:var(--dim);border-bottom:1px solid var(--line)}
+  .term .dot{width:11px;height:11px;border-radius:50%;border:1px solid var(--dim)}
+  .term pre{font-family:var(--mono);font-size:.84rem;line-height:1.55;padding:18px 20px;overflow-x:auto;color:#c9e7d2;white-space:pre-wrap}
+  .term .cmd{color:var(--phos)}
+  .term .warn{color:var(--amber)}
+  .term .dim{color:var(--dim)}
+  dl.engine{display:grid;grid-template-columns:190px 1fr;border-top:1px solid var(--line)}
+  dl.engine dt{font-family:var(--mono);font-size:.9rem;color:var(--phos);padding:12px 16px 12px 0;border-bottom:1px solid var(--line)}
+  dl.engine dd{padding:12px 0;border-bottom:1px solid var(--line);color:var(--ink)}
+  table.modes{width:100%;border-collapse:collapse;font-size:.97rem}
+  table.modes th,table.modes td{border:1px solid var(--line);padding:11px 14px;text-align:left;vertical-align:top}
+  table.modes th{font-family:var(--mono);font-size:.84rem;color:var(--phos);background:var(--panel)}
+  .cmdblock{background:#040705;border:1px solid var(--line);border-radius:8px;padding:14px 18px;font-family:var(--mono);font-size:.86rem;overflow-x:auto;margin-bottom:16px}
+  .cmdblock .lbl{color:var(--dim);font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:7px}
+  .note{border-left:3px solid var(--amber);background:var(--panel);padding:16px 20px;margin-bottom:14px}
+  .note p{margin-bottom:10px}
+  .note p:last-child{margin-bottom:0}
+  .pipe{width:100%;height:auto;margin-top:6px}
+  footer{border-top:1px solid var(--line);padding:22px 28px;font-family:var(--mono);font-size:.8rem;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px 26px}
+  @media (max-width:820px){.layout{grid-template-columns:1fr}dl.engine{grid-template-columns:1fr}dl.engine dt{border-bottom:none;padding-bottom:0}}
+</style>
+</head>
+<body>
+<!-- The top bar is plain on purpose: logo, name, two links. A lab tool does
+     not need a navigation menu, and neither does its website. -->
+<header class="topbar">
+  <img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/logo.png" alt="Event Zero logo">
+  <span class="name">EVENT_ZERO</span>
+  <span class="spacer"></span>
+  <a href="https://github.com/Epsilon0xCell/Event_Zero">github.com/Epsilon0xCell/Event_Zero</a>
+  <a href="https://github.com/Epsilon0xCell">my profile</a>
+</header>
+
+<div class="layout">
+  <div>
+    <h1>Event <span class="zero">Zero</span>: malware analysis, two modes</h1>
+    <div class="lede">
+      <p>Event Zero is my malware analysis tool. I built it because I wanted to look at a suspicious file and get a straight answer about what is inside it, without handing the file to a website and without running it.</p>
+      <p>It works two ways. Local mode is pure Python standard library: it reads the sample as bytes, never executes it, and works offline with nothing to install. Autonomous mode builds a BlackArch container and lets Gemini direct standard analysis tools over several rounds, then writes a JSON report.</p>
+      <p>I wrote the local engine to compute everything from the bytes in front of it. Nothing is guessed and nothing is sent anywhere. The report even states its own limits: static analysis only, and a file with no indicators is not a proven safe file.</p>
+    </div>
+    <div class="statusline">sample handling: <b>read as bytes, never executed</b> &nbsp;|&nbsp; network in local mode: <b>none</b> &nbsp;|&nbsp; dependencies in local mode: <b>zero</b></div>
+    <div class="badges">
+      <img alt="stars" src="https://img.shields.io/github/stars/Epsilon0xCell/Event_Zero?style=flat-square&color=57e389&label=stars">
+      <img alt="forks" src="https://img.shields.io/github/forks/Epsilon0xCell/Event_Zero?style=flat-square&color=57e389&label=forks">
+      <img alt="last commit" src="https://img.shields.io/github/last-commit/Epsilon0xCell/Event_Zero?style=flat-square&color=57e389&label=last%20commit">
+      <img alt="top language" src="https://img.shields.io/github/languages/top/Epsilon0xCell/Event_Zero?style=flat-square&color=57e389">
+      <img alt="license" src="https://img.shields.io/github/license/Epsilon0xCell/Event_Zero?style=flat-square&color=57e389">
+      <img alt="repo size" src="https://img.shields.io/github/repo-size/Epsilon0xCell/Event_Zero?style=flat-square&color=57e389&label=size">
+    </div>
+  </div>
+  <figure class="evidence">
+    <img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/banner.png" alt="Event Zero banner">
+    <figcaption>fig. 1: the repo banner. Same art on the repo and here, because one identity is enough.</figcaption>
+  </figure>
+</div>
+
+<main>
+  <section>
+    <h2><span class="prompt">$</span> a real run, on the bundled sample</h2>
+    <!-- I ran this on 2026-10-30 against fake_malware, the safe fixture that
+         ships in the repo, and pasted the findings lines as they came out.
+         The tool prints emoji markers on every line; I stripped those for the
+         web and kept every value exact. The full JSON report is what the tool
+         writes next to where you run it. -->
+    <div class="term">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>Event_Zero: local mode</span></div>
+<pre><span class="cmd">$ python3 autonomous_docker_malware_analyzer.py --file fake_malware --local</span>
+
+LOCAL STATIC ANALYSIS (no Docker, no API key, sample never executed)
+File:     fake_malware
+Size:     33,920 bytes
+SHA-256:  c9ab06a4fd594a82eb36d1aeb72e83e99df77a2ccd6a8ebd0ad078dd6b707802
+MD5:      a61191886fcf20bc8df01fe64c99203f
+Format:   Mach-O (64-bit), ARM64
+Segments: __PAGEZERO, __TEXT, __DATA_CONST, __LINKEDIT
+Sections: __text, __stubs, __cstring, __unwind_info, __got
+Linked:   /usr/lib/libSystem.B.dylib
+Entropy:  0.879 / 8.0
+Strings:  59 extracted
+<span class="warn">IPs found in strings: 127.0.0.1, 192.168.1.100 (planted in the fixture on purpose)</span>
+<span class="warn">Keyword hits: credential (Credentials: admin:password123), /bin/bash, socket (_socket)</span>
+
+Assessment (rule-based, from the findings above):
+  - Entropy is low because the file carries large zero-padded regions.
+    That does not mean the code sections are unencoded.
+  - Static strings alone do not prove the sample contacts those IPs.
+  - Keyword hits are leads for review, not proof of behavior.
+  - <span class="dim">This is static analysis only: the sample was read, never run.
+    Absence of indicators here is not proof a file is safe.</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="prompt">$</span> what the local engine actually computes</h2>
+    <!-- A definition list instead of feature cards. This is a reference tool,
+         so I laid its abilities out like reference material: term, then the
+         plain fact of how it is computed. -->
+    <dl class="engine">
+      <dt>hashes</dt><dd>MD5, SHA-1, and SHA-256, calculated directly from the file bytes.</dd>
+      <dt>format parsing</dt><dd>Real header parsing for Mach-O (including fat binaries, segments, sections, and linked libraries), ELF (class, machine, object type), and PE (machine, PE32 or PE32+, section names). ZIP, PDF, scripts, and plain text are identified by signature.</dd>
+      <dt>entropy</dt><dd>Whole-file Shannon entropy, with the caveat printed in the report when a format carries large zero-padded regions.</dd>
+      <dt>strings</dt><dd>Printable ASCII and UTF-16LE strings, extracted from the bytes.</dd>
+      <dt>indicators</dt><dd>URLs and IP addresses found in strings, plus hits against a built-in suspicious-keyword watchlist. Presented as leads, not proof.</dd>
+      <dt>eicar</dt><dd>Detection of the EICAR anti-malware test file by its known SHA-256.</dd>
+      <dt>assessment</dt><dd>A short rule-based summary of the findings, which states its own limits inside the report.</dd>
+    </dl>
+  </section>
+
+  <section>
+    <h2><span class="prompt">$</span> how local mode flows</h2>
+    <!-- I drew this diagram by hand in SVG because the repo has no screenshots
+         and I am not going to fake a UI the tool does not have. Five boxes,
+         because the pipeline honestly has five steps. -->
+    <svg class="pipe" viewBox="0 0 1120 120" role="img" aria-label="Local mode pipeline: sample bytes, parse headers, extract strings, find indicators, JSON report">
+      <g font-family="ui-monospace,Menlo,Consolas,monospace" font-size="15">
+        <rect x="5" y="30" width="190" height="58" fill="#0b120d" stroke="#57e389"/>
+        <text x="100" y="56" fill="#d9e8dd" text-anchor="middle">sample bytes</text>
+        <text x="100" y="77" fill="#8fae97" text-anchor="middle" font-size="12">never executed</text>
+        <rect x="235" y="30" width="190" height="58" fill="#0b120d" stroke="#1e3325"/>
+        <text x="330" y="56" fill="#d9e8dd" text-anchor="middle">parse headers</text>
+        <text x="330" y="77" fill="#8fae97" text-anchor="middle" font-size="12">Mach-O / ELF / PE</text>
+        <rect x="465" y="30" width="190" height="58" fill="#0b120d" stroke="#1e3325"/>
+        <text x="560" y="56" fill="#d9e8dd" text-anchor="middle">extract strings</text>
+        <text x="560" y="77" fill="#8fae97" text-anchor="middle" font-size="12">ASCII + UTF-16LE</text>
+        <rect x="695" y="30" width="190" height="58" fill="#0b120d" stroke="#1e3325"/>
+        <text x="790" y="56" fill="#d9e8dd" text-anchor="middle">find indicators</text>
+        <text x="790" y="77" fill="#8fae97" text-anchor="middle" font-size="12">URLs, IPs, keywords</text>
+        <rect x="925" y="30" width="190" height="58" fill="#0b120d" stroke="#57e389"/>
+        <text x="1020" y="56" fill="#d9e8dd" text-anchor="middle">JSON report</text>
+        <text x="1020" y="77" fill="#8fae97" text-anchor="middle" font-size="12">limits stated inside</text>
+        <g stroke="#57e389" stroke-width="2">
+          <line x1="195" y1="59" x2="231" y2="59"/><line x1="425" y1="59" x2="461" y2="59"/>
+          <line x1="655" y1="59" x2="691" y2="59"/><line x1="885" y1="59" x2="921" y2="59"/>
+        </g>
+      </g>
+    </svg>
+  </section>
+
+  <section>
+    <h2><span class="prompt">$</span> the two modes, side by side</h2>
+    <table class="modes">
+      <tr><th></th><th>Local mode</th><th>Autonomous mode</th></tr>
+      <tr><td><b>Needs</b></td><td>Python 3.8 or newer. Nothing else.</td><td>Docker running, plus a Google Gemini API key.</td></tr>
+      <tr><td><b>Does</b></td><td>Offline static analysis in pure standard library Python.</td><td>Builds a BlackArch container, copies the sample in, and iterates: Gemini proposes analysis code, it runs in the container, results come back, until the model marks the analysis complete or the iteration cap (default 50) is hit.</td></tr>
+      <tr><td><b>Fallback</b></td><td>Not needed. It either reads the file or fails cleanly with a reason.</td><td>If the API fails repeatedly, a built-in fallback performs basic static analysis inside the container instead.</td></tr>
+      <tr><td><b>Writes</b></td><td>A JSON report next to where you ran it, or the path you pass with --output.</td><td>autonomous_analysis_report with a timestamp. The container is stopped and removed; the image is kept for reuse.</td></tr>
+      <tr><td><b>Exit codes</b></td><td colspan="2">0 on success, 1 on a clean explained failure (missing file, missing API key, Docker unavailable), 2 on bad command line arguments.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="prompt">$</span> run it yourself</h2>
+    <div class="cmdblock"><span class="lbl">Local mode, on the bundled safe sample</span>git clone https://github.com/Epsilon0xCell/Event_Zero.git
+cd Event_Zero
+python3 autonomous_docker_malware_analyzer.py --file fake_malware --local</div>
+    <div class="cmdblock"><span class="lbl">Autonomous mode</span>export GEMINI_API_KEY=&lt;your key&gt;
+python3 autonomous_docker_malware_analyzer.py --file /path/to/sample</div>
+    <div class="cmdblock"><span class="lbl">The test suite (hashes verified against hashlib, EICAR detection, Mach-O parsing, CLI smoke tests)</span>python3 -m unittest discover -s tests -v</div>
+    <p style="color:var(--dim);font-size:.94rem">fake_malware is a small Mach-O ARM64 executable I built as a safe test fixture. It is not malware. It carries planted strings, including 192.168.1.100, 127.0.0.1, a fake credential line, and a socket symbol, so you can watch local mode find them.</p>
+  </section>
+
+  <section>
+    <h2><span class="prompt">$</span> where it stands, honestly</h2>
+    <div class="note">
+      <p>Local mode never runs the sample. Autonomous mode runs analysis tooling against the sample inside a container. For genuinely hostile files, my own README says it and I will say it here too: use a hardened, network-isolated VM, not a workstation.</p>
+      <p>The keyword watchlist produces leads, not verdicts. I present it that way in the report because that is all static analysis can honestly give, and I would rather understate a finding than dress one up.</p>
+    </div>
+  </section>
+</main>
+
+<!-- Colophon, because tools should say who set them. This page is set in
+     monospace and system sans, on one green, because that is the desk the
+     tool lives on. -->
+<footer>
+  <span>Built by Epsilon0xCell.</span>
+  <span><a href="https://github.com/Epsilon0xCell/Event_Zero">View the code</a></span>
+  <span><a href="https://epsilon0xcell.github.io/">All my project sites</a></span>
+  <span>Written in first person, from the repo record, 2026-10-30.</span>
+</footer>
+</body>
+</html>
