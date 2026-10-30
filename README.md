@@ -1,3 +1,5 @@
+![Banner](banner.png)
+
 # Event Zero: Malware Analysis, Two Modes
 
 Event Zero analyzes a suspicious file in one of two ways:
