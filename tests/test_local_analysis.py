@@ -15,6 +15,10 @@ import tempfile
 import unittest
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# There is no package to install, so I put the repo root on sys.path
+# myself. That is what lets these tests import the analyzer as a top
+# level module, and it only works while this file stays in tests/
+# directly under the root.
 sys.path.insert(0, REPO_ROOT)
 
 from autonomous_docker_malware_analyzer import LocalStaticAnalyzer  # noqa: E402
@@ -35,6 +39,10 @@ class LocalAnalysisTests(unittest.TestCase):
             f.write(data)
         return path
 
+    # I pin the full EICAR hash in the test below instead of
+    # recomputing it from the string, because the point is that the
+    # analyzer recognises that exact published value, not just that
+    # it hashes the same bytes the same way twice.
     def test_eicar_detected_by_hash(self):
         report = self.analyzer.analyze(self._write("eicar.com", EICAR))
         self.assertTrue(report["indicators"]["eicar_test_file"])
@@ -93,6 +101,11 @@ class CliSmokeTests(unittest.TestCase):
                 report = json.load(f)
             self.assertTrue(report["indicators"]["eicar_test_file"])
 
+    # I strip the key from the environment for this child process
+    # only. If the shell running the suite has GEMINI_API_KEY
+    # exported, the child would otherwise take the autonomous path
+    # and this test would end up testing Docker availability
+    # instead of the clean failure I want to pin down.
     def test_autonomous_mode_without_key_fails_cleanly(self):
         env = dict(os.environ)
         env.pop("GEMINI_API_KEY", None)
