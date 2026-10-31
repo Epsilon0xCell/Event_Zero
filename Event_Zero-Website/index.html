@@ -3,231 +3,367 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Event Zero: malware analysis, two modes</title>
-<meta name="description" content="Event Zero is my malware analysis tool. Local offline static analysis in pure Python, or an autonomous Docker mode where Gemini directs the tools.">
+<title>Event Zero: the fake_malware case file</title>
+<meta name="description" content="I keep Event Zero as a case file on one specimen, fake_malware. Local findings, exhibits, the two modes, and where the tool stands.">
 <!-- pages-campaign site for Epsilon0xCell/Event_Zero; source of truth: Event_Zero-Website/ on the default branch -->
-<!-- I wrote this page the way the tool feels to use: a terminal on a dark desk.
-     Event Zero lives in a shell, so its site does too. The capture further down
-     is a real run, not a mockup. I would rather show the tool working than
-     describe it working. -->
+<!-- I rebuilt this page as a case file because that is how I actually work through a sample: one specimen, one folder, findings written down in order and exhibits filed behind them. I left the old dark terminal behind because the tool already lives in a terminal and the page does not need to pretend to be one. -->
 <style>
-  /* I keep the whole palette inside the terminal family: black green-tinted
-     background, one phosphor green for anything that matters, amber only for
-     the warnings, because in the lab amber means stop and read. */
-  :root{
-    --bg:#060a08; --panel:#0b120d; --panel2:#0e1710; --line:#1e3325;
-    --ink:#d9e8dd; --dim:#8fae97; --phos:#57e389; --amber:#e8b339;
-    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
-    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65}
-  a{color:var(--phos)}
-  .topbar{display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid var(--line);font-family:var(--mono)}
-  .topbar img{width:38px;height:38px;border-radius:8px}
-  .topbar .name{font-weight:700;letter-spacing:.04em}
-  .topbar .spacer{flex:1}
-  .topbar a{font-size:.86rem;text-decoration:none}
-  .topbar a:hover{text-decoration:underline}
-  .layout{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:36px;max-width:1180px;margin:0 auto;padding:40px 28px 0}
-  h1{font-family:var(--mono);font-size:2.5rem;line-height:1.12;font-weight:700}
-  h1 .zero{color:var(--phos)}
-  .lede{font-size:1.13rem;color:var(--ink);margin-top:18px}
-  .lede p{margin-bottom:14px}
-  .statusline{font-family:var(--mono);font-size:.84rem;color:var(--dim);border:1px solid var(--line);background:var(--panel);padding:10px 14px;margin-top:22px}
-  .statusline b{color:var(--phos);font-weight:600}
-  figure.evidence{border:1px solid var(--line);background:var(--panel);padding:10px}
-  figure.evidence img{width:100%;display:block}
-  figure.evidence figcaption{font-family:var(--mono);font-size:.78rem;color:var(--dim);padding:9px 4px 2px}
-  .badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
-  .badges img{height:22px}
-  main{max-width:1180px;margin:0 auto;padding:0 28px 70px}
-  section{margin-top:52px}
-  h2{font-family:var(--mono);font-size:1.06rem;letter-spacing:.06em;text-transform:uppercase;color:var(--phos);border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:20px}
-  h2 .prompt{color:var(--dim)}
-  /* The terminal window is the centre of this page on purpose. I put the run
-     up high because nobody reads past the first screen, and one real run says
-     more than three paragraphs of me explaining static analysis. */
-  .term{border:1px solid var(--line);background:#040705;border-radius:8px;overflow:hidden}
-  .term .bar{display:flex;gap:8px;align-items:center;background:var(--panel2);padding:9px 14px;font-family:var(--mono);font-size:.8rem;color:var(--dim);border-bottom:1px solid var(--line)}
-  .term .dot{width:11px;height:11px;border-radius:50%;border:1px solid var(--dim)}
-  .term pre{font-family:var(--mono);font-size:.84rem;line-height:1.55;padding:18px 20px;overflow-x:auto;color:#c9e7d2;white-space:pre-wrap}
-  .term .cmd{color:var(--phos)}
-  .term .warn{color:var(--amber)}
-  .term .dim{color:var(--dim)}
-  dl.engine{display:grid;grid-template-columns:190px 1fr;border-top:1px solid var(--line)}
-  dl.engine dt{font-family:var(--mono);font-size:.9rem;color:var(--phos);padding:12px 16px 12px 0;border-bottom:1px solid var(--line)}
-  dl.engine dd{padding:12px 0;border-bottom:1px solid var(--line);color:var(--ink)}
-  table.modes{width:100%;border-collapse:collapse;font-size:.97rem}
-  table.modes th,table.modes td{border:1px solid var(--line);padding:11px 14px;text-align:left;vertical-align:top}
-  table.modes th{font-family:var(--mono);font-size:.84rem;color:var(--phos);background:var(--panel)}
-  .cmdblock{background:#040705;border:1px solid var(--line);border-radius:8px;padding:14px 18px;font-family:var(--mono);font-size:.86rem;overflow-x:auto;margin-bottom:16px}
-  .cmdblock .lbl{color:var(--dim);font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:7px}
-  .note{border-left:3px solid var(--amber);background:var(--panel);padding:16px 20px;margin-bottom:14px}
-  .note p{margin-bottom:10px}
-  .note p:last-child{margin-bottom:0}
-  .pipe{width:100%;height:auto;margin-top:6px}
-  footer{border-top:1px solid var(--line);padding:22px 28px;font-family:var(--mono);font-size:.8rem;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px 26px}
-  @media (max-width:820px){.layout{grid-template-columns:1fr}dl.engine{grid-template-columns:1fr}dl.engine dt{border-bottom:none;padding-bottom:0}}
+/* I chose warm grey paper and a thin red rule for this file because I wanted it to read like a folder on a desk, not a screen in a lab. I keep the type in system stacks so the file looks the same wherever I open it. */
+:root{
+  --paper:#f4f1ea; --paper2:#ece8dd; --card:#faf8f2; --ink:#29261f; --muted:#6f6a5e;
+  --rule:#c8c0ac; --rule-dark:#9a927e; --stamp:#8c3324; --pencil:#3d4a5a;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:Georgia,"Times New Roman",Times,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.65;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,rgba(154,146,126,.10) 31px,rgba(154,146,126,.10) 32px)}
+a{color:var(--pencil);text-decoration:underline;text-underline-offset:3px}
+a:hover{color:var(--stamp)}
+img{max-width:100%}
+.wrap{max-width:1120px;margin:0 auto;padding:0 22px 64px}
+/* I put the case header in a band of its own because a dossier opens with identification, not with a sales pitch. I left it off centre on purpose: the stamp sits where my hand would put it, not in the middle. */
+.case-band{border-bottom:3px double var(--rule-dark);padding:30px 0 24px;margin-bottom:8px}
+.case-top{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.case-top img.mark{width:58px;height:58px;border:1px solid var(--rule);background:var(--card);padding:4px}
+.case-kicker{font-family:var(--mono);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.case-kicker b{color:var(--stamp);font-weight:700}
+h1{font-family:var(--serif);font-size:2.7rem;line-height:1.08;font-weight:700;max-width:16ch;margin-top:8px}
+h1 .spec{font-family:var(--mono);font-size:2.1rem;font-weight:700}
+.classline{margin-top:12px;font-family:var(--mono);font-size:.88rem;color:var(--ink);border-left:3px solid var(--stamp);padding-left:12px;max-width:62ch}
+.stamp{display:inline-block;margin-left:auto;font-family:var(--mono);font-size:.76rem;letter-spacing:.12em;text-transform:uppercase;color:var(--stamp);border:2px solid var(--stamp);padding:7px 10px;transform:rotate(2deg);background:rgba(255,255,255,.35)}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.badges img{height:22px;display:block}
+.case-meta{display:flex;flex-wrap:wrap;gap:6px 28px;margin-top:16px;font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+.case-meta b{color:var(--ink);font-weight:600}
+.banner{margin:22px 0 4px;border:1px solid var(--rule);background:var(--card);padding:8px;max-width:760px}
+.banner img{display:block;width:100%}
+.banner figcaption{font-family:var(--mono);font-size:.76rem;color:var(--muted);padding:8px 4px 2px}
+section{margin-top:52px;border-top:1px solid var(--rule);padding-top:20px}
+.sec-head{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;margin-bottom:18px}
+.sec-no{font-family:var(--mono);font-size:.78rem;letter-spacing:.12em;color:var(--stamp);text-transform:uppercase;white-space:nowrap}
+h2{font-family:var(--serif);font-size:1.65rem;line-height:1.2}
+.lede{max-width:68ch}
+.lede p{margin-bottom:14px;font-size:1.05rem}
+.lede p:last-child{margin-bottom:0}
+.two-col{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:32px;align-items:start}
+.side-note{border:1px solid var(--rule);background:var(--paper2);padding:16px 18px;font-size:.94rem}
+.side-note h3{font-family:var(--mono);font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;color:var(--pencil)}
+.side-note p{margin-bottom:10px}
+.side-note p:last-child{margin-bottom:0}
+.finding-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0}
+.num{border:1px solid var(--rule);background:var(--card);padding:16px 18px}
+.num .v{font-family:var(--mono);font-size:2rem;font-weight:700;line-height:1;color:var(--ink)}
+.num .l{font-size:.86rem;color:var(--muted);margin-top:6px}
+.hashblock{position:relative;overflow:hidden;border:1px solid var(--rule-dark);background:#fffdf6;padding:18px 20px;font-family:var(--mono);font-size:.86rem;line-height:1.7}
+.hashblock dt{color:var(--muted);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;margin-top:10px}
+.hashblock dt:first-child{margin-top:0}
+.hashblock dd{word-break:break-all}
+.scanbar{position:absolute;left:0;right:0;top:-14px;height:12px;background:linear-gradient(to bottom,rgba(140,51,36,0),rgba(140,51,36,.28),rgba(140,51,36,0));opacity:0;pointer-events:none}
+.hashblock.scanning .scanbar{animation:sweep 1.4s ease-in-out 1 forwards}
+@keyframes sweep{0%{top:-14px;opacity:1}100%{top:100%;opacity:1}}
+.findings-table{width:100%;border-collapse:collapse;font-size:.96rem;margin-top:18px;background:var(--card)}
+.findings-table th,.findings-table td{border:1px solid var(--rule);padding:10px 13px;text-align:left;vertical-align:top}
+.findings-table th{font-family:var(--mono);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;background:var(--paper2);color:var(--pencil)}
+.caption-note{font-size:.9rem;color:var(--muted);margin-top:12px;max-width:68ch}
+/* I filed the hand drawn sheets as exhibits because I drew them on paper first and I want a reader to meet them in that order, as evidence for the prose rather than as decoration beside it. I offset every second exhibit because a real folder is never perfectly aligned. */
+.exhibits{display:grid;gap:28px}
+.exhibit{border:1px solid var(--rule);background:var(--card);padding:10px;max-width:860px}
+.exhibit:nth-child(even){margin-left:auto}
+.exhibit img{display:block;width:100%;background:#fff}
+.exhibit figcaption{padding:10px 4px 3px;font-size:.92rem}
+.exhibit figcaption .ex{font-family:var(--mono);font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;color:var(--stamp);display:block;margin-bottom:4px}
+.mode-cols{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px}
+.mode{border:1px solid var(--rule);background:var(--card);padding:18px 20px}
+.mode h3{font-family:var(--serif);font-size:1.25rem;margin-bottom:8px}
+.mode p{margin-bottom:10px;font-size:.98rem}
+.mode p:last-child{margin-bottom:0}
+table.compare{width:100%;border-collapse:collapse;font-size:.95rem;background:var(--card)}
+table.compare th,table.compare td{border:1px solid var(--rule);padding:10px 13px;text-align:left;vertical-align:top}
+table.compare th{font-family:var(--mono);font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;background:var(--paper2)}
+pre.code,pre.run{background:#2b2925;color:#f0ead8;border-radius:4px;padding:16px 18px;overflow-x:auto;font-family:var(--mono);font-size:.84rem;line-height:1.6;white-space:pre}
+.cmd{border:1px solid var(--rule);background:var(--card);padding:14px 16px;font-family:var(--mono);font-size:.86rem;overflow-x:auto;white-space:pre;margin-bottom:14px}
+.cmd .lbl{display:block;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;white-space:normal}
+.disclosure{border-left:4px solid var(--stamp);background:#f8e9e4;padding:18px 20px;max-width:78ch}
+.disclosure p{margin-bottom:12px}
+.disclosure p:last-child{margin-bottom:0}
+.standing{max-width:72ch}
+.standing p{margin-bottom:14px}
+footer{border-top:3px double var(--rule-dark);margin-top:56px;padding-top:20px;display:flex;flex-wrap:wrap;gap:8px 28px;font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+/* I only hide a section before its reveal when I know script is running, because I want every word readable with script off. I keep the motion to a few pixels for the same reason I keep a folder tidy: order should be visible, not theatrical. */
+.js .reveal{opacity:0;transform:translateY(6px);transition:opacity .55s ease,transform .55s ease}
+.js .reveal.in{opacity:1;transform:none}
+@media (max-width:820px){
+  h1{font-size:2.1rem} h1 .spec{font-size:1.6rem}
+  .two-col,.mode-cols{grid-template-columns:1fr}
+  .finding-nums{grid-template-columns:1fr}
+  .stamp{margin-left:0}
+  .exhibit:nth-child(even){margin-left:0}
+}
+/* I still every animation here because I respect a reader who asks for reduced motion: no sweep, no counting, no sliding, and the final values stay on the page. */
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  .js .reveal{opacity:1;transform:none;transition:none}
+  .hashblock.scanning .scanbar{animation:none;opacity:0}
+  *{animation:none !important;transition:none !important}
+}
 </style>
 </head>
 <body>
-<!-- The top bar is plain on purpose: logo, name, two links. A lab tool does
-     not need a navigation menu, and neither does its website. -->
-<header class="topbar">
-  <img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/logo.png" alt="Event Zero logo">
-  <span class="name">EVENT_ZERO</span>
-  <span class="spacer"></span>
-  <a href="https://github.com/Epsilon0xCell/Event_Zero">github.com/Epsilon0xCell/Event_Zero</a>
-  <a href="https://github.com/Epsilon0xCell">my profile</a>
+<div class="wrap">
+
+<header class="case-band">
+  <div class="case-top">
+    <img class="mark" src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/logo.png" alt="Event Zero logo, a small mark in a square frame">
+    <div>
+      <p class="case-kicker">Case file <b>EZ / fake_malware / 01</b> &nbsp; Examiner: Epsilon0xCell</p>
+      <h1>Event Zero: the <span class="spec">fake_malware</span> case file</h1>
+      <p class="classline">Classification: one specimen, examined on paper. Specimen is a real Mach-O 64-bit ARM64 executable, 33,920 bytes, held in the repo as the test sample for my analyzer.</p>
+    </div>
+    <span class="stamp">Examined, not executed</span>
+  </div>
+  <div class="case-meta">
+    <span>Tool: <b>Event Zero</b></span>
+    <span>Modes: <b>local and autonomous</b></span>
+    <span>Local run filed: <b>31 Oct 2026</b></span>
+    <span>Repo: <b><a href="https://github.com/Epsilon0xCell/Event_Zero">github.com/Epsilon0xCell/Event_Zero</a></b></span>
+  </div>
+  <div class="badges">
+    <img alt="GitHub stars" src="https://img.shields.io/github/stars/Epsilon0xCell/Event_Zero?style=flat-square&label=stars">
+    <img alt="GitHub forks" src="https://img.shields.io/github/forks/Epsilon0xCell/Event_Zero?style=flat-square&label=forks">
+    <img alt="Last commit" src="https://img.shields.io/github/last-commit/Epsilon0xCell/Event_Zero?style=flat-square&label=last%20commit">
+    <img alt="Top language" src="https://img.shields.io/github/languages/top/Epsilon0xCell/Event_Zero?style=flat-square">
+    <img alt="Repository size" src="https://img.shields.io/github/repo-size/Epsilon0xCell/Event_Zero?style=flat-square&label=size">
+  </div>
+  <figure class="banner">
+    <img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/banner.png" alt="Event Zero banner artwork from the repository">
+    <figcaption>Frontispiece: the banner from the repository, filed at the front of this case so the folder and the repo carry the same face.</figcaption>
+  </figure>
 </header>
 
-<div class="layout">
-  <div>
-    <h1>Event <span class="zero">Zero</span>: malware analysis, two modes</h1>
-    <div class="lede">
-      <p>Event Zero is my malware analysis tool. I built it because I wanted to look at a suspicious file and get a straight answer about what is inside it, without handing the file to a website and without running it.</p>
-      <p>It works two ways. Local mode is pure Python standard library: it reads the sample as bytes, never executes it, and works offline with nothing to install. Autonomous mode builds a BlackArch container and lets Gemini direct standard analysis tools over several rounds, then writes a JSON report.</p>
-      <p>I wrote the local engine to compute everything from the bytes in front of it. Nothing is guessed and nothing is sent anywhere. The report even states its own limits: static analysis only, and a file with no indicators is not a proven safe file.</p>
-    </div>
-    <div class="statusline">sample handling: <b>read as bytes, never executed</b> &nbsp;|&nbsp; network in local mode: <b>none</b> &nbsp;|&nbsp; dependencies in local mode: <b>zero</b></div>
-    <div class="badges">
-      <img alt="stars" src="https://img.shields.io/github/stars/Epsilon0xCell/Event_Zero?style=flat-square&color=57e389&label=stars">
-      <img alt="forks" src="https://img.shields.io/github/forks/Epsilon0xCell/Event_Zero?style=flat-square&color=57e389&label=forks">
-      <img alt="last commit" src="https://img.shields.io/github/last-commit/Epsilon0xCell/Event_Zero?style=flat-square&color=57e389&label=last%20commit">
-      <img alt="top language" src="https://img.shields.io/github/languages/top/Epsilon0xCell/Event_Zero?style=flat-square&color=57e389">
-      <img alt="license" src="https://img.shields.io/github/license/Epsilon0xCell/Event_Zero?style=flat-square&color=57e389">
-      <img alt="repo size" src="https://img.shields.io/github/repo-size/Epsilon0xCell/Event_Zero?style=flat-square&color=57e389&label=size">
-    </div>
-  </div>
-  <figure class="evidence">
-    <img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/banner.png" alt="Event Zero banner">
-    <figcaption>fig. 1: the repo banner. Same art on the repo and here, because one identity is enough.</figcaption>
-  </figure>
-</div>
-
 <main>
-  <section>
-    <h2><span class="prompt">$</span> a real run, on the bundled sample</h2>
-    <!-- I ran this on 2026-10-30 against fake_malware, the safe fixture that
-         ships in the repo, and pasted the findings lines as they came out.
-         The tool prints emoji markers on every line; I stripped those for the
-         web and kept every value exact. The full JSON report is what the tool
-         writes next to where you run it. -->
-    <div class="term">
-      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>Event_Zero: local mode</span></div>
-<pre><span class="cmd">$ python3 autonomous_docker_malware_analyzer.py --file fake_malware --local</span>
-
-LOCAL STATIC ANALYSIS (no Docker, no API key, sample never executed)
-File:     fake_malware
-Size:     33,920 bytes
-SHA-256:  c9ab06a4fd594a82eb36d1aeb72e83e99df77a2ccd6a8ebd0ad078dd6b707802
-MD5:      a61191886fcf20bc8df01fe64c99203f
-Format:   Mach-O (64-bit), ARM64
-Segments: __PAGEZERO, __TEXT, __DATA_CONST, __LINKEDIT
-Sections: __text, __stubs, __cstring, __unwind_info, __got
-Linked:   /usr/lib/libSystem.B.dylib
-Entropy:  0.879 / 8.0
-Strings:  59 extracted
-<span class="warn">IPs found in strings: 127.0.0.1, 192.168.1.100 (planted in the fixture on purpose)</span>
-<span class="warn">Keyword hits: credential (Credentials: admin:password123), /bin/bash, socket (_socket)</span>
-
-Assessment (rule-based, from the findings above):
-  - Entropy is low because the file carries large zero-padded regions.
-    That does not mean the code sections are unencoded.
-  - Static strings alone do not prove the sample contacts those IPs.
-  - Keyword hits are leads for review, not proof of behavior.
-  - <span class="dim">This is static analysis only: the sample was read, never run.
-    Absence of indicators here is not proof a file is safe.</span></pre>
+<section class="reveal" aria-labelledby="about-h">
+  <div class="sec-head"><span class="sec-no">File note 01</span><h2 id="about-h">What I built, in my own words</h2></div>
+  <div class="two-col">
+    <div class="lede">
+      <p>I built Event Zero because I wanted a straight answer about a suspicious file without handing that file to a website and without running it. I point the tool at a path, and it reads the bytes and tells me what it can prove from those bytes alone: hashes, format, entropy, strings, and the indicators hiding in those strings.</p>
+      <p>Local mode is the part I trust for a first look. It is pure Python standard library, it works offline, it needs nothing installed beyond Python 3.8 or newer, and it never executes the sample. It writes a plain summary to the terminal and a JSON report beside it, and that report states its own limits in writing.</p>
+      <p>Autonomous mode is the longer route. It builds a BlackArch container, copies the sample in, and lets Gemini direct standard analysis tools over several rounds until the model marks the work complete or the iteration cap is reached. I keep both modes in one file so the command line, the exit codes, and the report shape stay in one place.</p>
+      <p>fake_malware is the specimen I return to. I made it as the test sample for this analyzer, with planted strings I can check the findings against. This page is its dossier: what local mode found, the sheets I drew to explain the system, and an honest note on where the tool stops.</p>
     </div>
-  </section>
+    <aside class="side-note">
+      <h3>Handling note</h3>
+      <p>Sample handling in local mode: read as bytes, never executed.</p>
+      <p>Network in local mode: none. Dependencies in local mode: none beyond Python itself.</p>
+      <p>Links: <a href="https://github.com/Epsilon0xCell/Event_Zero">the repository</a> and <a href="https://github.com/Epsilon0xCell">my GitHub profile</a>.</p>
+    </aside>
+  </div>
+</section>
 
-  <section>
-    <h2><span class="prompt">$</span> what the local engine actually computes</h2>
-    <!-- A definition list instead of feature cards. This is a reference tool,
-         so I laid its abilities out like reference material: term, then the
-         plain fact of how it is computed. -->
-    <dl class="engine">
-      <dt>hashes</dt><dd>MD5, SHA-1, and SHA-256, calculated directly from the file bytes.</dd>
-      <dt>format parsing</dt><dd>Real header parsing for Mach-O (including fat binaries, segments, sections, and linked libraries), ELF (class, machine, object type), and PE (machine, PE32 or PE32+, section names). ZIP, PDF, scripts, and plain text are identified by signature.</dd>
-      <dt>entropy</dt><dd>Whole-file Shannon entropy, with the caveat printed in the report when a format carries large zero-padded regions.</dd>
-      <dt>strings</dt><dd>Printable ASCII and UTF-16LE strings, extracted from the bytes.</dd>
-      <dt>indicators</dt><dd>URLs and IP addresses found in strings, plus hits against a built-in suspicious-keyword watchlist. Presented as leads, not proof.</dd>
-      <dt>eicar</dt><dd>Detection of the EICAR anti-malware test file by its known SHA-256.</dd>
-      <dt>assessment</dt><dd>A short rule-based summary of the findings, which states its own limits inside the report.</dd>
-    </dl>
-  </section>
+<section class="reveal" aria-labelledby="findings-h">
+  <div class="sec-head"><span class="sec-no">Section A</span><h2 id="findings-h">Findings from a local run</h2></div>
+  <p class="lede" style="margin-bottom:6px">I re-ran the tool myself for this rebuild, in a copy of the repo, with the command shown under Run it below. The table and the hash block are that run, filed as I found it.</p>
 
-  <section>
-    <h2><span class="prompt">$</span> how local mode flows</h2>
-    <!-- I drew this diagram by hand in SVG because the repo has no screenshots
-         and I am not going to fake a UI the tool does not have. Five boxes,
-         because the pipeline honestly has five steps. -->
-    <svg class="pipe" viewBox="0 0 1120 120" role="img" aria-label="Local mode pipeline: sample bytes, parse headers, extract strings, find indicators, JSON report">
-      <g font-family="ui-monospace,Menlo,Consolas,monospace" font-size="15">
-        <rect x="5" y="30" width="190" height="58" fill="#0b120d" stroke="#57e389"/>
-        <text x="100" y="56" fill="#d9e8dd" text-anchor="middle">sample bytes</text>
-        <text x="100" y="77" fill="#8fae97" text-anchor="middle" font-size="12">never executed</text>
-        <rect x="235" y="30" width="190" height="58" fill="#0b120d" stroke="#1e3325"/>
-        <text x="330" y="56" fill="#d9e8dd" text-anchor="middle">parse headers</text>
-        <text x="330" y="77" fill="#8fae97" text-anchor="middle" font-size="12">Mach-O / ELF / PE</text>
-        <rect x="465" y="30" width="190" height="58" fill="#0b120d" stroke="#1e3325"/>
-        <text x="560" y="56" fill="#d9e8dd" text-anchor="middle">extract strings</text>
-        <text x="560" y="77" fill="#8fae97" text-anchor="middle" font-size="12">ASCII + UTF-16LE</text>
-        <rect x="695" y="30" width="190" height="58" fill="#0b120d" stroke="#1e3325"/>
-        <text x="790" y="56" fill="#d9e8dd" text-anchor="middle">find indicators</text>
-        <text x="790" y="77" fill="#8fae97" text-anchor="middle" font-size="12">URLs, IPs, keywords</text>
-        <rect x="925" y="30" width="190" height="58" fill="#0b120d" stroke="#57e389"/>
-        <text x="1020" y="56" fill="#d9e8dd" text-anchor="middle">JSON report</text>
-        <text x="1020" y="77" fill="#8fae97" text-anchor="middle" font-size="12">limits stated inside</text>
-        <g stroke="#57e389" stroke-width="2">
-          <line x1="195" y1="59" x2="231" y2="59"/><line x1="425" y1="59" x2="461" y2="59"/>
-          <line x1="655" y1="59" x2="691" y2="59"/><line x1="885" y1="59" x2="921" y2="59"/>
-        </g>
-      </g>
-    </svg>
-  </section>
+  <div class="finding-nums" aria-label="Headline findings">
+    <div class="num"><div class="v"><span data-count="59">59</span></div><div class="l">strings extracted from the specimen</div></div>
+    <div class="num"><div class="v"><span data-count="2">2</span></div><div class="l">IP addresses found in those strings</div></div>
+    <div class="num"><div class="v"><span data-count="0.879" data-decimals="3">0.879</span></div><div class="l">whole file entropy, out of 8.0</div></div>
+  </div>
 
-  <section>
-    <h2><span class="prompt">$</span> the two modes, side by side</h2>
-    <table class="modes">
-      <tr><th></th><th>Local mode</th><th>Autonomous mode</th></tr>
-      <tr><td><b>Needs</b></td><td>Python 3.8 or newer. Nothing else.</td><td>Docker running, plus a Google Gemini API key.</td></tr>
-      <tr><td><b>Does</b></td><td>Offline static analysis in pure standard library Python.</td><td>Builds a BlackArch container, copies the sample in, and iterates: Gemini proposes analysis code, it runs in the container, results come back, until the model marks the analysis complete or the iteration cap (default 50) is hit.</td></tr>
-      <tr><td><b>Fallback</b></td><td>Not needed. It either reads the file or fails cleanly with a reason.</td><td>If the API fails repeatedly, a built-in fallback performs basic static analysis inside the container instead.</td></tr>
-      <tr><td><b>Writes</b></td><td>A JSON report next to where you ran it, or the path you pass with --output.</td><td>autonomous_analysis_report with a timestamp. The container is stopped and removed; the image is kept for reuse.</td></tr>
-      <tr><td><b>Exit codes</b></td><td colspan="2">0 on success, 1 on a clean explained failure (missing file, missing API key, Docker unavailable), 2 on bad command line arguments.</td></tr>
-    </table>
-  </section>
+  <!-- I let one thin scan bar pass once over this hash block when it first comes into view because I want a reader to feel the moment of examination, then stop. I keep it to the hash block only: the rest of the file should sit still like paper. -->
+  <dl class="hashblock" id="hashblock">
+    <span class="scanbar" aria-hidden="true"></span>
+    <dt>File</dt><dd>fake_malware</dd>
+    <dt>Size</dt><dd>33,920 bytes</dd>
+    <dt>SHA-256</dt><dd>c9ab06a4fd594a82eb36d1aeb72e83e99df77a2ccd6a8ebd0ad078dd6b707802</dd>
+    <dt>MD5</dt><dd>a61191886fcf20bc8df01fe64c99203f</dd>
+    <dt>Format and architecture</dt><dd>Mach-O (64-bit), ARM64</dd>
+    <dt>Entropy</dt><dd>0.879 / 8.0</dd>
+  </dl>
 
-  <section>
-    <h2><span class="prompt">$</span> run it yourself</h2>
-    <div class="cmdblock"><span class="lbl">Local mode, on the bundled sample</span>git clone https://github.com/Epsilon0xCell/Event_Zero.git
+  <table class="findings-table">
+    <tr><th scope="col">Item</th><th scope="col">As printed by the run</th></tr>
+    <tr><td>Segments</td><td>__PAGEZERO, __TEXT, __DATA_CONST, __LINKEDIT</td></tr>
+    <tr><td>Sections</td><td>__text, __stubs, __cstring, __unwind_info, __got</td></tr>
+    <tr><td>Linked library</td><td>/usr/lib/libSystem.B.dylib</td></tr>
+    <tr><td>Strings</td><td>59 extracted</td></tr>
+    <tr><td>IP addresses</td><td>127.0.0.1 and 192.168.1.100</td></tr>
+    <tr><td>Keyword hits</td><td>credential, /bin/bash, socket</td></tr>
+  </table>
+  <p class="caption-note">Caption on this capture: values from a real local run on 2026-10-31 at the current head. The tool decorates its own terminal lines with small icons; I have not copied those icons onto this page, and the values here are unchanged. The run also prints an assessment in plain sentences: the low entropy comes from large zero padded regions, strings alone do not prove the sample contacts those addresses, keyword hits are leads for review rather than proof, and a file with no indicators is not thereby proven safe.</p>
+
+  <h3 style="font-family:var(--serif);font-size:1.2rem;margin:26px 0 10px">A short piece of the engine, as written</h3>
+  <!-- Source for the excerpt below: autonomous_docker_malware_analyzer.py, lines 1713 to 1729 at the head named in my wave note. I chose this function because each line is short enough to read on a phone and because entropy is one of the three numbers I headline above. -->
+  <pre class="code">    @staticmethod
+    def _shannon_entropy(data: bytes) -&gt; float:
+        if not data:
+            return 0.0
+        # I count bytes in a plain Python loop. That is slow on a large
+        # file, and I keep it because local mode promises standard
+        # library only and the files I analyse are small enough that
+        # the simple version wins.
+        counts = [0] * 256
+        for b in data:
+            counts[b] += 1
+        entropy = 0.0
+        for c in counts:
+            if c:
+                p = c / len(data)
+                entropy -= p * math.log2(p)
+        return entropy</pre>
+  <p class="caption-note">Excerpt: <span style="font-family:var(--mono)">autonomous_docker_malware_analyzer.py</span>, lines 1713 to 1729, as written. This is the whole file Shannon entropy that local mode reports.</p>
+</section>
+
+<section class="reveal" aria-labelledby="exhibits-h">
+  <div class="sec-head"><span class="sec-no">Section B</span><h2 id="exhibits-h">Exhibits: the sheets I drew by hand</h2></div>
+  <p class="lede" style="margin-bottom:20px">I drew these sheets on paper to explain a tool that has no screen of its own. I file them here in order, as exhibits, because each one answers a different question a reader asks before trusting the prose.</p>
+  <div class="exhibits">
+    <figure class="exhibit">
+      <img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/Event_Zero-Visuals/architecture.png" alt="Hand drawn architecture sheet showing one entry point and the fork between the local analyzer and the Docker plus Gemini analyzer">
+      <figcaption><span class="ex">Exhibit 1 / Architecture</span>The system shape as I drew it: one entry point, then a fork. The local column and the autonomous column do not share a path after that fork, and I need a reader to see that split first.</figcaption>
+    </figure>
+    <figure class="exhibit">
+      <img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/Event_Zero-Visuals/flowchart.png" alt="Hand drawn flowchart of a run, following the local single pass and the autonomous loop as decisions">
+      <figcaption><span class="ex">Exhibit 2 / Flowchart</span>A run followed as decisions. Local mode is one pass. Autonomous mode loops, up to its cap, with error output fed back in, until the model marks the analysis complete.</figcaption>
+    </figure>
+    <figure class="exhibit">
+      <img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/Event_Zero-Visuals/product-map.png" alt="Hand drawn product map sheet showing who the tool serves, what goes in, what comes out, and where it stops">
+      <figcaption><span class="ex">Exhibit 3 / Product map</span>The product in one frame: who it serves, what goes in, what comes out, and where it stops. I drew the boundary on the same sheet as the promise so neither travels alone.</figcaption>
+    </figure>
+    <figure class="exhibit">
+      <img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/Event_Zero-Visuals/data-flow.png" alt="Hand drawn data flow sheet showing bytes in, hashes and format parsing, entropy and strings, indicators, assessment, and a JSON report out">
+      <figcaption><span class="ex">Exhibit 4 / Data flow</span>The local pipeline left to right: bytes in, hashes and format parse, entropy and strings, indicators, assessment, JSON report out. I drew it as a straight line because the code is a straight line and nothing in that path sends data anywhere.</figcaption>
+    </figure>
+    <figure class="exhibit">
+      <img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/Event_Zero-Visuals/statistics.png" alt="Hand drawn statistics sheet with bars for lines by kind and notes on file and commit counts from the repository">
+      <figcaption><span class="ex">Exhibit 5 / Statistics</span>Numbers from the repo itself, drawn as bars on paper: lines by kind, with file and commit counts noted under them. I used only repo counts here because no outside number says anything honest about this project.</figcaption>
+    </figure>
+    <figure class="exhibit">
+      <img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/Event_Zero-Visuals/schematic.png" alt="Hand drawn schematic sheet from the visuals folder, sketching the analyzer and its parts in plan form">
+      <figcaption><span class="ex">Exhibit 6 / Schematic</span>The schematic sheet that ships in the visuals folder beside the other five: the analyzer and its parts set out in plan form, in the same hand and on the same kind of paper.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="reveal" aria-labelledby="modes-h">
+  <div class="sec-head"><span class="sec-no">Section C</span><h2 id="modes-h">Local and autonomous, side by side</h2></div>
+  <div class="mode-cols">
+    <article class="mode">
+      <h3>Local mode</h3>
+      <p>I reach for local mode first. I run it on my own machine, offline, and it reads the sample as bytes from start to finish. It computes hashes, parses Mach-O, ELF, and PE headers, measures entropy, extracts ASCII and UTF-16LE strings, and pulls URLs, addresses, and keyword hits from those strings.</p>
+      <p>It needs no Docker, no network, and no key. When it finishes, it leaves a JSON report next to where I ran it, or at the path I give it. If the file is missing, it fails cleanly and tells me why.</p>
+    </article>
+    <article class="mode">
+      <h3>Autonomous mode</h3>
+      <p>I use autonomous mode when I want the longer examination. It builds or reuses a BlackArch image, starts a container with the sample inside at a fixed path, and loops: Gemini proposes analysis code, that code runs in the container, and the results go back for the next round.</p>
+      <p>It needs Docker running and a Gemini key. If the calls fail again and again, a built in fallback does basic static work inside the container instead. At the end it writes a timestamped report, then stops and removes the container and keeps the image for reuse.</p>
+    </article>
+  </div>
+  <table class="compare">
+    <tr><th scope="col">Point</th><th scope="col">Local</th><th scope="col">Autonomous</th></tr>
+    <tr><td>Needs</td><td>Python 3.8 or newer. Nothing else.</td><td>Docker running, plus a Google Gemini API key.</td></tr>
+    <tr><td>Sample handling</td><td>Read as bytes, never executed, no network.</td><td>Copied into a container; analysis tooling runs against it there.</td></tr>
+    <tr><td>Writes</td><td>JSON report beside the run, or the path passed with the output option.</td><td>Timestamped autonomous report. Container removed, image kept.</td></tr>
+    <tr><td>Stops when</td><td>The single pass finishes.</td><td>The model marks the work complete, or the iteration cap is reached. Default cap is 50.</td></tr>
+    <tr><td>Exit codes</td><td colspan="2">0 on success, 1 on a clean explained failure such as a missing file, a missing key, or Docker unavailable, 2 on bad command line arguments.</td></tr>
+  </table>
+</section>
+
+<section class="reveal" aria-labelledby="run-h">
+  <div class="sec-head"><span class="sec-no">Section D</span><h2 id="run-h">Run it yourself</h2></div>
+  <div class="cmd"><span class="lbl">Local mode, on the bundled sample</span>git clone https://github.com/Epsilon0xCell/Event_Zero.git
 cd Event_Zero
 python3 autonomous_docker_malware_analyzer.py --file fake_malware --local</div>
-    <div class="cmdblock"><span class="lbl">Autonomous mode</span>export GEMINI_API_KEY=&lt;your key&gt;
+  <div class="cmd"><span class="lbl">Autonomous mode</span>export GEMINI_API_KEY="your key here"
 python3 autonomous_docker_malware_analyzer.py --file /path/to/sample</div>
-    <div class="cmdblock"><span class="lbl">The test suite (hashes verified against hashlib, EICAR detection, Mach-O parsing, CLI smoke tests)</span>python3 -m unittest discover -s tests -v</div>
-    <p style="color:var(--dim);font-size:.94rem">fake_malware is a small Mach-O ARM64 executable I built as the test sample, and it is real executable code, not inert text. It carries planted strings (192.168.1.100, 127.0.0.1, a fake credential line, a socket symbol) for local mode to find, and if it is executed it also performs its simulation: system information and a process list written under /tmp, a persistence script created in /tmp, and a connection attempt to 127.0.0.1:4444. Every observed effect is confined to /tmp and loopback and no external destination was found, but the audit was static, with no disassembler available, so treat it as live sample code and never run it outside a controlled analysis environment. Local mode never executes it; it reads and analyzes the bytes.</p>
-  </section>
+  <div class="cmd"><span class="lbl">Tests</span>python3 -m unittest discover -s tests -v</div>
+  <p class="caption-note">I keep the test note plain: the suite checks hashes against the standard library, checks EICAR detection, parses the bundled Mach-O sample, and runs the command line end to end in local mode.</p>
+</section>
 
-  <section>
-    <h2><span class="prompt">$</span> where it stands, honestly</h2>
-    <div class="note">
-      <p>Local mode never runs the sample. Autonomous mode runs analysis tooling against the sample inside a container. For genuinely hostile files, my own README says it and I will say it here too: use a hardened, network-isolated VM, not a workstation.</p>
-      <p>The keyword watchlist produces leads, not verdicts. I present it that way in the report because that is all static analysis can honestly give, and I would rather understate a finding than dress one up.</p>
-    </div>
-  </section>
+<section class="reveal" aria-labelledby="stands-h">
+  <div class="sec-head"><span class="sec-no">Section E</span><h2 id="stands-h">Where it stands, honestly</h2></div>
+  <div class="standing">
+    <p>Local mode is the finished half of this tool in the way that matters to me: it runs anywhere Python runs, it states its limits inside its own report, and I can verify every number it prints by hand. Static analysis only is a real limit, and I would rather print that limit than dress a lead up as a verdict.</p>
+    <p>Autonomous mode works, but its container path is still verified by hand more than by test. If I return to this repo, that is the gap I would close first: a container run in the test suite, so that half stops resting on my own runs alone.</p>
+    <p>For a genuinely hostile file, my README says it and I will say it here too: use a hardened, network isolated virtual machine rather than a workstation. Neither mode in this tool replaces a real sandbox, and neither mode should be read as a final word on a file.</p>
+  </div>
+
+  <h3 style="font-family:var(--serif);font-size:1.25rem;margin:28px 0 12px">Disclosure on the specimen</h3>
+  <div class="disclosure">
+    <p>fake_malware is a real Mach-O 64-bit ARM64 executable, not inert text. If executed, its embedded steps write whoami, id, and uname output to files under /tmp, create /tmp/persistence.sh and make it executable (written, not installed in any autostart location), dump a process list to /tmp, remove a test file, and attempt a connection to 127.0.0.1:4444.</p>
+    <p>Its printed simulation list includes a crypto mining simulation line, with no mining pool endpoint in the binary. Local mode never executes it: local mode reads it as bytes and analyzes it, and autonomous mode runs analysis tooling on it inside a container.</p>
+    <p>I treat this file as live sample code. I do not execute it outside a controlled analysis environment, and I ask anyone who clones the repo to do the same.</p>
+  </div>
+</section>
 </main>
 
-<!-- Colophon, because tools should say who set them. This page is set in
-     monospace and system sans, on one green, because that is the desk the
-     tool lives on. -->
+<!-- I sign this file the way I would sign a folder I had finished with: my handle, the repo, and one line on how the page was set. I set it in system type on warm paper, with the exhibits filed as photographs of the paper sheets I drew. -->
 <footer>
-  <span>Built by Epsilon0xCell.</span>
-  <span><a href="https://github.com/Epsilon0xCell/Event_Zero">View the code</a></span>
-  <span><a href="https://epsilon0xcell.github.io/">All my project sites</a></span>
-  <span>Written in first person, from the repo record, 2026-10-30.</span>
+  <span>Built by Epsilon0xCell</span>
+  <span><a href="https://github.com/Epsilon0xCell/Event_Zero">Repository</a></span>
+  <span><a href="https://github.com/Epsilon0xCell">Profile</a></span>
+  <span>Colophon: I set this case file in Georgia and system sans on warm grey paper, exhibits as the hand drawn sheets from the repo, filed 31 Oct 2026.</span>
 </footer>
+</div>
+
+<script>
+/* I add the script marker to the root element myself so my stylesheet only hides sections when I know this script can bring them back. I do that to keep the whole file readable with script off. */
+document.documentElement.classList.add('js');
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* I reveal each section in filing order as it enters the view because I want the dossier to assemble top to bottom, the way I filed it. I use an observer so a section I have already passed does not animate again behind me. */
+  var reveals = document.querySelectorAll('.reveal');
+  if (reduced || !('IntersectionObserver' in window)) {
+    reveals.forEach(function(el){ el.classList.add('in'); });
+  } else {
+    var ro = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) { e.target.classList.add('in'); ro.unobserve(e.target); }
+      });
+    }, {threshold: 0.12});
+    reveals.forEach(function(el){ ro.observe(el); });
+  }
+  /* I count the three headline findings up once because those numbers are the point of Section A and I want a reader to land on them. I start from the printed final values in the markup, so a reader with script off or reduced motion still sees the true figures. */
+  function countUp(el){
+    var target = parseFloat(el.getAttribute('data-count'));
+    var dec = parseInt(el.getAttribute('data-decimals') || '0', 10);
+    if (reduced) { el.textContent = target.toFixed(dec); return; }
+    var start = null, dur = 900;
+    function step(ts){
+      if (!start) start = ts;
+      var p = Math.min((ts - start) / dur, 1);
+      el.textContent = (target * p).toFixed(dec);
+      if (p < 1) requestAnimationFrame(step); else el.textContent = target.toFixed(dec);
+    }
+    requestAnimationFrame(step);
+  }
+  var counters = document.querySelectorAll('[data-count]');
+  if (!('IntersectionObserver' in window)) {
+    counters.forEach(function(el){ el.textContent = parseFloat(el.getAttribute('data-count')).toFixed(parseInt(el.getAttribute('data-decimals') || '0', 10)); });
+  } else {
+    var co = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) { countUp(e.target); co.unobserve(e.target); }
+      });
+    }, {threshold: 0.4});
+    counters.forEach(function(el){ co.observe(el); });
+  }
+  /* I sweep the scan bar once when the hash block arrives because I want one quiet pass of the examiner light over the identifiers, and then stillness. I do not loop it, because a loop would turn an examination into a decoration. */
+  var hb = document.getElementById('hashblock');
+  if (hb) {
+    if (reduced || !('IntersectionObserver' in window)) {
+      hb.classList.remove('scanning');
+    } else {
+      var so = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+          if (e.isIntersecting) { hb.classList.add('scanning'); so.unobserve(hb); }
+        });
+      }, {threshold: 0.35});
+      so.observe(hb);
+    }
+  }
+})();
+</script>
 </body>
 </html>
