@@ -128,10 +128,31 @@ no API key).
 
 ## The Bundled Sample
 
-`fake_malware` is a small Mach-O ARM64 executable built as a safe test
-fixture. It is not malware. It deliberately contains planted strings (for
-example `192.168.1.100`, `127.0.0.1`, a fake credential line, and a socket
-symbol) so you can watch local mode find them.
+`fake_malware` is a real executable, not an inert text fixture: a Mach-O
+64-bit ARM64 binary (33,920 bytes) built as the test sample for this
+analyzer. It contains planted strings (for example `192.168.1.100`,
+`127.0.0.1`, a fake credential line, and a socket symbol) so you can watch
+local mode find them, and that is not all it does.
+
+If the binary is executed, its embedded steps run as shell commands in
+the shape of arguments to `system()`: `whoami`, `id`, and `uname` output
+written to files under `/tmp`, a persistence script created at
+`/tmp/persistence.sh` and made executable (written there, not installed
+in any autostart location), a process list dumped to `/tmp`, a test file
+removed, and a connection attempt to `127.0.0.1` port `4444`, which is
+loopback. Its own printed output lists what it simulated, including a
+line about a crypto mining simulation: CPU looping, with no mining pool
+endpoint in the binary.
+
+What the security audit of this repo (2026-10-30) could verify, and what
+it could not: every observed effect is confined to `/tmp` and loopback,
+and no external network destination was found in the binary. The audit
+was static, and no Mach-O disassembler was available to it, so it could
+not confirm call by call which embedded strings reach `system()`. Treat
+this file as live sample code and never execute it outside a controlled
+analysis environment. Event_Zero itself never executes it in local mode:
+local mode reads it as bytes and analyzes it, and autonomous mode runs
+analysis tooling on it inside a container.
 
 ---
 

@@ -202,13 +202,13 @@ Assessment (rule-based, from the findings above):
 
   <section>
     <h2><span class="prompt">$</span> run it yourself</h2>
-    <div class="cmdblock"><span class="lbl">Local mode, on the bundled safe sample</span>git clone https://github.com/Epsilon0xCell/Event_Zero.git
+    <div class="cmdblock"><span class="lbl">Local mode, on the bundled sample</span>git clone https://github.com/Epsilon0xCell/Event_Zero.git
 cd Event_Zero
 python3 autonomous_docker_malware_analyzer.py --file fake_malware --local</div>
     <div class="cmdblock"><span class="lbl">Autonomous mode</span>export GEMINI_API_KEY=&lt;your key&gt;
 python3 autonomous_docker_malware_analyzer.py --file /path/to/sample</div>
     <div class="cmdblock"><span class="lbl">The test suite (hashes verified against hashlib, EICAR detection, Mach-O parsing, CLI smoke tests)</span>python3 -m unittest discover -s tests -v</div>
-    <p style="color:var(--dim);font-size:.94rem">fake_malware is a small Mach-O ARM64 executable I built as a safe test fixture. It is not malware. It carries planted strings, including 192.168.1.100, 127.0.0.1, a fake credential line, and a socket symbol, so you can watch local mode find them.</p>
+    <p style="color:var(--dim);font-size:.94rem">fake_malware is a small Mach-O ARM64 executable I built as the test sample, and it is real executable code, not inert text. It carries planted strings (192.168.1.100, 127.0.0.1, a fake credential line, a socket symbol) for local mode to find, and if it is executed it also performs its simulation: system information and a process list written under /tmp, a persistence script created in /tmp, and a connection attempt to 127.0.0.1:4444. Every observed effect is confined to /tmp and loopback and no external destination was found, but the audit was static, with no disassembler available, so treat it as live sample code and never run it outside a controlled analysis environment. Local mode never executes it; it reads and analyzes the bytes.</p>
   </section>
 
   <section>
