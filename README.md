@@ -164,3 +164,11 @@ Creative Commons Attribution-NonCommercial 4.0 International. See the
 
 - Issues: [GitHub Issues](https://github.com/Epsilon0xCell/Event_Zero/issues)
 - Discussions: [GitHub Discussions](https://github.com/Epsilon0xCell/Event_Zero/discussions)
+
+---
+
+## Diagrams and maps
+
+I drew the system out in [Event_Zero-Visuals](Event_Zero-Visuals/): an architecture diagram, a data-flow diagram, a flowchart of a run, and a product map, with the written product map, statistics with citations, and the roadmap in [VISUAL.md](Event_Zero-Visuals/VISUAL.md). Every sheet also ships as a PNG photograph of the paper page beside its SVG.
+
+![Event Zero architecture](Event_Zero-Visuals/architecture.svg)
