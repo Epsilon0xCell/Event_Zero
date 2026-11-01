@@ -1,6 +1,12 @@
-![Banner](banner.png)
+![Intro: the racing loft at late afternoon, one bird landing on the board, a forgotten gold ring, every head turned up](intro-banner.png)
 
 # Event Zero: Malware Analysis, Two Modes
+
+![Banner](banner.png)
+
+![Scene: looking up through the loft, dew on a web, bee frames waggling, a race ring drifting home](assets-scene.svg)
+
+![Heading plate: a wing mark at the left of the heading, the entry ruled beneath](sep-light.svg)
 
 Event Zero analyzes a suspicious file in one of two ways:
 
@@ -36,6 +42,8 @@ Local mode prints a plain-English summary to the terminal and writes a JSON
 report next to where you ran it (`event_zero_local_report_<timestamp>.json`,
 or pass `--output report.json` to choose the path).
 
+> **Clocking slip.** Tied as a ring is tied, in the secretary's hand: read as bytes, never executed, no network, nothing sent anywhere.
+
 ### What local mode actually computes
 
 Everything below is calculated directly from the file bytes. Nothing is
@@ -57,6 +65,8 @@ guessed and nothing is sent anywhere:
   indicators is not proof a file is safe.
 
 ---
+
+![Separator: dew drops beading along a spider web line, swelling in sequence until the line sags](sep-heavy.svg)
 
 ## Autonomous Mode
 
@@ -112,6 +122,8 @@ Exit codes: `0` on success, `1` on a clean, explained failure (missing file,
 missing API key, Docker unavailable), `2` on bad command line arguments.
 
 ---
+
+![Separator: the web line shortened to the centre third, three drops only](sep-light.svg)
 
 ## Tests
 
