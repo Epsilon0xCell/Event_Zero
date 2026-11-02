@@ -2,6 +2,20 @@
 
 # Event Zero: Malware Analysis, Two Modes
 
+**Offline malware triage in pure Python.** Event Zero reads a suspicious file as bytes and never executes it in local mode: hashes, real Mach-O, ELF and PE header parsing, entropy, strings, indicators, and a plain English report in JSON. No install, no network, no API key.
+
+Try it in one minute:
+
+```bash
+git clone https://github.com/Epsilon0xCell/Event_Zero.git
+cd Event_Zero
+python3 autonomous_docker_malware_analyzer.py --file fake_malware --local
+```
+
+![Event Zero architecture](Event_Zero-Visuals/architecture.svg)
+
+If it earns a place in your toolbox, a star helps the next analyst find it.
+
 ![Banner](banner.png)
 
 ![Scene: looking up through the loft, dew on a web, bee frames waggling, a race ring drifting home](assets-scene.svg)
