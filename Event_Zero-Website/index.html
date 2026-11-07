@@ -3,57 +3,58 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Event Zero: the arrivals board, case file EZ / fake_malware / 01</title>
-<meta name="description" content="Event Zero kept as a racing loft arrivals board: the fake_malware case file, local findings, exhibits, the two modes, and where the tool stands.">
+<title>Event Zero: specimen under examination, case file EZ / fake_malware / 01</title>
+<meta name="description" content="Event Zero kept as a forensic examination file: the fake_malware specimen, local findings, exhibits, the two modes, and where the tool stands.">
 <style>
-@font-face{font-family:'Agu Display';src:url('fonts/AguDisplay-Regular.ttf') format('truetype')}
-@font-face{font-family:'Cabin';src:url('fonts/Cabin-Regular.ttf') format('truetype')}
-:root{--wood:#7a5630;--wood2:#5f421f;--board:#33402f;--gold:#d8a434;--clover:#568c3e;--sky:#dcebf2;--chalk:#faf8f0;--ink:#26221a}
+@font-face{font-family:'Chakra Petch';src:url('fonts/ChakraPetch-Regular.ttf') format('truetype');font-weight:400}
+@font-face{font-family:'Chakra Petch';src:url('fonts/ChakraPetch-Bold.ttf') format('truetype');font-weight:700}
+@font-face{font-family:'Inter';src:url('fonts/Inter-Regular.ttf') format('truetype');font-weight:400}
+@font-face{font-family:'Inter';src:url('fonts/Inter-Bold.ttf') format('truetype');font-weight:700}
+:root{--paper:#eceff0;--sheet:#f7f9f9;--gun:#2b2f33;--gun2:#454b51;--ink:#191c1e;--amber:#e39a1e;--amberdeep:#a96f0c;--black:#0e1013}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--wood2);color:var(--ink);font-family:'Cabin',sans-serif;line-height:1.62}
-.board{max-width:1060px;margin:26px auto 46px;background:var(--board);border:14px solid var(--wood);outline:3px solid var(--wood2);padding:30px 34px 40px;color:var(--chalk)}
-h1,h2,h3{font-family:'Agu Display',serif;font-weight:400}
-h1{font-size:2.9rem;line-height:1.05}
-h2{font-size:1.85rem;border-bottom:2px solid rgba(250,248,240,.35);padding-bottom:6px}
-h3{font-size:1.3rem}
+body{background:var(--black);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.62}
+.board{max-width:1060px;margin:26px auto 46px;background:var(--paper);border:14px solid var(--gun);outline:2px solid var(--amber);padding:30px 34px 40px;color:var(--ink)}
+h1,h2,h3{font-family:'Chakra Petch',sans-serif;font-weight:700}
+h1{font-size:2.7rem;line-height:1.08}
+h2{font-size:1.8rem;border-bottom:3px solid var(--gun);padding-bottom:6px}
+h3{font-size:1.25rem}
 p{margin-top:11px;max-width:70ch}
-.kicker{font-size:.86rem;letter-spacing:.13em;text-transform:uppercase;color:var(--gold)}
+.kicker{font-family:'Chakra Petch',sans-serif;font-size:.86rem;letter-spacing:.13em;text-transform:uppercase;color:var(--amberdeep)}
 .meta{display:flex;flex-wrap:wrap;gap:6px 26px;margin-top:14px;font-size:.92rem}
 .badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.badges img{height:22px}
-figure{margin-top:18px}figure img{width:100%;display:block;border:4px solid var(--wood)}
-figcaption{font-size:.87rem;color:#cfd8c9;padding-top:7px}
+figure{margin-top:18px}figure img{width:100%;display:block;border:4px solid var(--gun)}
+figcaption{font-size:.87rem;color:var(--gun2);padding-top:7px}
 section{margin-top:44px}
-.btn{display:inline-block;border:2px solid var(--gold);border-radius:50%/62%;padding:.55em 1.5em;color:var(--chalk);text-decoration:none;font-family:'Agu Display',serif;font-size:1.05rem;margin:.4em .35em 0 0;background:rgba(216,164,52,.12);position:relative;overflow:hidden}
-.btn:hover{color:#ffe9ad}.btn:hover::after{content:'';position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,240,190,.45) 50%,transparent 70%)}
+.btn{display:inline-block;border:2px solid var(--gun);padding:.55em 1.5em;color:#fff;text-decoration:none;font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:1rem;margin:.4em .35em 0 0;background:var(--gun)}
+.btn:hover{background:var(--amber);color:var(--black);border-color:var(--amberdeep)}
 .btn:active{transform:scale(.97)}
-a{color:var(--sky)}
-a::before{content:'... ';color:var(--clover);letter-spacing:.15em}
-a:hover{color:var(--gold)} a:hover::before{content:'--- ';color:var(--gold)}
+a{color:var(--amberdeep)}
+a:hover{color:var(--gun)}
 .btn::before,figure a::before,.badges a::before{content:none}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:16px}
-.card{background:linear-gradient(180deg,#8a6536,#7a5630);border:2px solid #4c3517;border-radius:4px;padding:15px 17px;color:#fdf6e0}
-.card .v{font-family:'Agu Display',serif;font-size:2rem;color:#ffe9ad}
-table{width:100%;border-collapse:collapse;margin-top:15px;background:rgba(250,248,240,.06)}
-th,td{border:1px solid rgba(250,248,240,.3);padding:9px 12px;text-align:left;vertical-align:top}
-th{color:var(--gold);font-size:.85rem;text-transform:uppercase;letter-spacing:.06em}
-.hash{background:#fdfaf0;color:#26221a;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.87rem;padding:16px 19px;margin-top:15px;word-break:break-all}
-.hash dt{color:#7a6a4a;text-transform:uppercase;font-size:.72rem;letter-spacing:.08em;margin-top:8px}.hash dt:first-child{margin-top:0}
-pre.cmd,pre.code{background:#211d16;color:#f0ead8;padding:15px 18px;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.84rem;line-height:1.6;margin-top:14px;white-space:pre}
-.tray{background:rgba(250,248,240,.08);border:1px dashed rgba(250,248,240,.45);padding:15px 19px;margin-top:15px}
+.card{background:var(--gun);border-top:6px solid var(--amber);padding:15px 17px;color:#f2f4f4}
+.card .v{font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:2rem;color:var(--amber)}
+table{width:100%;border-collapse:collapse;margin-top:15px;background:var(--sheet)}
+th,td{border:1px solid #b9bfc2;padding:9px 12px;text-align:left;vertical-align:top}
+th{font-family:'Chakra Petch',sans-serif;color:var(--amberdeep);font-size:.85rem;text-transform:uppercase;letter-spacing:.06em}
+.hash{background:#fff;color:var(--ink);border:2px solid var(--gun);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.87rem;padding:16px 19px;margin-top:15px;word-break:break-all}
+.hash dt{font-family:'Chakra Petch',sans-serif;color:var(--amberdeep);text-transform:uppercase;font-size:.72rem;letter-spacing:.08em;margin-top:8px}.hash dt:first-child{margin-top:0}
+pre.cmd,pre.code{background:#14161a;color:#eef1f2;padding:15px 18px;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.84rem;line-height:1.6;margin-top:14px;white-space:pre;border-left:6px solid var(--amber)}
+.tray{background:#fff;border:2px dashed var(--gun2);padding:15px 19px;margin-top:15px}
 .exhibits{display:grid;gap:22px;margin-top:16px}
-.exhibit{background:rgba(250,248,240,.05);border:1px solid rgba(250,248,240,.25);padding:10px}
+.exhibit{background:var(--sheet);border:1px solid #b9bfc2;padding:10px}
 .exhibit img{width:100%;display:block;background:#fff}
-.disclosure{border-left:4px solid var(--gold);background:rgba(216,164,52,.1);padding:15px 19px;margin-top:15px}
-.hexrule{height:12px;margin-top:44px;background:repeating-linear-gradient(90deg,transparent 0 16px,rgba(216,164,52,.55) 16px 22px,transparent 22px 38px)}
-footer{margin-top:40px;font-size:.9rem;color:#cfd8c9}
-@media(max-width:720px){.board{padding:20px 16px 30px}h1{font-size:2.1rem}}
+.disclosure{border-left:6px solid var(--amber);background:rgba(227,154,30,.12);padding:15px 19px;margin-top:15px}
+.hexrule{height:12px;margin-top:44px;background:repeating-linear-gradient(90deg,var(--gun) 0 16px,transparent 16px 22px,var(--amber) 22px 38px,transparent 38px 44px)}
+footer{margin-top:40px;font-size:.9rem;color:var(--gun2)}
+@media(max-width:720px){.board{padding:20px 16px 30px}h1{font-size:2rem}}
 </style>
 </head>
 <body>
 <div class="board">
 <header>
 <p class="kicker">Case file EZ / fake_malware / 01 &nbsp; Examiner: Epsilon0xCell</p>
-<h1>Event Zero: the fake_malware case file, chalked on the arrivals board</h1>
+<h1>Event Zero: the fake_malware case file, opened on the examination table</h1>
 <p>Classification: one specimen, examined on paper. Specimen is a real Mach-O 64-bit ARM64 executable, 33,920 bytes, held in the repo as the test sample for my analyzer. Examined, not executed.</p>
 <div class="meta"><span>Tool: <b>Event Zero</b></span><span>Modes: <b>local and autonomous</b></span><span>Local run filed: <b>31 Oct 2026</b></span><span>Repo: <a href="https://github.com/Epsilon0xCell/Event_Zero">github.com/Epsilon0xCell/Event_Zero</a></span></div>
 <div class="badges">
@@ -63,8 +64,8 @@ footer{margin-top:40px;font-size:.9rem;color:#cfd8c9}
 <img alt="Top language" src="https://img.shields.io/github/languages/top/Epsilon0xCell/Event_Zero?style=flat-square">
 <img alt="Repository size" src="https://img.shields.io/github/repo-size/Epsilon0xCell/Event_Zero?style=flat-square&label=size">
 </div>
-<figure><img src="themed-intro.png" alt="The racing loft at late afternoon: a bird landing on the board, a forgotten gold ring, and every head in the loft turned up at once"><figcaption>The landing board still: the wordless picture for this build.</figcaption></figure>
-<figure><img src="themed-banner.png" alt="Race day at the loft: the clocking table, the loft open and full, and EVENT_ZERO chalked at the head of the arrivals column"><figcaption>Frontispiece: banner.png from the repository, filed at the front of this case so the folder and the repo carry the same face.</figcaption></figure>
+<figure><img src="themed-intro.png" alt="Inside the specimen file: layered header structures like geological strata in frosted glass and gunmetal, a dense band of sparkling entropy crystals between clean layers, one amber seam"><figcaption>The specimen from inside: the wordless picture for this build.</figcaption></figure>
+<figure><img src="themed-banner.png" alt="The evidence examination table in cold white light: one sealed specimen file in a steel tray at the center, calipers, a magnifier and tweezers arranged around it without touching it, one blank amber tag"><figcaption>Frontispiece: banner.png from the repository, filed at the front of this case so the folder and the repo carry the same face.</figcaption></figure>
 <p><a class="btn" href="https://github.com/Epsilon0xCell/Event_Zero">The repository</a><a class="btn" href="#run">Run it</a><a class="btn" href="#findings">Findings</a></p>
 </header>
 <div class="hexrule" aria-hidden="true"></div>
@@ -185,7 +186,7 @@ python3 autonomous_docker_malware_analyzer.py --file /path/to/sample</pre>
 <footer>
 <div class="hexrule" aria-hidden="true"></div>
 <p style="margin-top:16px">Built by Epsilon0xCell. <a href="https://github.com/Epsilon0xCell/Event_Zero">Repository</a> <a href="https://github.com/Epsilon0xCell">Profile</a></p>
-<p>Colophon: this board is set in Agu Display (arrivals) and Cabin (reading text), both SIL Open Font License 1.1, self-hosted in the site fonts folder with their licence texts. Wild Trails guided a hand lettering study only and is never loaded by this page. Filed 31 Oct 2026.</p>
+<p>Colophon: this file is set in Chakra Petch (headings) and Inter (reading text), both SIL Open Font License 1.1, self-hosted in the site fonts folder with their licence texts. Filed 31 Oct 2026.</p>
 </footer>
 </div>
 </body>

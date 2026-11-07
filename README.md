@@ -1,6 +1,8 @@
-![Intro: the racing loft at late afternoon, one bird landing on the board, a forgotten gold ring, every head turned up](intro-banner.png)
+![Intro: inside the specimen file, layered header structures like geological strata in frosted glass and gunmetal, a dense band of sparkling entropy crystals between clean layers, one amber seam](intro-banner.png)
 
 # Event Zero: Malware Analysis, Two Modes
+
+<p align="center"><img src="logo.png" alt="Event Zero logo: a frosted glass specimen slide under a magnifying lens, tiny pits and cracks in the glass, one warning amber glint" width="200"></p>
 
 **Offline malware triage in pure Python.** Event Zero reads a suspicious file as bytes and never executes it in local mode: hashes, real Mach-O, ELF and PE header parsing, entropy, strings, indicators, and a plain English report in JSON. No install, no network, no API key.
 
