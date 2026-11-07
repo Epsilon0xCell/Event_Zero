@@ -14,11 +14,9 @@ cd Event_Zero
 python3 autonomous_docker_malware_analyzer.py --file fake_malware --local
 ```
 
-![Event Zero architecture](Event_Zero-Visuals/architecture.svg)
-
 If it earns a place in your toolbox, a star helps the next analyst find it.
 
-![Banner](banner.png)
+![Banner: a steel forensic tray on a dark bench holding a sealed evidence bag with an amber tag, a magnifying lens and forceps beside it](banner.png)
 
 ![Scene: looking up through the loft, dew on a web, bee frames waggling, a race ring drifting home](assets-scene.svg)
 
