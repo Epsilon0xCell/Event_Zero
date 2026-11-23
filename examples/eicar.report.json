@@ -1,0 +1,80 @@
+{
+  "tool": "Event Zero",
+  "version": "2.0.0",
+  "file": "fixtures/eicar.com",
+  "filename": "eicar.com",
+  "size_bytes": 68,
+  "hashes": {
+    "md5": "44d88612fea8a8f36de82e1278abb02f",
+    "sha1": "3395856ce81f2b7382dee72602f798b642f14140",
+    "sha256": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+    "sha512": "cc805d5fab1fd71a4ab352a9c533e65fb2d5b885518f4e565e68847223b8e6b85cb48f3afad842726d99239c9e36505c64b0dc9a061d9e507d833277ada336ab"
+  },
+  "eicar_test_file": true,
+  "format": {
+    "format": "text / script",
+    "architecture": "n/a",
+    "sections": [],
+    "imports": [],
+    "symbols": []
+  },
+  "parser_backend": "stdlib fallback parser (lief could not parse)",
+  "overall_entropy": 4.872,
+  "sections": [],
+  "packing_assessment": [
+    "No strong packing signal: whole-file entropy is 4.872/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing."
+  ],
+  "imports": [],
+  "symbols": [],
+  "strings": {
+    "count": 1,
+    "ascii_count": 1,
+    "utf16_count": 0,
+    "all": [
+      "X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+    ],
+    "base64_decoded": [],
+    "xor_decoded": []
+  },
+  "disassembly": {
+    "available": true,
+    "note": "No disassembly for architecture n/a",
+    "instruction_count": 0,
+    "instructions": [],
+    "call_sites": []
+  },
+  "capabilities": [],
+  "script_analysis": {
+    "language": null,
+    "lines": 1,
+    "imports": [],
+    "calls": []
+  },
+  "script_source_excerpt": "X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*",
+  "iocs": {
+    "urls": [],
+    "ip_addresses": [],
+    "domains": [],
+    "file_paths": []
+  },
+  "risk": {
+    "score": 0,
+    "verdict": "TEST FILE (EICAR, harmless)",
+    "reasons": []
+  },
+  "unknowns": [
+    "Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence.",
+    "Script was analysed as source text. Obfuscated or dynamically generated code in it (eval, exec of decoded strings) is flagged as a capability when seen, but its final payload cannot be known without running it in a sandbox."
+  ],
+  "plain_english": [
+    "This file is called eicar.com and it is 68 bytes in size.",
+    "It is a text / script file for n/a.",
+    "It is the EICAR antivirus test file. It is harmless and exists only so people can check that security tools are working.",
+    "Its fingerprint (SHA-256) is 275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f. If anyone else reports this exact fingerprint, they are talking about the exact same file, byte for byte.",
+    "No imported functions could be listed. That can happen with scripts, stripped files, or formats the parser could not read in detail, and it is recorded as a gap rather than hidden.",
+    "No capability from the built-in rule set matched. That means none of the checked behaviours (networking, shell commands, persistence, injection, credential access, and the rest) were found in the imports, strings, or instructions that were examined.",
+    "Packing check: No strong packing signal: whole-file entropy is 4.872/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.",
+    "Verdict: TEST FILE (EICAR, harmless) (rule score 0/100).",
+    "What is not known: Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence. Script was analysed as source text. Obfuscated or dynamically generated code in it (eval, exec of decoded strings) is flagged as a capability when seen, but its final payload cannot be known without running it in a sandbox."
+  ]
+}

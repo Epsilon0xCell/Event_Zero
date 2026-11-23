@@ -1,0 +1,66 @@
+EVENT ZERO: PLAIN-ENGLISH MALWARE REPORT
+============================================================
+File: eicar.com  (68 bytes)
+Path analysed: fixtures/eicar.com
+Parser backend: stdlib fallback parser (lief could not parse)   Disassembly available: True
+
+1. IDENTITY AND HASHES
+  md5: 44d88612fea8a8f36de82e1278abb02f
+  sha1: 3395856ce81f2b7382dee72602f798b642f14140
+  sha256: 275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f
+  sha512: cc805d5fab1fd71a4ab352a9c533e65fb2d5b885518f4e565e68847223b8e6b85cb48f3afad842726d99239c9e36505c64b0dc9a061d9e507d833277ada336ab
+  EICAR test file: True
+
+2. WHAT THIS FILE IS, IN PLAIN ENGLISH
+  This file is called eicar.com and it is 68 bytes in size.
+  It is a text / script file for n/a.
+  It is the EICAR antivirus test file. It is harmless and exists only so people can check that security tools are working.
+  Its fingerprint (SHA-256) is 275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f. If anyone else reports this exact fingerprint, they are talking about the exact same file, byte for byte.
+  No imported functions could be listed. That can happen with scripts, stripped files, or formats the parser could not read in detail, and it is recorded as a gap rather than hidden.
+  No capability from the built-in rule set matched. That means none of the checked behaviours (networking, shell commands, persistence, injection, credential access, and the rest) were found in the imports, strings, or instructions that were examined.
+  Packing check: No strong packing signal: whole-file entropy is 4.872/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.
+  Verdict: TEST FILE (EICAR, harmless) (rule score 0/100).
+  What is not known: Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence. Script was analysed as source text. Obfuscated or dynamically generated code in it (eval, exec of decoded strings) is flagged as a capability when seen, but its final payload cannot be known without running it in a sandbox.
+
+3. FORMAT AND ARCHITECTURE
+  format: text / script
+  architecture: n/a
+
+4. SECTIONS AND PACKING
+  No strong packing signal: whole-file entropy is 4.872/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.
+  Overall entropy: 4.872 / 8.0
+
+5. IMPORTED FUNCTIONS, EXPLAINED
+  None could be listed. See Unknowns.
+
+6. STRINGS FOUND IN THE FILE
+  Total: 1 (ASCII 1, UTF-16 0)
+  - X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
+
+7. DECODED STRINGS (things the file tried to hide)
+  Base64 decoded: none found
+  XOR decoded: none found
+
+8. CAPABILITIES (capa-style, mapped to MITRE ATT&CK)
+  No built-in capability rule matched.
+
+9. DISASSEMBLY AND FUNCTIONS
+  No disassembly for architecture n/a  Instructions shown: 0
+  Script analysis: {'language': None, 'lines': 1, 'imports': [], 'calls': []}
+  Script source excerpt:
+    X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
+
+10. INDICATORS OF COMPROMISE (IOCs)
+  urls: none found
+  ip_addresses: none found
+  domains: none found
+  file_paths: none found
+
+11. RISK VERDICT
+  TEST FILE (EICAR, harmless)  (rule score 0/100)
+
+12. UNKNOWNS: WHAT STATIC ANALYSIS COULD NOT DETERMINE
+  - Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence.
+  - Script was analysed as source text. Obfuscated or dynamically generated code in it (eval, exec of decoded strings) is flagged as a capability when seen, but its final payload cannot be known without running it in a sandbox.
+
+End of report. The sample was read as bytes and was never executed.

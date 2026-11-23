@@ -1,0 +1,326 @@
+EVENT ZERO: PLAIN-ENGLISH MALWARE REPORT
+============================================================
+File: hello_elf  (16312 bytes)
+Path analysed: fixtures/hello_elf
+Parser backend: lief   Disassembly available: True
+
+1. IDENTITY AND HASHES
+  md5: 165bf82670e4c19059b0054759c0a7bc
+  sha1: f9f5bf4d0e4ebf4ebd4483eb18c1b1fb93b464fb
+  sha256: 18653ba75366723fa0642c7155ab315491ab48f5b0dd21393aaaefddf0a2487d
+  sha512: 0fc2f68855a6a3c943c4c7e809d9ab1edeef83edd21284149f8f688556a158fc0583146773ac41db0c9addc3ed99bb31cabc0649806367b92d73e50d68b3dfc5
+  EICAR test file: False
+
+2. WHAT THIS FILE IS, IN PLAIN ENGLISH
+  This file is called hello_elf and it is 16312 bytes in size.
+  It is a ELF file for x86-64, variant 64-bit.
+  Its fingerprint (SHA-256) is 18653ba75366723fa0642c7155ab315491ab48f5b0dd21393aaaefddf0a2487d. If anyone else reports this exact fingerprint, they are talking about the exact same file, byte for byte.
+  It borrows these ready-made functions from the operating system and libraries: _ITM_deregisterTMCloneTable, _ITM_registerTMCloneTable, __cxa_finalize, __gmon_start__, __libc_start_main, __stack_chk_fail, connect, fclose, fopen, fputc, htons, inet_pton, puts, socket. In plain terms: _ITM_deregisterTMCloneTable means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; _ITM_registerTMCloneTable means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; __cxa_finalize means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; __gmon_start__ means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; __libc_start_main means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; __stack_chk_fail means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; connect means it connects to a remote address; fclose means it closes a file; fopen means it opens a file; fputc means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; htons means it converts a port number into network byte order; inet_pton means it converts a written IP address into binary form for a connection.
+  Here is what the evidence says it can do:
+  - Create a network socket (MITRE ATT&CK T1071.001, Application Layer Protocol: Web Protocols): Opens a network socket, the first step in talking to another machine. Evidence: import/symbol: socket, string/text: socket.
+  - Connect to a remote host (MITRE ATT&CK T1071.001, Application Layer Protocol): Connects out to an address and port. In malware this is often the command and control channel. Evidence: import/symbol: connect.
+  - Write files to disk (MITRE ATT&CK T1105, Ingress Tool Transfer (file creation evidence)): Creates or writes files: dropped payloads, logs of stolen data, or persistence scripts. Evidence: import/symbol: fopen, import/symbol: open.
+  Packing check: No strong packing signal: whole-file entropy is 1.85/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.
+  Network names and addresses written inside the file: URLs none, IP addresses ['127.0.0.1'], domains none. A name written in a file is a lead, not proof the program contacts it.
+  Verdict: LOW TO MEDIUM RISK, review the capabilities listed (rule score 15/100).
+  What is not known: Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence.
+
+3. FORMAT AND ARCHITECTURE
+  format: ELF
+  variant: 64-bit
+  architecture: x86-64
+  object_type: shared object / PIE
+  entry_point: 0x1160
+  libraries: ['libc.so.6']
+
+4. SECTIONS AND PACKING
+  {'name': '', 'size': 0, 'entropy': 0.0}
+  {'name': '.interp', 'size': 28, 'entropy': 3.941}
+  {'name': '.note.gnu.property', 'size': 48, 'entropy': 1.935}
+  {'name': '.note.gnu.build-id', 'size': 36, 'entropy': 4.247}
+  {'name': '.note.ABI-tag', 'size': 32, 'entropy': 1.561}
+  {'name': '.gnu.hash', 'size': 36, 'entropy': 1.72}
+  {'name': '.dynsym', 'size': 360, 'entropy': 0.663}
+  {'name': '.dynstr', 'size': 218, 'entropy': 4.69}
+  {'name': '.gnu.version', 'size': 30, 'entropy': 1.664}
+  {'name': '.gnu.version_r', 'size': 64, 'entropy': 2.494}
+  {'name': '.rela.dyn', 'size': 192, 'entropy': 1.327}
+  {'name': '.rela.plt', 'size': 216, 'entropy': 1.226}
+  {'name': '.init', 'size': 27, 'entropy': 4.236}
+  {'name': '.plt', 'size': 160, 'entropy': 3.933}
+  {'name': '.plt.got', 'size': 16, 'entropy': 3.375}
+  {'name': '.plt.sec', 'size': 144, 'entropy': 3.573}
+  {'name': '.text', 'size': 472, 'entropy': 5.257}
+  {'name': '.fini', 'size': 13, 'entropy': 3.239}
+  {'name': '.rodata', 'size': 37, 'entropy': 4.067}
+  {'name': '.eh_frame_hdr', 'size': 52, 'entropy': 3.211}
+  {'name': '.eh_frame', 'size': 172, 'entropy': 3.495}
+  {'name': '.init_array', 'size': 8, 'entropy': 1.061}
+  {'name': '.fini_array', 'size': 8, 'entropy': 0.544}
+  {'name': '.dynamic', 'size': 496, 'entropy': 1.441}
+  {'name': '.got', 'size': 136, 'entropy': 1.028}
+  {'name': '.data', 'size': 16, 'entropy': 0.669}
+  {'name': '.bss', 'size': 8, 'entropy': 2.75}
+  {'name': '.comment', 'size': 45, 'entropy': 4.128}
+  {'name': '.symtab', 'size': 1056, 'entropy': 1.632}
+  {'name': '.strtab', 'size': 636, 'entropy': 4.964}
+  {'name': '.shstrtab', 'size': 282, 'entropy': 4.27}
+  No strong packing signal: whole-file entropy is 1.85/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.
+  Overall entropy: 1.85 / 8.0
+
+5. IMPORTED FUNCTIONS, EXPLAINED
+  _ITM_deregisterTMCloneTable: it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only
+  _ITM_registerTMCloneTable: it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only
+  __cxa_finalize: it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only
+  __gmon_start__: it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only
+  __libc_start_main: it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only
+  __stack_chk_fail: it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only
+  connect: it connects to a remote address
+  fclose: it closes a file
+  fopen: it opens a file
+  fputc: it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only
+  htons: it converts a port number into network byte order
+  inet_pton: it converts a written IP address into binary form for a connection
+  puts: it prints a line of text
+  socket: it creates a network socket
+
+6. STRINGS FOUND IN THE FILE
+  Total: 92 (ASCII 92, UTF-16 0)
+  - /lib64/ld-linux-x86-64.so.2
+  - puts
+  - __stack_chk_fail
+  - htons
+  - fopen
+  - socket
+  - __libc_start_main
+  - __cxa_finalize
+  - fclose
+  - fputc
+  - connect
+  - inet_pton
+  - libc.so.6
+  - GLIBC_2.4
+  - GLIBC_2.2.5
+  - GLIBC_2.34
+  - _ITM_deregisterTMCloneTable
+  - __gmon_start__
+  - _ITM_registerTMCloneTable
+  - PTE1
+  - u+UH
+  - hello
+  - 127.0.0.1
+  - /tmp/pwned.txt
+  - 9*3$"
+  - GCC: (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+  - Scrt1.o
+  - __abi_tag
+  - crtstuff.c
+  - deregister_tm_clones
+  - __do_global_dtors_aux
+  - completed.0
+  - __do_global_dtors_aux_fini_array_entry
+  - frame_dummy
+  - __frame_dummy_init_array_entry
+  - hello.c
+  - __FRAME_END__
+  - _DYNAMIC
+  - __GNU_EH_FRAME_HDR
+  - _GLOBAL_OFFSET_TABLE_
+  - __libc_start_main@GLIBC_2.34
+  - _ITM_deregisterTMCloneTable
+  - puts@GLIBC_2.2.5
+  - _edata
+  - fclose@GLIBC_2.2.5
+  - _fini
+  - __stack_chk_fail@GLIBC_2.4
+  - htons@GLIBC_2.2.5
+  - fputc@GLIBC_2.2.5
+  - __data_start
+  - __gmon_start__
+  - __dso_handle
+  - _IO_stdin_used
+  - inet_pton@GLIBC_2.2.5
+  - _end
+  - __bss_start
+  - main
+  - fopen@GLIBC_2.2.5
+  - connect@GLIBC_2.2.5
+  - __TMC_END__
+  - _ITM_registerTMCloneTable
+  - __cxa_finalize@GLIBC_2.2.5
+  - _init
+  - socket@GLIBC_2.2.5
+  - .symtab
+  - .strtab
+  - .shstrtab
+  - .interp
+  - .note.gnu.property
+  - .note.gnu.build-id
+  - .note.ABI-tag
+  - .gnu.hash
+  - .dynsym
+  - .dynstr
+  - .gnu.version
+  - .gnu.version_r
+  - .rela.dyn
+  - .rela.plt
+  - .init
+  - .plt.got
+  - .plt.sec
+  - .text
+  - .fini
+  - .rodata
+  - .eh_frame_hdr
+  - .eh_frame
+  - .init_array
+  - .fini_array
+  - .dynamic
+  - .data
+  - .bss
+  - .comment
+
+7. DECODED STRINGS (things the file tried to hide)
+  Base64 decoded: none found
+  XOR decoded: none found
+
+8. CAPABILITIES (capa-style, mapped to MITRE ATT&CK)
+  [T1071.001] Create a network socket (Command and Control: Application Layer Protocol: Web Protocols)
+    Opens a network socket, the first step in talking to another machine.
+    Evidence: import/symbol: socket, string/text: socket
+  [T1071.001] Connect to a remote host (Command and Control: Application Layer Protocol)
+    Connects out to an address and port. In malware this is often the command and control channel.
+    Evidence: import/symbol: connect
+  [T1105] Write files to disk (Impact: Ingress Tool Transfer (file creation evidence))
+    Creates or writes files: dropped payloads, logs of stolen data, or persistence scripts.
+    Evidence: import/symbol: fopen, import/symbol: open
+
+9. DISASSEMBLY AND FUNCTIONS
+  Disassembled 113 instructions (cap 4000) from executable section bytes  Instructions shown: 113
+  0x1160: endbr64
+  0x1164: xor ebp, ebp
+  0x1166: mov r9, rdx
+  0x1169: pop rsi
+  0x116a: mov rdx, rsp
+  0x116d: and rsp, 0xfffffffffffffff0
+  0x1171: push rax
+  0x1172: push rsp
+  0x1173: xor r8d, r8d
+  0x1176: xor ecx, ecx
+  0x1178: lea rdi, [rip + 0xca]
+  0x117f: call qword ptr [rip + 0x2e53]
+  0x1185: hlt
+  0x1186: nop word ptr cs:[rax + rax]
+  0x1190: lea rdi, [rip + 0x2e79]
+  0x1197: lea rax, [rip + 0x2e72]
+  0x119e: cmp rax, rdi
+  0x11a1: je 0x11b8
+  0x11a3: mov rax, qword ptr [rip + 0x2e36]
+  0x11aa: test rax, rax
+  0x11ad: je 0x11b8
+  0x11af: jmp rax
+  0x11b1: nop dword ptr [rax]
+  0x11b8: ret
+  0x11b9: nop dword ptr [rax]
+  0x11c0: lea rdi, [rip + 0x2e49]
+  0x11c7: lea rsi, [rip + 0x2e42]
+  0x11ce: sub rsi, rdi
+  0x11d1: mov rax, rsi
+  0x11d4: shr rsi, 0x3f
+  0x11d8: sar rax, 3
+  0x11dc: add rsi, rax
+  0x11df: sar rsi, 1
+  0x11e2: je 0x11f8
+  0x11e4: mov rax, qword ptr [rip + 0x2e05]
+  0x11eb: test rax, rax
+  0x11ee: je 0x11f8
+  0x11f0: jmp rax
+  0x11f2: nop word ptr [rax + rax]
+  0x11f8: ret
+  0x11f9: nop dword ptr [rax]
+  0x1200: endbr64
+  0x1204: cmp byte ptr [rip + 0x2e05], 0
+  0x120b: jne 0x1238
+  0x120d: push rbp
+  0x120e: cmp qword ptr [rip + 0x2de2], 0
+  0x1216: mov rbp, rsp
+  0x1219: je 0x1227
+  0x121b: mov rdi, qword ptr [rip + 0x2de6]
+  0x1222: call 0x10c0
+  0x1227: call 0x1190
+  0x122c: mov byte ptr [rip + 0x2ddd], 1
+  0x1233: pop rbp
+  0x1234: ret
+  0x1235: nop dword ptr [rax]
+  0x1238: ret
+  0x1239: nop dword ptr [rax]
+  0x1240: endbr64
+  0x1244: jmp 0x11c0
+  0x1249: endbr64
+  0x124d: push rbp
+  0x124e: mov rbp, rsp
+  0x1251: sub rsp, 0x30
+  0x1255: mov rax, qword ptr fs:[0x28]
+  0x125e: mov qword ptr [rbp - 8], rax
+  0x1262: xor eax, eax
+  0x1264: lea rax, [rip + 0xd99]
+  0x126b: mov rdi, rax
+  0x126e: call 0x10d0
+  0x1273: mov edx, 0
+  0x1278: mov esi, 1
+  0x127d: mov edi, 2
+  0x1282: call 0x1150
+  0x1287: mov dword ptr [rbp - 0x2c], eax
+  0x128a: mov qword ptr [rbp - 0x20], 0
+  0x1292: mov qword ptr [rbp - 0x18], 0
+  0x129a: mov word ptr [rbp - 0x20], 2
+  0x12a0: mov edi, 0x115c
+  0x12a5: call 0x1100
+  0x12aa: mov word ptr [rbp - 0x1e], ax
+  0x12ae: lea rax, [rbp - 0x20]
+  0x12b2: add rax, 4
+  0x12b6: mov rdx, rax
+  0x12b9: lea rax, [rip + 0xd4a]
+  0x12c0: mov rsi, rax
+  0x12c3: mov edi, 2
+  0x12c8: call 0x1120
+  0x12cd: lea rcx, [rbp - 0x20]
+  0x12d1: mov eax, dword ptr [rbp - 0x2c]
+  0x12d4: mov edx, 0x10
+  0x12d9: mov rsi, rcx
+  0x12dc: mov edi, eax
+  0x12de: call 0x1140
+  0x12e3: lea rax, [rip + 0xd2a]
+  0x12ea: mov rsi, rax
+  0x12ed: lea rax, [rip + 0xd22]
+  0x12f4: mov rdi, rax
+  0x12f7: call 0x1130
+  0x12fc: mov qword ptr [rbp - 0x28], rax
+  0x1300: mov rax, qword ptr [rbp - 0x28]
+  0x1304: mov rsi, rax
+  0x1307: mov edi, 0x78
+  0x130c: call 0x1110
+  0x1311: mov rax, qword ptr [rbp - 0x28]
+  0x1315: mov rdi, rax
+  0x1318: call 0x10e0
+  0x131d: mov eax, 0
+  0x1322: mov rdx, qword ptr [rbp - 8]
+  0x1326: sub rdx, qword ptr fs:[0x28]
+  0x132f: je 0x1336
+  0x1331: call 0x10f0
+  0x1336: leave
+  0x1337: ret
+
+10. INDICATORS OF COMPROMISE (IOCs)
+  urls: none found
+  ip_addresses: ['127.0.0.1']
+  domains: none found
+  file_paths: ['/tmp/pwned.txt']
+
+11. RISK VERDICT
+  LOW TO MEDIUM RISK, review the capabilities listed  (rule score 15/100)
+  - Capability detected: net-connect
+
+12. UNKNOWNS: WHAT STATIC ANALYSIS COULD NOT DETERMINE
+  - Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence.
+
+End of report. The sample was read as bytes and was never executed.

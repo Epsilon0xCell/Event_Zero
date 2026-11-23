@@ -1,0 +1,1394 @@
+{
+  "tool": "Event Zero",
+  "version": "2.0.0",
+  "file": "fixtures/hello_elf",
+  "filename": "hello_elf",
+  "size_bytes": 16312,
+  "hashes": {
+    "md5": "165bf82670e4c19059b0054759c0a7bc",
+    "sha1": "f9f5bf4d0e4ebf4ebd4483eb18c1b1fb93b464fb",
+    "sha256": "18653ba75366723fa0642c7155ab315491ab48f5b0dd21393aaaefddf0a2487d",
+    "sha512": "0fc2f68855a6a3c943c4c7e809d9ab1edeef83edd21284149f8f688556a158fc0583146773ac41db0c9addc3ed99bb31cabc0649806367b92d73e50d68b3dfc5"
+  },
+  "eicar_test_file": false,
+  "format": {
+    "format": "ELF",
+    "variant": "64-bit",
+    "architecture": "x86-64",
+    "object_type": "shared object / PIE",
+    "entry_point": "0x1160",
+    "sections": [
+      {
+        "name": "",
+        "size": 0,
+        "entropy": 0.0
+      },
+      {
+        "name": ".interp",
+        "size": 28,
+        "entropy": 3.941
+      },
+      {
+        "name": ".note.gnu.property",
+        "size": 48,
+        "entropy": 1.935
+      },
+      {
+        "name": ".note.gnu.build-id",
+        "size": 36,
+        "entropy": 4.247
+      },
+      {
+        "name": ".note.ABI-tag",
+        "size": 32,
+        "entropy": 1.561
+      },
+      {
+        "name": ".gnu.hash",
+        "size": 36,
+        "entropy": 1.72
+      },
+      {
+        "name": ".dynsym",
+        "size": 360,
+        "entropy": 0.663
+      },
+      {
+        "name": ".dynstr",
+        "size": 218,
+        "entropy": 4.69
+      },
+      {
+        "name": ".gnu.version",
+        "size": 30,
+        "entropy": 1.664
+      },
+      {
+        "name": ".gnu.version_r",
+        "size": 64,
+        "entropy": 2.494
+      },
+      {
+        "name": ".rela.dyn",
+        "size": 192,
+        "entropy": 1.327
+      },
+      {
+        "name": ".rela.plt",
+        "size": 216,
+        "entropy": 1.226
+      },
+      {
+        "name": ".init",
+        "size": 27,
+        "entropy": 4.236
+      },
+      {
+        "name": ".plt",
+        "size": 160,
+        "entropy": 3.933
+      },
+      {
+        "name": ".plt.got",
+        "size": 16,
+        "entropy": 3.375
+      },
+      {
+        "name": ".plt.sec",
+        "size": 144,
+        "entropy": 3.573
+      },
+      {
+        "name": ".text",
+        "size": 472,
+        "entropy": 5.257
+      },
+      {
+        "name": ".fini",
+        "size": 13,
+        "entropy": 3.239
+      },
+      {
+        "name": ".rodata",
+        "size": 37,
+        "entropy": 4.067
+      },
+      {
+        "name": ".eh_frame_hdr",
+        "size": 52,
+        "entropy": 3.211
+      },
+      {
+        "name": ".eh_frame",
+        "size": 172,
+        "entropy": 3.495
+      },
+      {
+        "name": ".init_array",
+        "size": 8,
+        "entropy": 1.061
+      },
+      {
+        "name": ".fini_array",
+        "size": 8,
+        "entropy": 0.544
+      },
+      {
+        "name": ".dynamic",
+        "size": 496,
+        "entropy": 1.441
+      },
+      {
+        "name": ".got",
+        "size": 136,
+        "entropy": 1.028
+      },
+      {
+        "name": ".data",
+        "size": 16,
+        "entropy": 0.669
+      },
+      {
+        "name": ".bss",
+        "size": 8,
+        "entropy": 2.75
+      },
+      {
+        "name": ".comment",
+        "size": 45,
+        "entropy": 4.128
+      },
+      {
+        "name": ".symtab",
+        "size": 1056,
+        "entropy": 1.632
+      },
+      {
+        "name": ".strtab",
+        "size": 636,
+        "entropy": 4.964
+      },
+      {
+        "name": ".shstrtab",
+        "size": 282,
+        "entropy": 4.27
+      }
+    ],
+    "imports": [
+      "_ITM_deregisterTMCloneTable",
+      "_ITM_registerTMCloneTable",
+      "__cxa_finalize",
+      "__gmon_start__",
+      "__libc_start_main",
+      "__stack_chk_fail",
+      "connect",
+      "fclose",
+      "fopen",
+      "fputc",
+      "htons",
+      "inet_pton",
+      "puts",
+      "socket"
+    ],
+    "symbols": [
+      "__libc_start_main",
+      "_ITM_deregisterTMCloneTable",
+      "puts",
+      "fclose",
+      "__stack_chk_fail",
+      "htons",
+      "fputc",
+      "__gmon_start__",
+      "inet_pton",
+      "fopen",
+      "connect",
+      "_ITM_registerTMCloneTable",
+      "socket",
+      "__cxa_finalize",
+      "Scrt1.o",
+      "__abi_tag",
+      "crtstuff.c",
+      "deregister_tm_clones",
+      "register_tm_clones",
+      "__do_global_dtors_aux",
+      "completed.0",
+      "__do_global_dtors_aux_fini_array_entry",
+      "frame_dummy",
+      "__frame_dummy_init_array_entry",
+      "hello.c",
+      "crtstuff.c",
+      "__FRAME_END__",
+      "_DYNAMIC",
+      "__GNU_EH_FRAME_HDR",
+      "_GLOBAL_OFFSET_TABLE_",
+      "__libc_start_main@GLIBC_2.34",
+      "_ITM_deregisterTMCloneTable",
+      "data_start",
+      "puts@GLIBC_2.2.5",
+      "_edata",
+      "fclose@GLIBC_2.2.5",
+      "_fini",
+      "__stack_chk_fail@GLIBC_2.4",
+      "htons@GLIBC_2.2.5",
+      "fputc@GLIBC_2.2.5",
+      "__data_start",
+      "__gmon_start__",
+      "__dso_handle",
+      "_IO_stdin_used",
+      "inet_pton@GLIBC_2.2.5",
+      "_end",
+      "_start",
+      "__bss_start",
+      "main",
+      "fopen@GLIBC_2.2.5",
+      "connect@GLIBC_2.2.5",
+      "__TMC_END__",
+      "_ITM_registerTMCloneTable",
+      "__cxa_finalize@GLIBC_2.2.5",
+      "_init",
+      "socket@GLIBC_2.2.5"
+    ],
+    "libraries": [
+      "libc.so.6"
+    ],
+    "lief_format": "ELF"
+  },
+  "parser_backend": "lief",
+  "overall_entropy": 1.85,
+  "sections": [
+    {
+      "name": "",
+      "size": 0,
+      "entropy": 0.0
+    },
+    {
+      "name": ".interp",
+      "size": 28,
+      "entropy": 3.941
+    },
+    {
+      "name": ".note.gnu.property",
+      "size": 48,
+      "entropy": 1.935
+    },
+    {
+      "name": ".note.gnu.build-id",
+      "size": 36,
+      "entropy": 4.247
+    },
+    {
+      "name": ".note.ABI-tag",
+      "size": 32,
+      "entropy": 1.561
+    },
+    {
+      "name": ".gnu.hash",
+      "size": 36,
+      "entropy": 1.72
+    },
+    {
+      "name": ".dynsym",
+      "size": 360,
+      "entropy": 0.663
+    },
+    {
+      "name": ".dynstr",
+      "size": 218,
+      "entropy": 4.69
+    },
+    {
+      "name": ".gnu.version",
+      "size": 30,
+      "entropy": 1.664
+    },
+    {
+      "name": ".gnu.version_r",
+      "size": 64,
+      "entropy": 2.494
+    },
+    {
+      "name": ".rela.dyn",
+      "size": 192,
+      "entropy": 1.327
+    },
+    {
+      "name": ".rela.plt",
+      "size": 216,
+      "entropy": 1.226
+    },
+    {
+      "name": ".init",
+      "size": 27,
+      "entropy": 4.236
+    },
+    {
+      "name": ".plt",
+      "size": 160,
+      "entropy": 3.933
+    },
+    {
+      "name": ".plt.got",
+      "size": 16,
+      "entropy": 3.375
+    },
+    {
+      "name": ".plt.sec",
+      "size": 144,
+      "entropy": 3.573
+    },
+    {
+      "name": ".text",
+      "size": 472,
+      "entropy": 5.257
+    },
+    {
+      "name": ".fini",
+      "size": 13,
+      "entropy": 3.239
+    },
+    {
+      "name": ".rodata",
+      "size": 37,
+      "entropy": 4.067
+    },
+    {
+      "name": ".eh_frame_hdr",
+      "size": 52,
+      "entropy": 3.211
+    },
+    {
+      "name": ".eh_frame",
+      "size": 172,
+      "entropy": 3.495
+    },
+    {
+      "name": ".init_array",
+      "size": 8,
+      "entropy": 1.061
+    },
+    {
+      "name": ".fini_array",
+      "size": 8,
+      "entropy": 0.544
+    },
+    {
+      "name": ".dynamic",
+      "size": 496,
+      "entropy": 1.441
+    },
+    {
+      "name": ".got",
+      "size": 136,
+      "entropy": 1.028
+    },
+    {
+      "name": ".data",
+      "size": 16,
+      "entropy": 0.669
+    },
+    {
+      "name": ".bss",
+      "size": 8,
+      "entropy": 2.75
+    },
+    {
+      "name": ".comment",
+      "size": 45,
+      "entropy": 4.128
+    },
+    {
+      "name": ".symtab",
+      "size": 1056,
+      "entropy": 1.632
+    },
+    {
+      "name": ".strtab",
+      "size": 636,
+      "entropy": 4.964
+    },
+    {
+      "name": ".shstrtab",
+      "size": 282,
+      "entropy": 4.27
+    }
+  ],
+  "packing_assessment": [
+    "No strong packing signal: whole-file entropy is 1.85/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing."
+  ],
+  "imports": [
+    {
+      "name": "_ITM_deregisterTMCloneTable",
+      "plain_english": "is a library function used by the program, with no specific note in the built-in table, so it is listed by name only"
+    },
+    {
+      "name": "_ITM_registerTMCloneTable",
+      "plain_english": "is a library function used by the program, with no specific note in the built-in table, so it is listed by name only"
+    },
+    {
+      "name": "__cxa_finalize",
+      "plain_english": "is a library function used by the program, with no specific note in the built-in table, so it is listed by name only"
+    },
+    {
+      "name": "__gmon_start__",
+      "plain_english": "is a library function used by the program, with no specific note in the built-in table, so it is listed by name only"
+    },
+    {
+      "name": "__libc_start_main",
+      "plain_english": "is a library function used by the program, with no specific note in the built-in table, so it is listed by name only"
+    },
+    {
+      "name": "__stack_chk_fail",
+      "plain_english": "is a library function used by the program, with no specific note in the built-in table, so it is listed by name only"
+    },
+    {
+      "name": "connect",
+      "plain_english": "connects to a remote address"
+    },
+    {
+      "name": "fclose",
+      "plain_english": "closes a file"
+    },
+    {
+      "name": "fopen",
+      "plain_english": "opens a file"
+    },
+    {
+      "name": "fputc",
+      "plain_english": "is a library function used by the program, with no specific note in the built-in table, so it is listed by name only"
+    },
+    {
+      "name": "htons",
+      "plain_english": "converts a port number into network byte order"
+    },
+    {
+      "name": "inet_pton",
+      "plain_english": "converts a written IP address into binary form for a connection"
+    },
+    {
+      "name": "puts",
+      "plain_english": "prints a line of text"
+    },
+    {
+      "name": "socket",
+      "plain_english": "creates a network socket"
+    }
+  ],
+  "symbols": [
+    "__libc_start_main",
+    "_ITM_deregisterTMCloneTable",
+    "puts",
+    "fclose",
+    "__stack_chk_fail",
+    "htons",
+    "fputc",
+    "__gmon_start__",
+    "inet_pton",
+    "fopen",
+    "connect",
+    "_ITM_registerTMCloneTable",
+    "socket",
+    "__cxa_finalize",
+    "Scrt1.o",
+    "__abi_tag",
+    "crtstuff.c",
+    "deregister_tm_clones",
+    "register_tm_clones",
+    "__do_global_dtors_aux",
+    "completed.0",
+    "__do_global_dtors_aux_fini_array_entry",
+    "frame_dummy",
+    "__frame_dummy_init_array_entry",
+    "hello.c",
+    "crtstuff.c",
+    "__FRAME_END__",
+    "_DYNAMIC",
+    "__GNU_EH_FRAME_HDR",
+    "_GLOBAL_OFFSET_TABLE_",
+    "__libc_start_main@GLIBC_2.34",
+    "_ITM_deregisterTMCloneTable",
+    "data_start",
+    "puts@GLIBC_2.2.5",
+    "_edata",
+    "fclose@GLIBC_2.2.5",
+    "_fini",
+    "__stack_chk_fail@GLIBC_2.4",
+    "htons@GLIBC_2.2.5",
+    "fputc@GLIBC_2.2.5",
+    "__data_start",
+    "__gmon_start__",
+    "__dso_handle",
+    "_IO_stdin_used",
+    "inet_pton@GLIBC_2.2.5",
+    "_end",
+    "_start",
+    "__bss_start",
+    "main",
+    "fopen@GLIBC_2.2.5",
+    "connect@GLIBC_2.2.5",
+    "__TMC_END__",
+    "_ITM_registerTMCloneTable",
+    "__cxa_finalize@GLIBC_2.2.5",
+    "_init",
+    "socket@GLIBC_2.2.5"
+  ],
+  "strings": {
+    "count": 92,
+    "ascii_count": 92,
+    "utf16_count": 0,
+    "all": [
+      "/lib64/ld-linux-x86-64.so.2",
+      "puts",
+      "__stack_chk_fail",
+      "htons",
+      "fopen",
+      "socket",
+      "__libc_start_main",
+      "__cxa_finalize",
+      "fclose",
+      "fputc",
+      "connect",
+      "inet_pton",
+      "libc.so.6",
+      "GLIBC_2.4",
+      "GLIBC_2.2.5",
+      "GLIBC_2.34",
+      "_ITM_deregisterTMCloneTable",
+      "__gmon_start__",
+      "_ITM_registerTMCloneTable",
+      "PTE1",
+      "u+UH",
+      "hello",
+      "127.0.0.1",
+      "/tmp/pwned.txt",
+      "9*3$\"",
+      "GCC: (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "Scrt1.o",
+      "__abi_tag",
+      "crtstuff.c",
+      "deregister_tm_clones",
+      "__do_global_dtors_aux",
+      "completed.0",
+      "__do_global_dtors_aux_fini_array_entry",
+      "frame_dummy",
+      "__frame_dummy_init_array_entry",
+      "hello.c",
+      "__FRAME_END__",
+      "_DYNAMIC",
+      "__GNU_EH_FRAME_HDR",
+      "_GLOBAL_OFFSET_TABLE_",
+      "__libc_start_main@GLIBC_2.34",
+      "_ITM_deregisterTMCloneTable",
+      "puts@GLIBC_2.2.5",
+      "_edata",
+      "fclose@GLIBC_2.2.5",
+      "_fini",
+      "__stack_chk_fail@GLIBC_2.4",
+      "htons@GLIBC_2.2.5",
+      "fputc@GLIBC_2.2.5",
+      "__data_start",
+      "__gmon_start__",
+      "__dso_handle",
+      "_IO_stdin_used",
+      "inet_pton@GLIBC_2.2.5",
+      "_end",
+      "__bss_start",
+      "main",
+      "fopen@GLIBC_2.2.5",
+      "connect@GLIBC_2.2.5",
+      "__TMC_END__",
+      "_ITM_registerTMCloneTable",
+      "__cxa_finalize@GLIBC_2.2.5",
+      "_init",
+      "socket@GLIBC_2.2.5",
+      ".symtab",
+      ".strtab",
+      ".shstrtab",
+      ".interp",
+      ".note.gnu.property",
+      ".note.gnu.build-id",
+      ".note.ABI-tag",
+      ".gnu.hash",
+      ".dynsym",
+      ".dynstr",
+      ".gnu.version",
+      ".gnu.version_r",
+      ".rela.dyn",
+      ".rela.plt",
+      ".init",
+      ".plt.got",
+      ".plt.sec",
+      ".text",
+      ".fini",
+      ".rodata",
+      ".eh_frame_hdr",
+      ".eh_frame",
+      ".init_array",
+      ".fini_array",
+      ".dynamic",
+      ".data",
+      ".bss",
+      ".comment"
+    ],
+    "base64_decoded": [],
+    "xor_decoded": []
+  },
+  "disassembly": {
+    "available": true,
+    "note": "Disassembled 113 instructions (cap 4000) from executable section bytes",
+    "instruction_count": 113,
+    "instructions": [
+      {
+        "address": "0x1160",
+        "mnemonic": "endbr64",
+        "op_str": "",
+        "text": "endbr64"
+      },
+      {
+        "address": "0x1164",
+        "mnemonic": "xor",
+        "op_str": "ebp, ebp",
+        "text": "xor ebp, ebp"
+      },
+      {
+        "address": "0x1166",
+        "mnemonic": "mov",
+        "op_str": "r9, rdx",
+        "text": "mov r9, rdx"
+      },
+      {
+        "address": "0x1169",
+        "mnemonic": "pop",
+        "op_str": "rsi",
+        "text": "pop rsi"
+      },
+      {
+        "address": "0x116a",
+        "mnemonic": "mov",
+        "op_str": "rdx, rsp",
+        "text": "mov rdx, rsp"
+      },
+      {
+        "address": "0x116d",
+        "mnemonic": "and",
+        "op_str": "rsp, 0xfffffffffffffff0",
+        "text": "and rsp, 0xfffffffffffffff0"
+      },
+      {
+        "address": "0x1171",
+        "mnemonic": "push",
+        "op_str": "rax",
+        "text": "push rax"
+      },
+      {
+        "address": "0x1172",
+        "mnemonic": "push",
+        "op_str": "rsp",
+        "text": "push rsp"
+      },
+      {
+        "address": "0x1173",
+        "mnemonic": "xor",
+        "op_str": "r8d, r8d",
+        "text": "xor r8d, r8d"
+      },
+      {
+        "address": "0x1176",
+        "mnemonic": "xor",
+        "op_str": "ecx, ecx",
+        "text": "xor ecx, ecx"
+      },
+      {
+        "address": "0x1178",
+        "mnemonic": "lea",
+        "op_str": "rdi, [rip + 0xca]",
+        "text": "lea rdi, [rip + 0xca]"
+      },
+      {
+        "address": "0x117f",
+        "mnemonic": "call",
+        "op_str": "qword ptr [rip + 0x2e53]",
+        "text": "call qword ptr [rip + 0x2e53]"
+      },
+      {
+        "address": "0x1185",
+        "mnemonic": "hlt",
+        "op_str": "",
+        "text": "hlt"
+      },
+      {
+        "address": "0x1186",
+        "mnemonic": "nop",
+        "op_str": "word ptr cs:[rax + rax]",
+        "text": "nop word ptr cs:[rax + rax]"
+      },
+      {
+        "address": "0x1190",
+        "mnemonic": "lea",
+        "op_str": "rdi, [rip + 0x2e79]",
+        "text": "lea rdi, [rip + 0x2e79]"
+      },
+      {
+        "address": "0x1197",
+        "mnemonic": "lea",
+        "op_str": "rax, [rip + 0x2e72]",
+        "text": "lea rax, [rip + 0x2e72]"
+      },
+      {
+        "address": "0x119e",
+        "mnemonic": "cmp",
+        "op_str": "rax, rdi",
+        "text": "cmp rax, rdi"
+      },
+      {
+        "address": "0x11a1",
+        "mnemonic": "je",
+        "op_str": "0x11b8",
+        "text": "je 0x11b8"
+      },
+      {
+        "address": "0x11a3",
+        "mnemonic": "mov",
+        "op_str": "rax, qword ptr [rip + 0x2e36]",
+        "text": "mov rax, qword ptr [rip + 0x2e36]"
+      },
+      {
+        "address": "0x11aa",
+        "mnemonic": "test",
+        "op_str": "rax, rax",
+        "text": "test rax, rax"
+      },
+      {
+        "address": "0x11ad",
+        "mnemonic": "je",
+        "op_str": "0x11b8",
+        "text": "je 0x11b8"
+      },
+      {
+        "address": "0x11af",
+        "mnemonic": "jmp",
+        "op_str": "rax",
+        "text": "jmp rax"
+      },
+      {
+        "address": "0x11b1",
+        "mnemonic": "nop",
+        "op_str": "dword ptr [rax]",
+        "text": "nop dword ptr [rax]"
+      },
+      {
+        "address": "0x11b8",
+        "mnemonic": "ret",
+        "op_str": "",
+        "text": "ret"
+      },
+      {
+        "address": "0x11b9",
+        "mnemonic": "nop",
+        "op_str": "dword ptr [rax]",
+        "text": "nop dword ptr [rax]"
+      },
+      {
+        "address": "0x11c0",
+        "mnemonic": "lea",
+        "op_str": "rdi, [rip + 0x2e49]",
+        "text": "lea rdi, [rip + 0x2e49]"
+      },
+      {
+        "address": "0x11c7",
+        "mnemonic": "lea",
+        "op_str": "rsi, [rip + 0x2e42]",
+        "text": "lea rsi, [rip + 0x2e42]"
+      },
+      {
+        "address": "0x11ce",
+        "mnemonic": "sub",
+        "op_str": "rsi, rdi",
+        "text": "sub rsi, rdi"
+      },
+      {
+        "address": "0x11d1",
+        "mnemonic": "mov",
+        "op_str": "rax, rsi",
+        "text": "mov rax, rsi"
+      },
+      {
+        "address": "0x11d4",
+        "mnemonic": "shr",
+        "op_str": "rsi, 0x3f",
+        "text": "shr rsi, 0x3f"
+      },
+      {
+        "address": "0x11d8",
+        "mnemonic": "sar",
+        "op_str": "rax, 3",
+        "text": "sar rax, 3"
+      },
+      {
+        "address": "0x11dc",
+        "mnemonic": "add",
+        "op_str": "rsi, rax",
+        "text": "add rsi, rax"
+      },
+      {
+        "address": "0x11df",
+        "mnemonic": "sar",
+        "op_str": "rsi, 1",
+        "text": "sar rsi, 1"
+      },
+      {
+        "address": "0x11e2",
+        "mnemonic": "je",
+        "op_str": "0x11f8",
+        "text": "je 0x11f8"
+      },
+      {
+        "address": "0x11e4",
+        "mnemonic": "mov",
+        "op_str": "rax, qword ptr [rip + 0x2e05]",
+        "text": "mov rax, qword ptr [rip + 0x2e05]"
+      },
+      {
+        "address": "0x11eb",
+        "mnemonic": "test",
+        "op_str": "rax, rax",
+        "text": "test rax, rax"
+      },
+      {
+        "address": "0x11ee",
+        "mnemonic": "je",
+        "op_str": "0x11f8",
+        "text": "je 0x11f8"
+      },
+      {
+        "address": "0x11f0",
+        "mnemonic": "jmp",
+        "op_str": "rax",
+        "text": "jmp rax"
+      },
+      {
+        "address": "0x11f2",
+        "mnemonic": "nop",
+        "op_str": "word ptr [rax + rax]",
+        "text": "nop word ptr [rax + rax]"
+      },
+      {
+        "address": "0x11f8",
+        "mnemonic": "ret",
+        "op_str": "",
+        "text": "ret"
+      },
+      {
+        "address": "0x11f9",
+        "mnemonic": "nop",
+        "op_str": "dword ptr [rax]",
+        "text": "nop dword ptr [rax]"
+      },
+      {
+        "address": "0x1200",
+        "mnemonic": "endbr64",
+        "op_str": "",
+        "text": "endbr64"
+      },
+      {
+        "address": "0x1204",
+        "mnemonic": "cmp",
+        "op_str": "byte ptr [rip + 0x2e05], 0",
+        "text": "cmp byte ptr [rip + 0x2e05], 0"
+      },
+      {
+        "address": "0x120b",
+        "mnemonic": "jne",
+        "op_str": "0x1238",
+        "text": "jne 0x1238"
+      },
+      {
+        "address": "0x120d",
+        "mnemonic": "push",
+        "op_str": "rbp",
+        "text": "push rbp"
+      },
+      {
+        "address": "0x120e",
+        "mnemonic": "cmp",
+        "op_str": "qword ptr [rip + 0x2de2], 0",
+        "text": "cmp qword ptr [rip + 0x2de2], 0"
+      },
+      {
+        "address": "0x1216",
+        "mnemonic": "mov",
+        "op_str": "rbp, rsp",
+        "text": "mov rbp, rsp"
+      },
+      {
+        "address": "0x1219",
+        "mnemonic": "je",
+        "op_str": "0x1227",
+        "text": "je 0x1227"
+      },
+      {
+        "address": "0x121b",
+        "mnemonic": "mov",
+        "op_str": "rdi, qword ptr [rip + 0x2de6]",
+        "text": "mov rdi, qword ptr [rip + 0x2de6]"
+      },
+      {
+        "address": "0x1222",
+        "mnemonic": "call",
+        "op_str": "0x10c0",
+        "text": "call 0x10c0"
+      },
+      {
+        "address": "0x1227",
+        "mnemonic": "call",
+        "op_str": "0x1190",
+        "text": "call 0x1190"
+      },
+      {
+        "address": "0x122c",
+        "mnemonic": "mov",
+        "op_str": "byte ptr [rip + 0x2ddd], 1",
+        "text": "mov byte ptr [rip + 0x2ddd], 1"
+      },
+      {
+        "address": "0x1233",
+        "mnemonic": "pop",
+        "op_str": "rbp",
+        "text": "pop rbp"
+      },
+      {
+        "address": "0x1234",
+        "mnemonic": "ret",
+        "op_str": "",
+        "text": "ret"
+      },
+      {
+        "address": "0x1235",
+        "mnemonic": "nop",
+        "op_str": "dword ptr [rax]",
+        "text": "nop dword ptr [rax]"
+      },
+      {
+        "address": "0x1238",
+        "mnemonic": "ret",
+        "op_str": "",
+        "text": "ret"
+      },
+      {
+        "address": "0x1239",
+        "mnemonic": "nop",
+        "op_str": "dword ptr [rax]",
+        "text": "nop dword ptr [rax]"
+      },
+      {
+        "address": "0x1240",
+        "mnemonic": "endbr64",
+        "op_str": "",
+        "text": "endbr64"
+      },
+      {
+        "address": "0x1244",
+        "mnemonic": "jmp",
+        "op_str": "0x11c0",
+        "text": "jmp 0x11c0"
+      },
+      {
+        "address": "0x1249",
+        "mnemonic": "endbr64",
+        "op_str": "",
+        "text": "endbr64"
+      },
+      {
+        "address": "0x124d",
+        "mnemonic": "push",
+        "op_str": "rbp",
+        "text": "push rbp"
+      },
+      {
+        "address": "0x124e",
+        "mnemonic": "mov",
+        "op_str": "rbp, rsp",
+        "text": "mov rbp, rsp"
+      },
+      {
+        "address": "0x1251",
+        "mnemonic": "sub",
+        "op_str": "rsp, 0x30",
+        "text": "sub rsp, 0x30"
+      },
+      {
+        "address": "0x1255",
+        "mnemonic": "mov",
+        "op_str": "rax, qword ptr fs:[0x28]",
+        "text": "mov rax, qword ptr fs:[0x28]"
+      },
+      {
+        "address": "0x125e",
+        "mnemonic": "mov",
+        "op_str": "qword ptr [rbp - 8], rax",
+        "text": "mov qword ptr [rbp - 8], rax"
+      },
+      {
+        "address": "0x1262",
+        "mnemonic": "xor",
+        "op_str": "eax, eax",
+        "text": "xor eax, eax"
+      },
+      {
+        "address": "0x1264",
+        "mnemonic": "lea",
+        "op_str": "rax, [rip + 0xd99]",
+        "text": "lea rax, [rip + 0xd99]"
+      },
+      {
+        "address": "0x126b",
+        "mnemonic": "mov",
+        "op_str": "rdi, rax",
+        "text": "mov rdi, rax"
+      },
+      {
+        "address": "0x126e",
+        "mnemonic": "call",
+        "op_str": "0x10d0",
+        "text": "call 0x10d0"
+      },
+      {
+        "address": "0x1273",
+        "mnemonic": "mov",
+        "op_str": "edx, 0",
+        "text": "mov edx, 0"
+      },
+      {
+        "address": "0x1278",
+        "mnemonic": "mov",
+        "op_str": "esi, 1",
+        "text": "mov esi, 1"
+      },
+      {
+        "address": "0x127d",
+        "mnemonic": "mov",
+        "op_str": "edi, 2",
+        "text": "mov edi, 2"
+      },
+      {
+        "address": "0x1282",
+        "mnemonic": "call",
+        "op_str": "0x1150",
+        "text": "call 0x1150"
+      },
+      {
+        "address": "0x1287",
+        "mnemonic": "mov",
+        "op_str": "dword ptr [rbp - 0x2c], eax",
+        "text": "mov dword ptr [rbp - 0x2c], eax"
+      },
+      {
+        "address": "0x128a",
+        "mnemonic": "mov",
+        "op_str": "qword ptr [rbp - 0x20], 0",
+        "text": "mov qword ptr [rbp - 0x20], 0"
+      },
+      {
+        "address": "0x1292",
+        "mnemonic": "mov",
+        "op_str": "qword ptr [rbp - 0x18], 0",
+        "text": "mov qword ptr [rbp - 0x18], 0"
+      },
+      {
+        "address": "0x129a",
+        "mnemonic": "mov",
+        "op_str": "word ptr [rbp - 0x20], 2",
+        "text": "mov word ptr [rbp - 0x20], 2"
+      },
+      {
+        "address": "0x12a0",
+        "mnemonic": "mov",
+        "op_str": "edi, 0x115c",
+        "text": "mov edi, 0x115c"
+      },
+      {
+        "address": "0x12a5",
+        "mnemonic": "call",
+        "op_str": "0x1100",
+        "text": "call 0x1100"
+      },
+      {
+        "address": "0x12aa",
+        "mnemonic": "mov",
+        "op_str": "word ptr [rbp - 0x1e], ax",
+        "text": "mov word ptr [rbp - 0x1e], ax"
+      },
+      {
+        "address": "0x12ae",
+        "mnemonic": "lea",
+        "op_str": "rax, [rbp - 0x20]",
+        "text": "lea rax, [rbp - 0x20]"
+      },
+      {
+        "address": "0x12b2",
+        "mnemonic": "add",
+        "op_str": "rax, 4",
+        "text": "add rax, 4"
+      },
+      {
+        "address": "0x12b6",
+        "mnemonic": "mov",
+        "op_str": "rdx, rax",
+        "text": "mov rdx, rax"
+      },
+      {
+        "address": "0x12b9",
+        "mnemonic": "lea",
+        "op_str": "rax, [rip + 0xd4a]",
+        "text": "lea rax, [rip + 0xd4a]"
+      },
+      {
+        "address": "0x12c0",
+        "mnemonic": "mov",
+        "op_str": "rsi, rax",
+        "text": "mov rsi, rax"
+      },
+      {
+        "address": "0x12c3",
+        "mnemonic": "mov",
+        "op_str": "edi, 2",
+        "text": "mov edi, 2"
+      },
+      {
+        "address": "0x12c8",
+        "mnemonic": "call",
+        "op_str": "0x1120",
+        "text": "call 0x1120"
+      },
+      {
+        "address": "0x12cd",
+        "mnemonic": "lea",
+        "op_str": "rcx, [rbp - 0x20]",
+        "text": "lea rcx, [rbp - 0x20]"
+      },
+      {
+        "address": "0x12d1",
+        "mnemonic": "mov",
+        "op_str": "eax, dword ptr [rbp - 0x2c]",
+        "text": "mov eax, dword ptr [rbp - 0x2c]"
+      },
+      {
+        "address": "0x12d4",
+        "mnemonic": "mov",
+        "op_str": "edx, 0x10",
+        "text": "mov edx, 0x10"
+      },
+      {
+        "address": "0x12d9",
+        "mnemonic": "mov",
+        "op_str": "rsi, rcx",
+        "text": "mov rsi, rcx"
+      },
+      {
+        "address": "0x12dc",
+        "mnemonic": "mov",
+        "op_str": "edi, eax",
+        "text": "mov edi, eax"
+      },
+      {
+        "address": "0x12de",
+        "mnemonic": "call",
+        "op_str": "0x1140",
+        "text": "call 0x1140"
+      },
+      {
+        "address": "0x12e3",
+        "mnemonic": "lea",
+        "op_str": "rax, [rip + 0xd2a]",
+        "text": "lea rax, [rip + 0xd2a]"
+      },
+      {
+        "address": "0x12ea",
+        "mnemonic": "mov",
+        "op_str": "rsi, rax",
+        "text": "mov rsi, rax"
+      },
+      {
+        "address": "0x12ed",
+        "mnemonic": "lea",
+        "op_str": "rax, [rip + 0xd22]",
+        "text": "lea rax, [rip + 0xd22]"
+      },
+      {
+        "address": "0x12f4",
+        "mnemonic": "mov",
+        "op_str": "rdi, rax",
+        "text": "mov rdi, rax"
+      },
+      {
+        "address": "0x12f7",
+        "mnemonic": "call",
+        "op_str": "0x1130",
+        "text": "call 0x1130"
+      },
+      {
+        "address": "0x12fc",
+        "mnemonic": "mov",
+        "op_str": "qword ptr [rbp - 0x28], rax",
+        "text": "mov qword ptr [rbp - 0x28], rax"
+      },
+      {
+        "address": "0x1300",
+        "mnemonic": "mov",
+        "op_str": "rax, qword ptr [rbp - 0x28]",
+        "text": "mov rax, qword ptr [rbp - 0x28]"
+      },
+      {
+        "address": "0x1304",
+        "mnemonic": "mov",
+        "op_str": "rsi, rax",
+        "text": "mov rsi, rax"
+      },
+      {
+        "address": "0x1307",
+        "mnemonic": "mov",
+        "op_str": "edi, 0x78",
+        "text": "mov edi, 0x78"
+      },
+      {
+        "address": "0x130c",
+        "mnemonic": "call",
+        "op_str": "0x1110",
+        "text": "call 0x1110"
+      },
+      {
+        "address": "0x1311",
+        "mnemonic": "mov",
+        "op_str": "rax, qword ptr [rbp - 0x28]",
+        "text": "mov rax, qword ptr [rbp - 0x28]"
+      },
+      {
+        "address": "0x1315",
+        "mnemonic": "mov",
+        "op_str": "rdi, rax",
+        "text": "mov rdi, rax"
+      },
+      {
+        "address": "0x1318",
+        "mnemonic": "call",
+        "op_str": "0x10e0",
+        "text": "call 0x10e0"
+      },
+      {
+        "address": "0x131d",
+        "mnemonic": "mov",
+        "op_str": "eax, 0",
+        "text": "mov eax, 0"
+      },
+      {
+        "address": "0x1322",
+        "mnemonic": "mov",
+        "op_str": "rdx, qword ptr [rbp - 8]",
+        "text": "mov rdx, qword ptr [rbp - 8]"
+      },
+      {
+        "address": "0x1326",
+        "mnemonic": "sub",
+        "op_str": "rdx, qword ptr fs:[0x28]",
+        "text": "sub rdx, qword ptr fs:[0x28]"
+      },
+      {
+        "address": "0x132f",
+        "mnemonic": "je",
+        "op_str": "0x1336",
+        "text": "je 0x1336"
+      },
+      {
+        "address": "0x1331",
+        "mnemonic": "call",
+        "op_str": "0x10f0",
+        "text": "call 0x10f0"
+      },
+      {
+        "address": "0x1336",
+        "mnemonic": "leave",
+        "op_str": "",
+        "text": "leave"
+      },
+      {
+        "address": "0x1337",
+        "mnemonic": "ret",
+        "op_str": "",
+        "text": "ret"
+      }
+    ],
+    "call_sites": []
+  },
+  "capabilities": [
+    {
+      "id": "net-socket",
+      "name": "Create a network socket",
+      "attack_id": "T1071.001",
+      "tactic": "Command and Control",
+      "technique": "Application Layer Protocol: Web Protocols",
+      "evidence": [
+        "import/symbol: socket",
+        "string/text: socket"
+      ],
+      "explanation": "Opens a network socket, the first step in talking to another machine."
+    },
+    {
+      "id": "net-connect",
+      "name": "Connect to a remote host",
+      "attack_id": "T1071.001",
+      "tactic": "Command and Control",
+      "technique": "Application Layer Protocol",
+      "evidence": [
+        "import/symbol: connect"
+      ],
+      "explanation": "Connects out to an address and port. In malware this is often the command and control channel."
+    },
+    {
+      "id": "file-write",
+      "name": "Write files to disk",
+      "attack_id": "T1105",
+      "tactic": "Impact",
+      "technique": "Ingress Tool Transfer (file creation evidence)",
+      "evidence": [
+        "import/symbol: fopen",
+        "import/symbol: open"
+      ],
+      "explanation": "Creates or writes files: dropped payloads, logs of stolen data, or persistence scripts."
+    }
+  ],
+  "script_analysis": null,
+  "script_source_excerpt": null,
+  "iocs": {
+    "urls": [],
+    "ip_addresses": [
+      "127.0.0.1"
+    ],
+    "domains": [],
+    "file_paths": [
+      "/tmp/pwned.txt"
+    ]
+  },
+  "risk": {
+    "score": 15,
+    "verdict": "LOW TO MEDIUM RISK, review the capabilities listed",
+    "reasons": [
+      "Capability detected: net-connect"
+    ]
+  },
+  "unknowns": [
+    "Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence."
+  ],
+  "plain_english": [
+    "This file is called hello_elf and it is 16312 bytes in size.",
+    "It is a ELF file for x86-64, variant 64-bit.",
+    "Its fingerprint (SHA-256) is 18653ba75366723fa0642c7155ab315491ab48f5b0dd21393aaaefddf0a2487d. If anyone else reports this exact fingerprint, they are talking about the exact same file, byte for byte.",
+    "It borrows these ready-made functions from the operating system and libraries: _ITM_deregisterTMCloneTable, _ITM_registerTMCloneTable, __cxa_finalize, __gmon_start__, __libc_start_main, __stack_chk_fail, connect, fclose, fopen, fputc, htons, inet_pton, puts, socket. In plain terms: _ITM_deregisterTMCloneTable means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; _ITM_registerTMCloneTable means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; __cxa_finalize means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; __gmon_start__ means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; __libc_start_main means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; __stack_chk_fail means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; connect means it connects to a remote address; fclose means it closes a file; fopen means it opens a file; fputc means it is a library function used by the program, with no specific note in the built-in table, so it is listed by name only; htons means it converts a port number into network byte order; inet_pton means it converts a written IP address into binary form for a connection.",
+    "Here is what the evidence says it can do:",
+    "- Create a network socket (MITRE ATT&CK T1071.001, Application Layer Protocol: Web Protocols): Opens a network socket, the first step in talking to another machine. Evidence: import/symbol: socket, string/text: socket.",
+    "- Connect to a remote host (MITRE ATT&CK T1071.001, Application Layer Protocol): Connects out to an address and port. In malware this is often the command and control channel. Evidence: import/symbol: connect.",
+    "- Write files to disk (MITRE ATT&CK T1105, Ingress Tool Transfer (file creation evidence)): Creates or writes files: dropped payloads, logs of stolen data, or persistence scripts. Evidence: import/symbol: fopen, import/symbol: open.",
+    "Packing check: No strong packing signal: whole-file entropy is 1.85/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.",
+    "Network names and addresses written inside the file: URLs none, IP addresses ['127.0.0.1'], domains none. A name written in a file is a lead, not proof the program contacts it.",
+    "Verdict: LOW TO MEDIUM RISK, review the capabilities listed (rule score 15/100).",
+    "What is not known: Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence."
+  ]
+}
