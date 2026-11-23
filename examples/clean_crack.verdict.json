@@ -1,0 +1,205 @@
+{
+  "tool": "Event Zero",
+  "version": "3.0.0",
+  "report_type": "verdict",
+  "subject": "/tmp/ezex/release",
+  "reference": "/tmp/ezex/genuine",
+  "headline": "NO: NO MALWARE",
+  "verdict": "NO",
+  "reason_class": "ACCOUNTED",
+  "elapsed_seconds": 0.106,
+  "pipeline_order": [
+    "enumerate release and extract archives/installers to the bottom",
+    "unpack, multi-layer decode, carve embedded payloads",
+    "evasion analysis",
+    "capability analysis of every file and every carved payload",
+    "malicious chain judgement",
+    "the scope test against each file's claimed function",
+    "reference diff, manifest equality and patch identification",
+    "known-bad hash check",
+    "accounting: every byte genuine, expected-crack, benign-repack, proven malicious, or unaccounted"
+  ],
+  "files": [
+    {
+      "name": "game.py",
+      "path_in_release": "game.py",
+      "size_bytes": 198,
+      "sha256": "befce7d65b1b5347c48d946a3b3b6b426056c1a18873af9d6ef9655ced0341fb",
+      "hashes": {
+        "md5": "e9865133f421a47f316d95e02faaffd9",
+        "sha1": "fd7b38d2a2f9d99306651099a786d9c905e3cc5a",
+        "sha256": "befce7d65b1b5347c48d946a3b3b6b426056c1a18873af9d6ef9655ced0341fb",
+        "sha512": "c85898180033113e6b58eea1b5268289f4ef72f1e981f4a66545a42a1862f870e2c78498ed74cd6af558987b5861a97ed7eda19ed32600533a6806fc660cd6a2"
+      },
+      "origin": "dir",
+      "signed": null,
+      "signature_valid": null,
+      "verdict": "NO: ACCOUNTED",
+      "why": [
+        "Differs from the genuine reference in 3 region(s): 3 classified expected-crack or benign-repack, 0 unaccounted. Full ledger in this report.",
+        "Accounted: every differing region against the genuine reference is classified expected-crack or benign-repack in the diff ledger, and no malicious capability chain exists."
+      ],
+      "capabilities": [],
+      "chains": [],
+      "reference": "differs-from-reference",
+      "patch_evidence": [
+        {
+          "kind": "license-or-crack-marker",
+          "string": "    key = input(\"license key: \")",
+          "detail": "The file itself names the thing that was patched: '    key = input(\"license key: \")'"
+        },
+        {
+          "kind": "license-or-crack-marker",
+          "string": "    if True:  # license check patched",
+          "detail": "The file itself names the thing that was patched: '    if True:  # license check patched'"
+        },
+        {
+          "kind": "license-or-crack-marker",
+          "string": "        print(\"welcome, licensed user\")",
+          "detail": "The file itself names the thing that was patched: '        print(\"welcome, licensed user\")'"
+        },
+        {
+          "kind": "license-or-crack-marker",
+          "string": "        print(\"license check failed\")",
+          "detail": "The file itself names the thing that was patched: '        print(\"license check failed\")'"
+        }
+      ],
+      "embedded_payloads": [],
+      "crc32": "2e092691",
+      "format": "text / script",
+      "analysis_verdict": "NO MALICIOUS CAPABILITY DETECTED by static rules. This is not proof the file is safe.",
+      "behaviour_effects": [],
+      "extra_streams": [],
+      "claimed_function": "program",
+      "scope_test": [],
+      "virtualization": {
+        "detected": false,
+        "protector": null,
+        "signature_evidence": [],
+        "vm_sections": [],
+        "entry_stubs": [],
+        "handler_census": {
+          "indirect_jump_sites": 0,
+          "indirect_call_sites": 0,
+          "handler_exit_estimate": 0,
+          "dispatcher_region": null,
+          "note": "A census counts the VM machinery that is visible: dispatcher, handler exits, entry stubs. It does not reconstruct the original functions, and it is reported as a census, not as recovered code."
+        },
+        "encrypted_regions": [],
+        "virtualized_proportion": null,
+        "virtualized_function_estimate": 0,
+        "unaccounted_units": 0,
+        "open_list": [
+          "environment-keyed payload with an unknown key: the payload bytes never enter the lab",
+          "server-gated or one-time payload content that refuses every lab vantage point: only the attempt is provable",
+          "current-version mutated virtualization (VMProtect 3.8+ Ultra, Themida 3.x): full devirtualization is open; the census and trace layers still apply"
+        ],
+        "plain_english": "No known virtualizing protector signature (VMProtect, Themida, Code Virtualizer, Enigma, Safengine) was found in section names or strings, and no dispatcher census was triggered."
+      }
+    }
+  ],
+  "installer": {
+    "is_installer_or_archive": false,
+    "kind": null,
+    "contents": [],
+    "drop_list": [],
+    "extracted": false
+  },
+  "manifest": {
+    "schema": "eventzero.manifest/1",
+    "tree_sha256": "933f9526f420e09b31d5891640ed313599f0258ac244abdf6f619c46e1030a76",
+    "entries": 1,
+    "format": "JSON Lines: header, per-entry records with container parent chain and per-stream hashes, footer with tree hash. Produced by build_manifest_jsonl or the CLI --manifest option.",
+    "inheritance": "Exact: any PROVEN entry makes the release YES-PROVEN, else any UNACCOUNTED entry makes it YES-UNACCOUNTED, else NO."
+  },
+  "connection_ledger": [],
+  "behaviour_ledger": [],
+  "behaviour_baseline_diff": {
+    "sample_only": [],
+    "baseline_only": [],
+    "note": "Static-predicted effects, diffed against the genuine reference baseline. Effects the genuine program also has are baseline, not findings. A crack removing the vendor activation call appears in baseline_only and is expected: that removal is the crack. Observed-live behaviour entries come from sandbox ingestion and are marked SERVICE/HANDOFF in CAPABILITY-MATRIX.md."
+  },
+  "enumeration_aids": [],
+  "provenance": [],
+  "diff_ledger": [
+    {
+      "tag": "insert",
+      "old_range": [
+        71,
+        71
+      ],
+      "new_range": [
+        71,
+        92
+      ],
+      "old_bytes": "",
+      "new_bytes": "547275653a202023206c6963656e73652063686563",
+      "size_change": 21,
+      "classification": "expected-crack",
+      "reason": "The differing bytes sit in or beside the license check (the surrounding bytes name it), and the change is the size and shape of a check being bypassed, for example a conditional jump replaced so the check always passes. No capability was added.",
+      "file": "game.py"
+    },
+    {
+      "tag": "insert",
+      "old_range": [
+        72,
+        72
+      ],
+      "new_range": [
+        93,
+        99
+      ],
+      "old_bytes": "",
+      "new_bytes": "207061746368",
+      "size_change": 6,
+      "classification": "expected-crack",
+      "reason": "The differing bytes sit in or beside the license check (the surrounding bytes name it), and the change is the size and shape of a check being bypassed, for example a conditional jump replaced so the check always passes. No capability was added.",
+      "file": "game.py"
+    },
+    {
+      "tag": "replace",
+      "old_range": [
+        73,
+        82
+      ],
+      "new_range": [
+        100,
+        101
+      ],
+      "old_bytes": "79203d3d204b45593a",
+      "new_bytes": "64",
+      "size_change": -8,
+      "classification": "expected-crack",
+      "reason": "The differing bytes sit in or beside the license check (the surrounding bytes name it), and the change is the size and shape of a check being bypassed, for example a conditional jump replaced so the check always passes. No capability was added.",
+      "file": "game.py"
+    }
+  ],
+  "yes_reasons": [],
+  "unaccounted": [],
+  "blockers": [],
+  "missing_proof": [],
+  "next_steps": [],
+  "notes": [],
+  "eli5": [
+    "No, we checked every part and found no thief.",
+    "We took the whole thing apart, piece by piece.",
+    "Every piece is accounted for. It is a piece of the real program, or a crack piece we can point at and explain.",
+    "No piece does a bad thing that no honest program needs to do."
+  ],
+  "plain_english": [
+    "Headline: NO: NO MALWARE",
+    "Reason class: ACCOUNTED",
+    "Subject: /tmp/ezex/release (1 file(s) enumerated and analysed in 0.106 seconds).",
+    "Every byte is accounted for as genuine or explained crack, and no behaviour beyond the genuine program plus the explained crack was observed in the evidence. This verdict is linked to the evidence manifest in this report."
+  ],
+  "corroboration": {
+    "note": "NSRL and CIRCL hashlookup presence, antivirus non-detection, and VirusTotal detection counts are corroboration only. They identify known files or generic labels; they never form the basis of a NO, and a generic HackTool or RiskWare count never forms a PROVEN YES. A PROVEN service-based YES needs a specific family on record or family convergence plus locally proven behaviour.",
+    "nsrl_circl": "not queried in this run"
+  },
+  "proof_standard": {
+    "yes_proven": "Malicious capability or behaviour proven in context: a capability chain (stealer, injection plus payload, download-and-execute, persistence plus command and control, miner, ransomware pattern, backdoor, rootkit hiding), a scope test failure (the first behaviour unnecessary for the claimed function decides it), antivirus tampering, Safe Mode manipulation or reboot-count gating (the Crackonosh pattern), a known-bad family hash hit, or an unaccounted executable difference that carries a proven malicious chain. An unneeded remote download-and-execute capability is itself malicious class.",
+    "yes_unaccounted": "Any byte, file, script, archive layer or behaviour that could not be accounted for as genuine or as the explained crack: an unopened or password-protected archive layer, a virtualized region, an unaccounted diff region, an executable that is not part of the genuine program, a compiled binary with no reference, no valid signature and no identified crack patch, or generic-only service detections that need behaviour evidence. UNACCOUNTED is stated plainly as unaccounted, never as proven malware.",
+    "no": "Every file byte-identical to a genuine signature-valid original (hash match or reference-manifest hash equality), or a fully reverse-engineered difference classified expected-crack or benign-repack in the diff ledger, with all archive layers unpacked to the bottom. Phrased exactly as the accounting claim: Every byte is accounted for as genuine or explained crack, and no behaviour beyond the genuine program plus the explained crack was observed in the evidence. This verdict is linked to the evidence manifest in this report.",
+    "circumvention": "Circumvention itself is not malware: patched checks, keygen algorithms, KMS emulation (local emulator service, renewal task, GVLK keys), and hosts-file activation blocks are the expected crack. Antivirus HackTool or CrackTool labels alone never trigger YES."
+  }
+}

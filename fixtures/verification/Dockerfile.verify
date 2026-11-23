@@ -1,0 +1,9 @@
+# Verification image for the every-family corpus run.
+# The image is BUILT in the workflow's setup stage (network allowed).
+# It is only ever RUN with --network none in the verification stage:
+# the corpus run must make no outbound network use, by design, not
+# by trust. See .github/workflows/verify.yml and egress_canary.py.
+FROM python:3.12-slim
+WORKDIR /app
+COPY . /app
+RUN pip install --no-cache-dir -r requirements.txt pytest unicorn cryptography

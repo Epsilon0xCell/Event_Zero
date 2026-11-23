@@ -1,0 +1,164 @@
+EVENT ZERO: PLAIN-ENGLISH MALWARE REPORT
+============================================================
+File: s1.apk  (594 bytes)
+Path analysed: /tmp/adv/s1.apk
+Parser backend: stdlib fallback parser (lief could not parse)   Disassembly available: True
+
+0. EXPLAINED LIKE YOU ARE FIVE (ELI5)
+  This is about a computer file called s1.apk.
+  This file does some things that need a close look.
+  Think of it like a new trick.
+  It can do something the report lists, and the grown up part of the report shows the proof.
+  What should you do? Do not open it. Give it to a grown up who studies bad files.
+  This simple part says only what the proof shows.
+  It does not add new proof.
+  Note: this simple part is a translation of the proof below. It does not create new certainty.
+
+1. IDENTITY AND HASHES
+  md5: b2d39ac36a585517c80da5b073273824
+  sha1: 9ed0f221e3ad4db915774906c67570f3c66c2389
+  sha256: b8fb768a5a1883e05ff3ae0ef35c6a26e3ee41590b71303c6acd4dd46c7fc102
+  sha512: aac0be19b6f7978d4e7f03f56e38a76da4ecdb93aeb1bdf37fbd6b595d614138ca35497aff526fdf305efafd43677c701e144a4df5a3adc3ab19118ab5a82111
+  EICAR test file: False
+
+2. WHAT THIS FILE IS, IN PLAIN ENGLISH
+  This file is called s1.apk and it is 594 bytes in size.
+  It is a ZIP archive file for n/a.
+  Its fingerprint (SHA-256) is b8fb768a5a1883e05ff3ae0ef35c6a26e3ee41590b71303c6acd4dd46c7fc102. If anyone else reports this exact fingerprint, they are talking about the exact same file, byte for byte.
+  No imported functions could be listed. That can happen with scripts, stripped files, or formats the parser could not read in detail, and it is recorded as a gap rather than hidden.
+  Here is what the evidence says it can do:
+  - Make HTTP requests (MITRE ATT&CK T1071.001, Application Layer Protocol: Web Protocols): Uses web traffic, which blends in with normal browsing and often passes firewalls. Evidence: string/text: http://.
+  Packing check: No strong packing signal: whole-file entropy is 4.602/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.
+  Network names and addresses written inside the file: URLs ['http://asset-drop.example/stage2'], IP addresses none, domains none. A name written in a file is a lead, not proof the program contacts it.
+  Verdict: NO MALICIOUS CAPABILITY DETECTED by static rules. This is not proof the file is safe. (rule score 0/100).
+  What is not known: Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence.
+
+3. FORMAT AND ARCHITECTURE
+  format: ZIP archive
+  architecture: n/a
+
+4. SECTIONS AND PACKING
+  No strong packing signal: whole-file entropy is 4.602/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.
+  Overall entropy: 4.602 / 8.0
+
+5. IMPORTED FUNCTIONS, EXPLAINED
+  None could be listed. See Unknowns.
+
+6. STRINGS FOUND IN THE FILE
+  Total: 16 (ASCII 14, UTF-16 2)
+  - 0w]0
+  - AndroidManifest.xmla
+  - classes.dexdex
+  - LPPT
+  - LM@@AJ	@A\
+  - A\EITHA
+  - 0w]N
+  - assets/payload.binhttp://asset-drop.example/stage2
+  - CreateRemoteThreadPK
+  - 0w]0
+  - AndroidManifest.xmlPK
+  - classes.dexPK
+  - 0w]N
+  - assets/payload.binPK
+  - android.permission.ACCESS_FINE_LOCATION android.permission.BIND_DEVICE_ADMIN
+  - ndroid.permission.ACCESS_FINE_LOCATION android.permission.BIND_DEVICE_ADMINP
+
+7. DECODED STRINGS (things the file tried to hide)
+  Base64 decoded: none found
+  XOR decoded: none found
+
+8. CAPABILITIES (capa-style, mapped to MITRE ATT&CK)
+  [T1071.001] Make HTTP requests (Command and Control: Application Layer Protocol: Web Protocols)
+    Uses web traffic, which blends in with normal browsing and often passes firewalls.
+    Evidence: string/text: http://
+
+9. DISASSEMBLY AND FUNCTIONS
+  No disassembly for architecture n/a  Instructions shown: 0
+
+10. INDICATORS OF COMPROMISE (IOCs)
+  urls: ['http://asset-drop.example/stage2']
+  ip_addresses: none found
+  domains: none found
+  file_paths: none found
+
+11. RISK VERDICT
+  NO MALICIOUS CAPABILITY DETECTED by static rules. This is not proof the file is safe.  (rule score 0/100)
+
+12. UNKNOWNS: WHAT STATIC ANALYSIS COULD NOT DETERMINE
+  - Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence.
+
+13. UNPACKING, CARVING AND HIDDEN LAYERS
+  UPX: {'detected': False, 'unpacked': False, 'note': ''}
+  Overlay: {'present': False, 'size': 0}
+  Carved embedded binaries: none
+  Multi-layer decoded strings: none
+  Virtualization: No virtualizing packer signature (VMProtect, Themida, Enigma) was found in section names or strings.
+  High entropy regions: none
+
+14. FIRMWARE AND UEFI
+  This file does not show strong firmware image structure (no UEFI volume and no flash filesystem signature cluster). The magic scan results are still listed so embedded content is not missed.
+  Magic hits: [{'magic': 'ZIP archive', 'offset': 0, 'offset_hex': '0x0'}, {'magic': 'ZIP archive', 'offset': 201, 'offset_hex': '0xc9'}, {'magic': 'ZIP archive', 'offset': 287, 'offset_hex': '0x11f'}]
+  UEFI volumes: none
+  DXE drivers carved: none
+  Red flags: none
+
+15. ROOTKIT AND KERNEL
+  No kernel driver structure was identified, so rootkit specific checks found no driver to judge. User mode hiding patterns, if any, are covered by the evasion section.
+  Windows kernel indicators: none
+  Linux kernel indicators: none
+  eBPF: none
+  Hiding indicators: none
+
+16. EXPLOIT AND SHELLCODE
+  Explainer: An exploit is code that turns a bug into control. Event Zero separates the bug evidence (what looks broken), the primitive (what control it gives, stated only when evidence supports it), and the payload stages (sled, egghunter, GetPC, decoded shellcode). A zero day is simply a bug with no patch yet, so no static tool can certify that a sample is or is not a zero day. What can be done, and is done here, is to map the bug pattern and payload structure in plain words and label the rest as unknown.
+  Bug class evidence: not identified from static evidence alone
+  Payload stages: none
+  Sleds and spray: none  Egghunter: False  GetPC: none
+  ROP gadgets found: 0 (showing up to 20)
+
+17. EVASION DECODED (AV BYPASS TRICKS)
+  No built in evasion pattern matched. That covers direct syscalls, API hashing, injection chains, hollowing, anti-debug, anti-VM, sandbox checks and AMSI or ETW patching only, it is not proof the sample has no evasion.
+  Emulation: {'available': False, 'note': 'No shellcode region was identified for emulation.', 'instructions_emulated': 0}
+
+18. HYBRID AND EXTERNAL ENRICHMENT
+  Sandbox report merged: none supplied
+  Enrichment consensus: Enrichment not run. Run event_zero enrich <file> or analyze --enrich to query hash lookup services. Local evidence is complete without it.
+  Tools that contributed or were available: ['strings', 'objdump', 'readelf', 'nm', 'unicorn', 'pestudio-style checks', 'ghidra-mcp', 'x64dbg']
+
+19. AI NARRATIVE (GEMINI, EVIDENCE GATED)
+  {'status': 'not_configured', 'provider': 'gemini', 'model': 'gemini-2.5-flash', 'note': 'LLM layer not configured: run with --gemini and a GEMINI_API_KEY or GOOGLE_API_KEY in the environment to enable the evidence-gated Gemini narrative. The deterministic report is complete without it.'}
+
+20. EXTRA FORMATS: .NET, ANDROID, OFFICE, PDF, EMAIL, PCAP
+  .NET: {'is_dotnet': False, 'evidence': [], 'metadata_strings': [], 'obfuscator_indicators': [], 'plain_english': 'No .NET runtime header or metadata was found, so this is not identified as a .NET program.'}
+  APK: {'is_apk': True, 'entries': ['AndroidManifest.xml', 'classes.dex', 'assets/payload.bin'], 'permissions': ['android.permission.ACCESS_FINE_LOCATION', 'android.permission.BIND_DEVICE_ADMIN'], 'permissions_plain': {'android.permission.ACCESS_FINE_LOCATION': 'know exactly where the phone is', 'android.permission.BIND_DEVICE_ADMIN': 'become a device boss (device admin)'}, 'permissions_eli5': ['It asks to know exactly where the phone is.', 'It asks to become a device boss (device admin).'], 'dex_files': ['classes.dex'], 'dex_xor_decoded': [{'key_hex': '0x24', 'decoded': 'http://hidden-dex.example/x'}], 'dex_string_sample': [], 'urls_in_dex': [], 'plain_english': 'This is an Android app package (APK). Event Zero listed what is inside it, read the app manifest permissions and explained each one, and pulled readable text out of its code files (DEX). It did not install or run the app.'}
+  Office: {'is_ole_compound': False, 'has_macros': False, 'auto_open_triggers': [], 'dde': False, 'template_injection_urls': [], 'stream_notes': [], 'oletools_adapter': 'oletools (olevba) is used through the tool registry when installed; the built in checks above run regardless.', 'plain_english': 'No macro streams, auto-open triggers or DDE links were found by the built in Office checks.'}
+  PDF: {'is_pdf': False}
+  Email: {'is_email': False}
+  PCAP: {'is_pcap': False, 'note': 'Not a classic pcap file. If tshark is installed, use it for pcapng and deep protocol work; Event Zero lists tshark in the tool registry.'}
+
+21. KILL CHAIN TIMELINE
+  Order is the logical kill chain order (MITRE ATT&CK tactic order), reconstructed from static evidence. It is not observed timing: the sample was never run, so the report does not claim these steps happened at specific times.
+
+22. GENERATED YARA RULE (review before production use)
+rule EZ_s1 {
+  meta:
+    author = "Event Zero (generated from local evidence)"
+    sha256 = "b8fb768a5a1883e05ff3ae0ef35c6a26e3ee41590b71303c6acd4dd46c7fc102"
+    description = "Generated rule: review before production use"
+  strings:
+    $s7 = "assets/payload.binhttp://asset-drop.example/stage2" ascii wide
+  condition:
+    any of them
+}
+
+
+BROWSER LOOKUP LINKS (hash only, nothing uploaded)
+  ANY.RUN: https://app.any.run/submissions/#filehash:b8fb768a5a1883e05ff3ae0ef35c6a26e3ee41590b71303c6acd4dd46c7fc102 (hash search page, no file shared)
+  Joe Sandbox: https://www.joesandbox.com/search?q=b8fb768a5a1883e05ff3ae0ef35c6a26e3ee41590b71303c6acd4dd46c7fc102 (hash search page, no file shared)
+  Koodous: https://koodous.com/apks?search=b8fb768a5a1883e05ff3ae0ef35c6a26e3ee41590b71303c6acd4dd46c7fc102 (hash search page, mainly Android, no file shared)
+  Intezer: https://analyze.intezer.com/files/b8fb768a5a1883e05ff3ae0ef35c6a26e3ee41590b71303c6acd4dd46c7fc102 (hash lookup page, no file shared)
+  CyberChef: https://gchq.github.io/CyberChef/ (tool page only, nothing is sent until you paste data yourself)
+  dogbolt decompiler: https://dogbolt.org/ (tool page only, uploading there is your choice and is NOT done by Event Zero)
+  UnpacMe: https://www.unpac.me/ (tool page only, uploading there is your choice and is NOT done by Event Zero)
+
+End of report. The sample was read as bytes and was never executed on the host.

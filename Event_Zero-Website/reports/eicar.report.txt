@@ -1,0 +1,146 @@
+EVENT ZERO: PLAIN-ENGLISH MALWARE REPORT
+============================================================
+File: eicar.com  (68 bytes)
+Path analysed: fixtures/eicar.com
+Parser backend: stdlib fallback parser (lief could not parse)   Disassembly available: True
+
+0. EXPLAINED LIKE YOU ARE FIVE (ELI5)
+  This is about a computer file called eicar.com.
+  This one is a pretend bad file. It is a test. It can not hurt a computer.
+  Grown ups use it to check that their guard tools work.
+  Note: this simple part is a translation of the proof below. It does not create new certainty.
+
+1. IDENTITY AND HASHES
+  md5: 44d88612fea8a8f36de82e1278abb02f
+  sha1: 3395856ce81f2b7382dee72602f798b642f14140
+  sha256: 275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f
+  sha512: cc805d5fab1fd71a4ab352a9c533e65fb2d5b885518f4e565e68847223b8e6b85cb48f3afad842726d99239c9e36505c64b0dc9a061d9e507d833277ada336ab
+  EICAR test file: True
+
+2. WHAT THIS FILE IS, IN PLAIN ENGLISH
+  This file is called eicar.com and it is 68 bytes in size.
+  It is a text / script file for n/a.
+  It is the EICAR antivirus test file. It is harmless and exists only so people can check that security tools are working.
+  Its fingerprint (SHA-256) is 275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f. If anyone else reports this exact fingerprint, they are talking about the exact same file, byte for byte.
+  No imported functions could be listed. That can happen with scripts, stripped files, or formats the parser could not read in detail, and it is recorded as a gap rather than hidden.
+  No capability from the built-in rule set matched. That means none of the checked behaviours (networking, shell commands, persistence, injection, credential access, and the rest) were found in the imports, strings, or instructions that were examined.
+  Packing check: No strong packing signal: whole-file entropy is 4.872/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.
+  Verdict: TEST FILE (EICAR, harmless) (rule score 0/100).
+  What is not known: Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence. Script was analysed as source text. Obfuscated or dynamically generated code in it (eval, exec of decoded strings) is flagged as a capability when seen, but its final payload cannot be known without running it in a sandbox.
+
+3. FORMAT AND ARCHITECTURE
+  format: text / script
+  architecture: n/a
+
+4. SECTIONS AND PACKING
+  No strong packing signal: whole-file entropy is 4.872/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.
+  Overall entropy: 4.872 / 8.0
+
+5. IMPORTED FUNCTIONS, EXPLAINED
+  None could be listed. See Unknowns.
+
+6. STRINGS FOUND IN THE FILE
+  Total: 1 (ASCII 1, UTF-16 0)
+  - X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
+
+7. DECODED STRINGS (things the file tried to hide)
+  Base64 decoded: none found
+  XOR decoded: none found
+
+8. CAPABILITIES (capa-style, mapped to MITRE ATT&CK)
+  No built-in capability rule matched.
+
+9. DISASSEMBLY AND FUNCTIONS
+  No disassembly for architecture n/a  Instructions shown: 0
+  Script analysis: {'language': None, 'lines': 1, 'imports': [], 'calls': []}
+  Script source excerpt:
+    X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
+
+10. INDICATORS OF COMPROMISE (IOCs)
+  urls: none found
+  ip_addresses: none found
+  domains: none found
+  file_paths: none found
+
+11. RISK VERDICT
+  TEST FILE (EICAR, harmless)  (rule score 0/100)
+
+12. UNKNOWNS: WHAT STATIC ANALYSIS COULD NOT DETERMINE
+  - Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence.
+  - Script was analysed as source text. Obfuscated or dynamically generated code in it (eval, exec of decoded strings) is flagged as a capability when seen, but its final payload cannot be known without running it in a sandbox.
+
+13. UNPACKING, CARVING AND HIDDEN LAYERS
+  UPX: {'detected': False, 'unpacked': False, 'note': ''}
+  Overlay: {'present': False, 'size': 0}
+  Carved embedded binaries: none
+  Multi-layer decoded strings: none
+  Virtualization: No virtualizing packer signature (VMProtect, Themida, Enigma) was found in section names or strings.
+  High entropy regions: none
+
+14. FIRMWARE AND UEFI
+  This file does not show strong firmware image structure (no UEFI volume and no flash filesystem signature cluster). The magic scan results are still listed so embedded content is not missed.
+  Magic hits: none
+  UEFI volumes: none
+  DXE drivers carved: none
+  Red flags: none
+
+15. ROOTKIT AND KERNEL
+  No kernel driver structure was identified, so rootkit specific checks found no driver to judge. User mode hiding patterns, if any, are covered by the evasion section.
+  Windows kernel indicators: none
+  Linux kernel indicators: none
+  eBPF: none
+  Hiding indicators: none
+
+16. EXPLOIT AND SHELLCODE
+  Explainer: An exploit is code that turns a bug into control. Event Zero separates the bug evidence (what looks broken), the primitive (what control it gives, stated only when evidence supports it), and the payload stages (sled, egghunter, GetPC, decoded shellcode). A zero day is simply a bug with no patch yet, so no static tool can certify that a sample is or is not a zero day. What can be done, and is done here, is to map the bug pattern and payload structure in plain words and label the rest as unknown.
+  Bug class evidence: not identified from static evidence alone
+  Payload stages: none
+  Sleds and spray: none  Egghunter: False  GetPC: none
+  ROP gadgets found: 0 (showing up to 20)
+
+17. EVASION DECODED (AV BYPASS TRICKS)
+  No built in evasion pattern matched. That covers direct syscalls, API hashing, injection chains, hollowing, anti-debug, anti-VM, sandbox checks and AMSI or ETW patching only, it is not proof the sample has no evasion.
+  Emulation: {'available': False, 'note': 'No shellcode region was identified for emulation.', 'instructions_emulated': 0}
+
+18. HYBRID AND EXTERNAL ENRICHMENT
+  Sandbox report merged: none supplied
+  Enrichment consensus: Enrichment not run. Run event_zero enrich <file> or analyze --enrich to query hash lookup services. Local evidence is complete without it.
+  Tools that contributed or were available: ['strings', 'objdump', 'readelf', 'nm', 'unicorn', 'pestudio-style checks', 'ghidra-mcp', 'x64dbg']
+
+19. AI NARRATIVE (GEMINI, EVIDENCE GATED)
+  {'status': 'not_configured', 'provider': 'gemini', 'model': 'gemini-2.5-flash', 'note': 'LLM layer not configured: run with --gemini and a GEMINI_API_KEY or GOOGLE_API_KEY in the environment to enable the evidence-gated Gemini narrative. The deterministic report is complete without it.'}
+
+20. EXTRA FORMATS: .NET, ANDROID, OFFICE, PDF, EMAIL, PCAP
+  .NET: {'is_dotnet': False, 'evidence': [], 'metadata_strings': [], 'obfuscator_indicators': [], 'plain_english': 'No .NET runtime header or metadata was found, so this is not identified as a .NET program.'}
+  APK: {'is_apk': False}
+  Office: {'is_ole_compound': False, 'has_macros': False, 'auto_open_triggers': [], 'dde': False, 'template_injection_urls': [], 'stream_notes': [], 'oletools_adapter': 'oletools (olevba) is used through the tool registry when installed; the built in checks above run regardless.', 'plain_english': 'No macro streams, auto-open triggers or DDE links were found by the built in Office checks.'}
+  PDF: {'is_pdf': False}
+  Email: {'is_email': False}
+  PCAP: {'is_pcap': False, 'note': 'Not a classic pcap file. If tshark is installed, use it for pcapng and deep protocol work; Event Zero lists tshark in the tool registry.'}
+
+21. KILL CHAIN TIMELINE
+  Order is the logical kill chain order (MITRE ATT&CK tactic order), reconstructed from static evidence. It is not observed timing: the sample was never run, so the report does not claim these steps happened at specific times.
+
+22. GENERATED YARA RULE (review before production use)
+rule EZ_eicar {
+  meta:
+    author = "Event Zero (generated from local evidence)"
+    sha256 = "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f"
+    description = "Generated rule: review before production use"
+  strings:
+    $h = "275a021bbfb6489e"
+  condition:
+    $h
+}
+
+
+BROWSER LOOKUP LINKS (hash only, nothing uploaded)
+  ANY.RUN: https://app.any.run/submissions/#filehash:275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f (hash search page, no file shared)
+  Joe Sandbox: https://www.joesandbox.com/search?q=275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f (hash search page, no file shared)
+  Koodous: https://koodous.com/apks?search=275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f (hash search page, mainly Android, no file shared)
+  Intezer: https://analyze.intezer.com/files/275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f (hash lookup page, no file shared)
+  CyberChef: https://gchq.github.io/CyberChef/ (tool page only, nothing is sent until you paste data yourself)
+  dogbolt decompiler: https://dogbolt.org/ (tool page only, uploading there is your choice and is NOT done by Event Zero)
+  UnpacMe: https://www.unpac.me/ (tool page only, uploading there is your choice and is NOT done by Event Zero)
+
+End of report. The sample was read as bytes and was never executed on the host.

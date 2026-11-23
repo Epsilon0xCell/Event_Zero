@@ -1,0 +1,97 @@
+name: verify
+
+# Cloud verification for The Verdict: the full test suite on three
+# operating systems, plus the every-family verification corpus run in
+# a network-disabled container with an egress canary, a determinism
+# gate, and the run's proof published in the job summary.
+#
+# Policy note: the corpus is synthetic and disarmed by construction
+# (lab atoms as data, .invalid and TEST-NET names only, fixtures never
+# executed). No live malware is involved at any point. See
+# fixtures/verification/build_corpus.py and SECURITY.md.
+#
+# Retention note: GitHub Actions artifacts and logs expire after 90
+# days. The artifact uploaded here is a convenience copy only. Durable
+# proof copies of verification runs live as Release assets and as the
+# small in-repo proof files under fixtures/verification/ (results,
+# roots, and VERIFICATION-VERDICT.md at the repo root).
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  test-suite:
+    # The suite is pure Python and platform-clean by design: samples
+    # are never executed, fixtures live in temporary directories, and
+    # subprocesses only invoke sys.executable. The full suite
+    # therefore runs on all three operating systems.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pytest unicorn cryptography
+      - run: python -m pytest tests/ -q
+
+  verify-corpus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Setup stage: network is allowed here, and only here.
+      - name: Setup stage (build the verification image)
+        run: docker build -f fixtures/verification/Dockerfile.verify -t event-zero-verify .
+
+      # Verification stage: the container runs with --network none.
+      # Inside it, the egress canary must prove outbound connections
+      # fail, the corpus is built, The Verdict runs over the whole
+      # corpus twice, and the determinism gate compares the two runs'
+      # ledger roots. Any failure fails the job.
+      - name: Verification stage (network-disabled container, canary, corpus x2, determinism gate)
+        run: |
+          mkdir -p proof
+          docker run --network none --rm -v "$GITHUB_WORKSPACE/proof:/proof" event-zero-verify sh fixtures/verification/run_in_container.sh
+
+      # The run itself is the public proof: manifest hash, per-fixture
+      # verdicts table, scorer output, and artifact digests go to the
+      # job summary.
+      - name: Publish the run proof to the job summary
+        if: always()
+        run: |
+          {
+            echo "# Event Zero verification run proof"
+            echo ""
+            echo "## Corpus manifest hash"
+            cat proof/manifest.sha256 || echo "manifest hash unavailable (stage failed)"
+            echo ""
+            echo "## Per-fixture verdicts (run 1)"
+            cat proof/run1/results_table.md || echo "results table unavailable (stage failed)"
+            echo ""
+            echo "## Independent scorer output (run 1)"
+            echo '```json'
+            python3 -c "import json; print(json.dumps(json.load(open('proof/run1/results.json'))['summary'], indent=2))" || echo "scorer output unavailable (stage failed)"
+            echo '```'
+            echo ""
+            echo "## Determinism gate"
+            if diff -q proof/run1/roots.json proof/run2/roots.json >/dev/null 2>&1; then
+              echo "PASS: two corpus runs produced identical ledger roots."
+            else
+              echo "FAIL: ledger roots differ between runs."
+            fi
+            echo ""
+            echo "## Artifact digests"
+            find proof -type f -print0 | sort -z | xargs -0 sha256sum || true
+            echo ""
+            echo "Retention: this artifact is a convenience copy (Actions artifacts expire after 90 days). Durable proof lives as Release assets and in-repo proof files under fixtures/verification/."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload verification proof (convenience copy)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-proof
+          path: proof/

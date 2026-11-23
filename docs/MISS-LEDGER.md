@@ -1,0 +1,17 @@
+# Event Zero Miss Ledger
+
+The public, append-only record of confirmed misses and bypasses against The Verdict, kept under the Miss Handling, Bypass Disclosure and Verdict Revocation Policy (`docs/MISS-AND-REVOCATION-POLICY.md`).
+
+Rules of this ledger:
+
+- **Append-only.** Entries are never deleted or edited, except by an appended correction entry that references the original.
+- **No silent fixes.** Every confirmed miss appears here with its EZ-BYPASS identifier, and the fix ships with that identifier in the release notes.
+- **Every confirmed miss becomes a permanent regression fixture** in the adversarial test suite, so the same miss cannot recur in a later release.
+- **Revocation comes first.** Affected verdicts are revoked on the day of confirmation, before root-cause analysis is complete, by entry in the signed Verdict Revocation List (format in `format-spec.md`).
+
+| EZ-BYPASS ID | Reported | Confirmed | Revoked | Affected tool / suite / corpus versions | Rule identifying affected reports | Residual path | Status |
+|---|---|---|---|---|---|---|---|
+| EZ-BYPASS-2026-001 | 2026-11-23 (validation pilot) | 2026-11-23 | n/a: found in a development pilot before any public release; no signed public verdicts exist from the affected build | Event Zero 3.0.0 local build; validation pilot corpus (manifest root fca33adc5e95a7ea6b836f50edbd22e1d09061e30d9f1f3df74a5a94c3ef5c2b) | Any verdict of NO ACCOUNTED issued by the affected build on a truncated or otherwise unenumerable container (pilot cases pilot-0937, 0941, 0945, 0949, 0953, 0956, 0960) | Container detection required a parseable container (zipfile.is_zipfile), so a truncated zip was treated as plain data and certified clean. Fixed generally: container detection by magic and declared name, fail-closed enumeration for zip and tar (corrupt, truncated, encrypted, unsupported, cap hits, non-regular tar members, unsupported 7z/rar/cab kinds), failed containers recorded as unaccounted units | Fixed 2026-11-23. Regression fixtures: tests/test_container_failclosed.py (11 container cases). Pilot rerun after the fix: 1000 of 1000, zero false NO |
+| EZ-BYPASS-2026-002 | 2026-11-23 (validation pilot) | 2026-11-23 | n/a: found in a development pilot before any public release; no signed public verdicts exist from the affected build | Event Zero 3.0.0 local build; validation pilot corpus (same manifest root) | Any verdict of YES PROVEN issued by the affected build on a fully enumerated archive whose members are non-executable documents (pilot case pilot-0997) | Family context discriminators keyed on the analysed file's name; an archive container entry was judged from its raw bytes under the container's extension, so the banking-article discriminator that protects a loose .txt did not apply inside a .zip. Fixed: a fully enumerated, non-executable container is an enumeration unit, not a content unit; members are judged with loose-file context, and the container's raw bytes are not re-judged as code | Fixed 2026-11-23. Regression fixtures: tests/test_container_failclosed.py (banking article loose, banking article in zip, banking trojan in zip). Pilot rerun after the fix: 1000 of 1000, zero false YES |
+
+The ledger held no entries before 2026-11-23. An empty ledger is a statement about what has been confirmed and published, not a claim that a miss is impossible; the guarantee wording in the README states exactly what is and is not guaranteed.

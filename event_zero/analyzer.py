@@ -3,6 +3,18 @@ from collections import Counter
 from .stringsx import extract_all
 from .capabilities import match_capabilities
 from . import disasm as dismod
+from .unpack import analyze_unpack
+from .firmware import analyze_firmware
+from .rootkit import analyze_rootkit
+from .exploit import analyze_exploit
+from .evasion import analyze_evasion
+from .emulation import emulate_shellcode
+from .eli5 import generate_eli5
+from . import llm as llmmod
+from .formats_extra import analyze_dotnet, analyze_apk, analyze_office, analyze_pdf, analyze_email
+from .exports import yara_rule
+from .timeline import build_timeline
+from .pcap import analyze_pcap
 try:
     import lief
     HAVE_LIEF=True
@@ -170,7 +182,7 @@ def explain_import(name):
         if key==k or key.startswith(k): return v
     return "is a library function used by the program, with no specific note in the built-in table, so it is listed by name only"
 
-def analyze(path):
+def analyze(path, use_llm=False, llm_client=None, sandbox_report=None, enrich=False):
     if not os.path.isfile(path): raise FileNotFoundError(path)
     with open(path,'rb') as f: data=f.read()
     h=hashes(data)
@@ -243,8 +255,43 @@ def analyze(path):
     if not dis["available"]: unknowns.append("Disassembly was not available (Capstone missing or unsupported architecture), so function-level conclusions rest on imports, symbols, and strings.")
     if fmt.get("format")=="unknown binary data": unknowns.append("File format was not recognised, so format-specific fields could not be filled.")
     if script: unknowns.append("Script was analysed as source text. Obfuscated or dynamically generated code in it (eval, exec of decoded strings) is flagged as a capability when seen, but its final payload cannot be known without running it in a sandbox.")
+    # ---- v3 advanced modules ----
+    unpack_r=analyze_unpack(data, all_strings, secs, os.path.basename(path))
+    firmware_r=analyze_firmware(data, all_strings)
+    rootkit_r=analyze_rootkit(data, imports, all_strings, fmt, os.path.basename(path), secs)
+    code_for_exploit=code if code else data[:200000]
+    exploit_r=analyze_exploit(data, all_strings, imports, code_for_exploit, arch!="x86")
+    evasion_r=analyze_evasion(data, imports, all_strings)
+    emu={"available": False, "note": "No shellcode region was identified for emulation.", "instructions_emulated": 0}
+    if exploit_r["nop_sleds_and_spray"] or exploit_r["egghunter_detected"]:
+        sled_off=exploit_r["nop_sleds_and_spray"][0]["offset"] if exploit_r["nop_sleds_and_spray"] else 0
+        emu=emulate_shellcode(data[sled_off:sled_off+4096], arch if arch in ("x86","x86-64") else "x86-64")
+    # re-run capability rules over multi-layer decoded content
+    decoded_texts=[d.get("result","") for d in unpack_r.get("decoded_layers",[])]
+    if decoded_texts:
+        extra=match_capabilities([], decoded_texts, [], " ".join(decoded_texts))
+        seen={c["id"] for c in caps}
+        for c in extra:
+            if c["id"] not in seen: caps.append(c); seen.add(c["id"])
+        cap_ids={c["id"] for c in caps}
+    adv_score=0; adv_reasons=[]
+    if evasion_r["findings"]: adv_score+=10*len(evasion_r["findings"]); adv_reasons.append(f"Evasion findings: {len(evasion_r['findings'])}")
+    if rootkit_r["is_kernel_driver"]: adv_score+=25; adv_reasons.append("Kernel driver (rootkit surface)")
+    if firmware_r["red_flags"]: adv_score+=10*len(firmware_r["red_flags"]); adv_reasons.append("Firmware red flags")
+    if exploit_r["egghunter_detected"]: adv_score+=15; adv_reasons.append("Egghunter shellcode pattern")
+    if unpack_r["carved"]: adv_score+=5; adv_reasons.append("Embedded binaries carved")
+    score=min(score+adv_score,100); reasons=reasons+adv_reasons
+    if h["sha256"]==EICAR_SHA256: verdict="TEST FILE (EICAR, harmless)"; score=0
+    elif score>=50: verdict="HIGH RISK"
+    elif score>=25: verdict="SUSPICIOUS"
+    elif score>0 and verdict.startswith("NO MALICIOUS"): verdict="LOW TO MEDIUM RISK, review the capabilities listed"
+    if h["sha256"]!=EICAR_SHA256:
+        if score>=50: verdict="HIGH RISK"
+        elif score>=25: verdict="SUSPICIOUS"
+    if unpack_r["virtualization"]["detected"]: unknowns.append("Virtualizing packer detected: original code is private bytecode run by an interpreter, so static analysis can map the protector and entry, not the original logic. That remainder needs dynamic analysis in a sandbox.")
+    if firmware_r["is_firmware_image"]: unknowns.append("Firmware was analysed statically. Whether each carved driver is signed and loaded at boot can only be confirmed against the platform firmware configuration.")
     report={
-      "tool":"Event Zero","version":"2.0.0","file":path,"filename":os.path.basename(path),"size_bytes":len(data),
+      "tool":"Event Zero","version":"3.0.0","file":path,"filename":os.path.basename(path),"size_bytes":len(data),
       "hashes":h,"eicar_test_file":h["sha256"]==EICAR_SHA256,
       "format":fmt,"parser_backend":backend,"overall_entropy":overall,
       "sections":secs,"packing_assessment":packing,
@@ -256,10 +303,39 @@ def analyze(path):
       "script_analysis":({k:v for k,v in script.items() if k!='source'} if script else None),
       "script_source_excerpt":(script["source"][:4000] if script else None),
       "iocs":{"urls":urls,"ip_addresses":ips,"domains":domains,"file_paths":files_mentioned},
+      "unpack":unpack_r,"firmware":firmware_r,"rootkit":rootkit_r,"exploit":exploit_r,"evasion":evasion_r,"emulation":emu,
       "risk":{"score":min(score,100),"verdict":verdict,"reasons":reasons},
       "unknowns":unknowns,
     }
     report["plain_english"]=plain_english(report)
+    report["llm"]={"status":"not_configured","provider":"gemini","model":llmmod.DEFAULT_MODEL,"note":"LLM layer not configured: run with --gemini and a GEMINI_API_KEY or GOOGLE_API_KEY in the environment to enable the evidence-gated Gemini narrative. The deterministic report is complete without it."}
+    from .tools_registry import registry as _reg
+    from .services import browser_links as _links, not_configured_enrichment as _nce, enrich as _enrich
+    report["dotnet"]=analyze_dotnet(data, all_strings)
+    report["apk"]=analyze_apk(data, path)
+    report["office"]=analyze_office(data, all_strings)
+    report["pdf"]=analyze_pdf(data, all_strings)
+    report["email"]=(analyze_email(data) if data[:100].lstrip().lower().startswith((b"from:",b"from ",b"subject:",b"return-path:",b"received:",b"mime-version:")) or os.path.splitext(path)[1].lower()==".eml" else {"is_email": False})
+    report["pcap"]=analyze_pcap(data)
+    report["timeline"]=build_timeline(report)
+    report["generated_yara"]=yara_rule(report)
+    report["tools_available"]=[x for x in _reg() if x["installed"]]
+    report["browser_links"]=_links(h["sha256"])
+    report["enrichment"]=_enrich(h["sha256"]) if enrich else _nce(h["sha256"])
+    if sandbox_report:
+        from .hybrid import ingest_sandbox_report as _ing
+        report["sandbox"]=_ing(sandbox_report)
+    else: report["sandbox"]=None
+    report["eli5"]=generate_eli5(report)
+    from .readability import scores as _rs; report["eli5_metrics"]=_rs(report["eli5"])
+    if use_llm or llm_client is not None:
+        narrative, status = llmmod.enhance_report(report, client=llm_client)
+        report["llm"]=status
+        if narrative: report["llm_narrative"]=narrative
+        # Gemini may polish ELI5 only through the same gate
+        if narrative:
+            clean, dropped = llmmod.verify_narrative(narrative, report)
+            report["llm"]["eli5_polish_gate_dropped"]=dropped
     return report
 
 def disassemble_wrap(code, arch, base):

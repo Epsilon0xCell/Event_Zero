@@ -1,0 +1,575 @@
+{
+  "corpus": "event-zero-verification-corpus/1",
+  "rule": "PASS requires: zero mismatches overall, zero unexpected UNACCOUNTED on Tier-1 fixtures, zero false NO. Tier-2 entries are designed-OPEN cases, disclosed here in advance.",
+  "entries": [
+    {
+      "name": "stealer_config.py",
+      "path": "stealer_config.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "stealer",
+      "tier": 1,
+      "atoms": [
+        "Login Data",
+        "ScanningArgs"
+      ],
+      "chain": "stealer",
+      "note": ""
+    },
+    {
+      "name": "stealer_chain.py",
+      "path": "stealer_chain.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "stealer",
+      "tier": 1,
+      "atoms": [
+        "CryptUnprotectData",
+        "exodus.wallet"
+      ],
+      "chain": "stealer",
+      "note": ""
+    },
+    {
+      "name": "rat_dispatcher.py",
+      "path": "rat_dispatcher.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "rat",
+      "tier": 1,
+      "atoms": [
+        "dispatch",
+        "198.51.100.30"
+      ],
+      "chain": "rat",
+      "note": ""
+    },
+    {
+      "name": "ransomware.py",
+      "path": "ransomware.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "ransomware",
+      "tier": 1,
+      "atoms": [
+        "README_RESTORE.txt",
+        "vssadmin Delete Shadows"
+      ],
+      "chain": "ransomware",
+      "note": ""
+    },
+    {
+      "name": "miner_hidden.py",
+      "path": "miner_hidden.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "miner",
+      "tier": 1,
+      "atoms": [
+        "stratum+tcp://198.51.100.40",
+        "Hidden"
+      ],
+      "chain": "miner",
+      "note": ""
+    },
+    {
+      "name": "loader_inject.py",
+      "path": "loader_inject.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "loader",
+      "tier": 1,
+      "atoms": [
+        "VirtualAllocEx",
+        "198.51.100.50"
+      ],
+      "chain": "loader",
+      "note": ""
+    },
+    {
+      "name": "loader_dead_drop.py",
+      "path": "loader_dead_drop.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "loader",
+      "tier": 1,
+      "atoms": [
+        "pastebin.com/raw",
+        "VirtualAlloc"
+      ],
+      "chain": "dead-drop",
+      "note": ""
+    },
+    {
+      "name": "server_keyed.py",
+      "path": "server_keyed.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "server-keyed",
+      "tier": 1,
+      "atoms": [
+        "getkey",
+        "payload_url"
+      ],
+      "chain": "loader",
+      "note": "verdict YES-PROVEN for the loader; the family note must record that a server-delivered stage cannot be accounted"
+    },
+    {
+      "name": "botnet_flood.py",
+      "path": "botnet_flood.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "botnet",
+      "tier": 1,
+      "atoms": [
+        "udp_flood",
+        "198.51.100.60"
+      ],
+      "chain": "botnet",
+      "note": ""
+    },
+    {
+      "name": "bootkit.py",
+      "path": "bootkit.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "bootkit",
+      "tier": 1,
+      "atoms": [
+        "bootmgfw.efi",
+        "SecureBoot"
+      ],
+      "chain": "bootkit",
+      "note": ""
+    },
+    {
+      "name": "keylogger_stash.py",
+      "path": "keylogger_stash.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "keylogger",
+      "tier": 1,
+      "atoms": [
+        "GetAsyncKeyState",
+        ".hidden"
+      ],
+      "chain": "keylogger",
+      "note": ""
+    },
+    {
+      "name": "banking_targets.py",
+      "path": "banking_targets.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "banking",
+      "tier": 1,
+      "atoms": [
+        "bankofamerica.com",
+        "chase.com"
+      ],
+      "chain": "banking",
+      "note": ""
+    },
+    {
+      "name": "proxy_operator.py",
+      "path": "proxy_operator.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "proxy",
+      "tier": 1,
+      "atoms": [
+        "peer2profit",
+        "SYSTEM"
+      ],
+      "chain": "proxy",
+      "note": ""
+    },
+    {
+      "name": "ppi_callback.py",
+      "path": "ppi_callback.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "ppi",
+      "tier": 1,
+      "atoms": [
+        "AFF-8842-LAB",
+        "callback"
+      ],
+      "chain": "ppi",
+      "note": ""
+    },
+    {
+      "name": "hijacker.py",
+      "path": "hijacker.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "adware-hijacker",
+      "tier": 1,
+      "atoms": [
+        "evil.invalid",
+        "watchdog"
+      ],
+      "chain": "hijacker",
+      "note": ""
+    },
+    {
+      "name": "beacon_config.bin",
+      "path": "beacon_config.bin",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "beacon",
+      "tier": 1,
+      "atoms": [],
+      "chain": "beacon",
+      "note": "config is XOR-encoded in the bytes by construction; the scorer checks the parsed config in the report instead of raw atoms"
+    },
+    {
+      "name": "wiper.py",
+      "path": "wiper.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "wiper",
+      "tier": 1,
+      "atoms": [
+        "PhysicalDrive0"
+      ],
+      "chain": "wiper",
+      "note": ""
+    },
+    {
+      "name": "fileless_decodable.py",
+      "path": "fileless_decodable.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "fileless",
+      "tier": 1,
+      "atoms": [
+        "EncodedCommand",
+        "__EventFilter"
+      ],
+      "chain": "fileless",
+      "note": ""
+    },
+    {
+      "name": "script_bad.bat",
+      "path": "script_bad.bat",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "malicious-script",
+      "tier": 1,
+      "atoms": [
+        "slmgr.vbs",
+        "198.51.100.90"
+      ],
+      "chain": "script",
+      "note": ""
+    },
+    {
+      "name": "sideload_folder",
+      "path": "sideload_folder",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "sideload",
+      "tier": 1,
+      "atoms": [],
+      "chain": "sideload",
+      "note": "folder fixture: signed exe, unsigned same-folder dll, encrypted sidecar"
+    },
+    {
+      "name": "twin_password_manager.py",
+      "path": "twin_password_manager.py",
+      "expected": {
+        "verdict": "NO",
+        "reason_class": "ACCOUNTED"
+      },
+      "family": "stealer-fp-twin",
+      "tier": 1,
+      "atoms": [
+        "MyPasswords.kdbx"
+      ],
+      "chain": "",
+      "note": ""
+    },
+    {
+      "name": "twin_miner_disclosed.py",
+      "path": "twin_miner_disclosed.py",
+      "expected": {
+        "verdict": "NO",
+        "reason_class": "ACCOUNTED"
+      },
+      "family": "miner-fp-twin",
+      "tier": 1,
+      "atoms": [
+        "my own wallet"
+      ],
+      "chain": "",
+      "note": ""
+    },
+    {
+      "name": "twin_backup_encryptor.py",
+      "path": "twin_backup_encryptor.py",
+      "expected": {
+        "verdict": "NO",
+        "reason_class": "ACCOUNTED"
+      },
+      "family": "ransomware-fp-twin",
+      "tier": 1,
+      "atoms": [
+        "Nightly backup"
+      ],
+      "chain": "",
+      "note": ""
+    },
+    {
+      "name": "twin_kms_clean.bat",
+      "path": "twin_kms_clean.bat",
+      "expected": {
+        "verdict": "NO",
+        "reason_class": "ACCOUNTED"
+      },
+      "family": "script-fp-twin",
+      "tier": 1,
+      "atoms": [
+        "slmgr.vbs"
+      ],
+      "chain": "",
+      "note": ""
+    },
+    {
+      "name": "twin_proxy_disclosed.py",
+      "path": "twin_proxy_disclosed.py",
+      "expected": {
+        "verdict": "NO",
+        "reason_class": "ACCOUNTED"
+      },
+      "family": "proxy-fp-twin",
+      "tier": 1,
+      "atoms": [
+        "my own account"
+      ],
+      "chain": "",
+      "note": ""
+    },
+    {
+      "name": "twin_keygen.py",
+      "path": "twin_keygen.py",
+      "expected": {
+        "verdict": "NO",
+        "reason_class": "ACCOUNTED"
+      },
+      "family": "keygen-control",
+      "tier": 1,
+      "atoms": [
+        "keygen"
+      ],
+      "chain": "",
+      "note": ""
+    },
+    {
+      "name": "twin_capture_tool.py",
+      "path": "twin_capture_tool.py",
+      "expected": {
+        "verdict": "NO",
+        "reason_class": "ACCOUNTED"
+      },
+      "family": "keylogger-fp-twin",
+      "tier": 1,
+      "atoms": [
+        "accessibility-notes.txt"
+      ],
+      "chain": "",
+      "note": ""
+    },
+    {
+      "name": "twin_xmrig_alone.py",
+      "path": "twin_xmrig_alone.py",
+      "expected": {
+        "verdict": "NO",
+        "reason_class": "ACCOUNTED"
+      },
+      "family": "miner-presence-control",
+      "tier": 1,
+      "atoms": [
+        "xmrig"
+      ],
+      "chain": "",
+      "note": "miner presence alone is not proof and nothing here is hidden or unaccounted"
+    },
+    {
+      "name": "sideload_genuine",
+      "path": "sideload_genuine",
+      "reference_path": "sideload_genuine_ref",
+      "expected": {
+        "verdict": "NO",
+        "reason_class": "ACCOUNTED"
+      },
+      "family": "sideload-fp-twin",
+      "tier": 1,
+      "atoms": [],
+      "chain": "",
+      "note": "folder fixture with genuine reference: the emulator dll is hash-matched to the genuine dll, so it accounts as genuine and the sideload triad never fires"
+    },
+    {
+      "name": "open_rootkit.sys",
+      "path": "open_rootkit.sys",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "UNACCOUNTED",
+        "case_state": "OPEN"
+      },
+      "family": "rootkit",
+      "tier": 2,
+      "atoms": [
+        "SSDT"
+      ],
+      "chain": "",
+      "note": "designed OPEN: an unexplained driver in a crack can never be accounted statically"
+    },
+    {
+      "name": "open_logic_bomb.py",
+      "path": "open_logic_bomb.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "UNACCOUNTED",
+        "case_state": "OPEN"
+      },
+      "family": "logic-bomb",
+      "tier": 2,
+      "atoms": [
+        "2030"
+      ],
+      "chain": "",
+      "note": "designed OPEN: opaque arm behind a date gate"
+    },
+    {
+      "name": "open_fileless_blob.py",
+      "path": "open_fileless_blob.py",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "UNACCOUNTED",
+        "case_state": "OPEN"
+      },
+      "family": "fileless",
+      "tier": 2,
+      "atoms": [
+        "EncodedCommand"
+      ],
+      "chain": "",
+      "note": "designed OPEN: persistence executor with an undecodable blob"
+    },
+    {
+      "name": "open_password_archive.zip",
+      "path": "open_password_archive.zip",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "UNACCOUNTED",
+        "case_state": "OPEN"
+      },
+      "family": "archive",
+      "tier": 2,
+      "atoms": [],
+      "chain": "",
+      "note": "designed OPEN: an encrypted archive member cannot be accounted"
+    },
+    {
+      "name": "surprise_updater.bat",
+      "path": "surprise_updater.bat",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "surprise-loader-script",
+      "tier": 1,
+      "atoms": [
+        "203.0.113.15",
+        "Run"
+      ],
+      "chain": "script",
+      "note": "surprise: loader behaviour in a plain batch updater"
+    },
+    {
+      "name": "surprise_shadow.bat",
+      "path": "surprise_shadow.bat",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "surprise-anti-recovery-script",
+      "tier": 1,
+      "atoms": [
+        "vssadmin Delete Shadows",
+        "203.0.113.16"
+      ],
+      "chain": "script",
+      "note": "surprise: anti-recovery plus staging in a batch file"
+    },
+    {
+      "name": "surprise_dll_stealer",
+      "path": "surprise_dll_stealer",
+      "expected": {
+        "verdict": "YES",
+        "reason_class": "PROVEN"
+      },
+      "family": "surprise-stealer-in-dll",
+      "tier": 1,
+      "atoms": [],
+      "chain": "stealer",
+      "note": "surprise: stealer config atoms carried in a DLL inside a release folder"
+    },
+    {
+      "name": "surprise_banking_article.txt",
+      "path": "surprise_banking_article.txt",
+      "expected": {
+        "verdict": "NO",
+        "reason_class": "ACCOUNTED"
+      },
+      "family": "surprise-banking-fp",
+      "tier": 1,
+      "atoms": [
+        "bankofamerica.com"
+      ],
+      "chain": "",
+      "note": "surprise: bank names in a news article (a non-executable text file) are content, not code"
+    }
+  ]
+}

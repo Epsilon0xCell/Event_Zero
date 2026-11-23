@@ -1,0 +1,1 @@
+MZ lab replacement dll: version.dll proxy exports, DllMain runs the sidecar payload, CreateProcessW shell

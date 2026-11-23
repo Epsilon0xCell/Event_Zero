@@ -1,0 +1,10 @@
+{
+  "cases": 1000,
+  "manifest_root": "fca33adc5e95a7ea6b836f50edbd22e1d09061e30d9f1f3df74a5a94c3ef5c2b",
+  "runner_root": "5d9156379bdf14b727be2f95430887c3e27bcb560450e0f6f5882ce0b855578e",
+  "sealed_root": "f864343a4908a2abae537fbf34da8dac6ddcec766dbfc9172f77f8b3f82b55fd",
+  "manifest_root_check": "fca33adc5e95a7ea6b836f50edbd22e1d09061e30d9f1f3df74a5a94c3ef5c2b",
+  "generated": 959,
+  "corpus": 37,
+  "repo_fixtures": 4
+}

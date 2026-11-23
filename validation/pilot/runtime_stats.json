@@ -1,0 +1,15 @@
+{
+  "n": 1000,
+  "p50": 33,
+  "p95": 176,
+  "p99": 304,
+  "max": 8832,
+  "mean": 68.6,
+  "total_case_seconds": 68.6,
+  "note": "runtime_ms is the first of two runs per case; wall time roughly doubles plus determinism run",
+  "over_soft_cap": 0,
+  "determinism_failures": 0,
+  "statuses": {
+    "ok": 1000
+  }
+}

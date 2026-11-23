@@ -3,191 +3,337 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Event Zero: specimen under examination, case file EZ / fake_malware / 01</title>
-<meta name="description" content="Event Zero kept as a forensic examination file: the fake_malware specimen, local findings, exhibits, the two modes, and where the tool stands.">
+<title>Event Zero: The Verdict. Malware in. Plain English out. Evidence attached.</title>
+<meta name="description" content="Event Zero turns a suspicious file into a plain English report anyone can act on, with every claim tied to evidence found in the file itself. The Verdict gives a proven YES or NO on any crack.">
+<meta property="og:title" content="Event Zero: The Verdict">
+<meta property="og:description" content="Malware in. Plain English out. Evidence attached. A proven YES or NO on any crack.">
+<meta property="og:image" content="assets/social-preview.png">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <style>
-@font-face{font-family:'Chakra Petch';src:url('fonts/ChakraPetch-Regular.ttf') format('truetype');font-weight:400}
-@font-face{font-family:'Chakra Petch';src:url('fonts/ChakraPetch-Bold.ttf') format('truetype');font-weight:700}
-@font-face{font-family:'Inter';src:url('fonts/Inter-Regular.ttf') format('truetype');font-weight:400}
-@font-face{font-family:'Inter';src:url('fonts/Inter-Bold.ttf') format('truetype');font-weight:700}
-:root{--paper:#eceff0;--sheet:#f7f9f9;--gun:#2b2f33;--gun2:#454b51;--ink:#191c1e;--amber:#e39a1e;--amberdeep:#a96f0c;--black:#0e1013}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--black);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.62}
-.board{max-width:1060px;margin:26px auto 46px;background:var(--paper);border:14px solid var(--gun);outline:2px solid var(--amber);padding:30px 34px 40px;color:var(--ink)}
-h1,h2,h3{font-family:'Chakra Petch',sans-serif;font-weight:700}
-h1{font-size:2.7rem;line-height:1.08}
-h2{font-size:1.8rem;border-bottom:3px solid var(--gun);padding-bottom:6px}
-h3{font-size:1.25rem}
-p{margin-top:11px;max-width:70ch}
-.kicker{font-family:'Chakra Petch',sans-serif;font-size:.86rem;letter-spacing:.13em;text-transform:uppercase;color:var(--amberdeep)}
-.meta{display:flex;flex-wrap:wrap;gap:6px 26px;margin-top:14px;font-size:.92rem}
-.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.badges img{height:22px}
-figure{margin-top:18px}figure img{width:100%;display:block;border:4px solid var(--gun)}
-figcaption{font-size:.87rem;color:var(--gun2);padding-top:7px}
-section{margin-top:44px}
-.btn{display:inline-block;border:2px solid var(--gun);padding:.55em 1.5em;color:#fff;text-decoration:none;font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:1rem;margin:.4em .35em 0 0;background:var(--gun)}
-.btn:hover{background:var(--amber);color:var(--black);border-color:var(--amberdeep)}
-.btn:active{transform:scale(.97)}
-a{color:var(--amberdeep)}
-a:hover{color:var(--gun)}
-.btn::before,figure a::before,.badges a::before{content:none}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:16px}
-.card{background:var(--gun);border-top:6px solid var(--amber);padding:15px 17px;color:#f2f4f4}
-.card .v{font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:2rem;color:var(--amber)}
-table{width:100%;border-collapse:collapse;margin-top:15px;background:var(--sheet)}
-th,td{border:1px solid #b9bfc2;padding:9px 12px;text-align:left;vertical-align:top}
-th{font-family:'Chakra Petch',sans-serif;color:var(--amberdeep);font-size:.85rem;text-transform:uppercase;letter-spacing:.06em}
-.hash{background:#fff;color:var(--ink);border:2px solid var(--gun);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.87rem;padding:16px 19px;margin-top:15px;word-break:break-all}
-.hash dt{font-family:'Chakra Petch',sans-serif;color:var(--amberdeep);text-transform:uppercase;font-size:.72rem;letter-spacing:.08em;margin-top:8px}.hash dt:first-child{margin-top:0}
-pre.cmd,pre.code{background:#14161a;color:#eef1f2;padding:15px 18px;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.84rem;line-height:1.6;margin-top:14px;white-space:pre;border-left:6px solid var(--amber)}
-.tray{background:#fff;border:2px dashed var(--gun2);padding:15px 19px;margin-top:15px}
-.exhibits{display:grid;gap:22px;margin-top:16px}
-.exhibit{background:var(--sheet);border:1px solid #b9bfc2;padding:10px}
-.exhibit img{width:100%;display:block;background:#fff}
-.disclosure{border-left:6px solid var(--amber);background:rgba(227,154,30,.12);padding:15px 19px;margin-top:15px}
-.hexrule{height:12px;margin-top:44px;background:repeating-linear-gradient(90deg,var(--gun) 0 16px,transparent 16px 22px,var(--amber) 22px 38px,transparent 38px 44px)}
-footer{margin-top:40px;font-size:.9rem;color:var(--gun2)}
-@media(max-width:720px){.board{padding:20px 16px 30px}h1{font-size:2rem}}
+@font-face{font-family:"Chakra Petch";src:url("fonts/ChakraPetch-Regular.ttf") format("truetype");font-weight:400}
+@font-face{font-family:"Chakra Petch";src:url("fonts/ChakraPetch-Bold.ttf") format("truetype");font-weight:700}
+@font-face{font-family:"Inter";src:url("fonts/Inter-Regular.ttf") format("truetype");font-weight:400}
+@font-face{font-family:"Inter";src:url("fonts/Inter-Bold.ttf") format("truetype");font-weight:700}
+:root{
+  --ground:#0e1013; --panel:#14161a; --panel2:#191c1e; --line:#454b51;
+  --amber:#e39a1e; --amber-deep:#a96f0c; --paper:#eceff0; --steel:#b9bfc2;
+  --red:#d9534a; --green:#5da85f; --mono:ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ground);color:var(--paper);font-family:"Inter",system-ui,sans-serif;line-height:1.55}
+h1,h2,h3,.brand{font-family:"Chakra Petch",sans-serif;letter-spacing:.02em}
+a{color:var(--amber)}
+.wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+header.site{border-bottom:2px solid var(--amber-deep);background:var(--panel)}
+header.site .wrap{display:flex;align-items:center;gap:14px;padding-top:12px;padding-bottom:12px}
+header.site img{width:40px;height:40px}
+header.site .brand{font-size:22px;font-weight:700}
+header.site nav{margin-left:auto;display:flex;gap:18px;flex-wrap:wrap}
+header.site nav a{color:var(--steel);text-decoration:none;font-size:14px}
+header.site nav a:hover{color:var(--amber)}
+.hero{padding:56px 0 40px;text-align:left}
+.hero .case-tag{display:inline-block;border:1px solid var(--amber-deep);color:var(--amber);padding:3px 12px;font-family:var(--mono);font-size:13px;letter-spacing:.14em}
+.hero h1{font-size:clamp(44px,9vw,96px);line-height:.98;margin:18px 0 6px;font-weight:700}
+.hero .short{font-family:"Chakra Petch",sans-serif;font-size:clamp(19px,3.4vw,28px);color:var(--amber);margin:0 0 12px;font-weight:700}
+.hero .pos{font-size:clamp(16px,2.4vw,20px);color:var(--paper);max-width:44ch;margin:0 0 26px}
+.cmd{background:#000;border:1px solid var(--line);border-left:4px solid var(--amber);padding:14px 16px;font-family:var(--mono);font-size:15px;display:flex;gap:12px;align-items:center;overflow-x:auto}
+.cmd code{white-space:nowrap;color:var(--paper)}
+.cmd button{margin-left:auto;background:var(--panel2);color:var(--amber);border:1px solid var(--amber-deep);padding:6px 12px;font-family:var(--mono);cursor:pointer;flex:none}
+.verdict-strip{margin-top:22px;border:2px solid var(--red);background:var(--panel);padding:16px 20px;display:flex;flex-wrap:wrap;gap:8px 22px;align-items:baseline}
+.verdict-strip .v{font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:clamp(24px,4.6vw,40px);color:var(--red)}
+.verdict-strip .why{color:var(--steel);font-size:15px}
+section{padding:44px 0;border-top:1px solid var(--panel2)}
+h2{font-size:clamp(26px,4.5vw,38px);margin:0 0 8px}
+h2 .no{color:var(--amber);font-family:var(--mono);font-size:.62em;letter-spacing:.12em;display:block}
+.lede{color:var(--steel);max-width:68ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:20px}
+.card{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--amber-deep);padding:16px 18px}
+.card h3{margin:0 0 6px;font-size:18px}
+.card p{margin:0;color:var(--steel);font-size:15px}
+.card.red{border-top-color:var(--red)} .card.green{border-top-color:var(--green)}
+.exhibit-tag{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--amber);text-transform:uppercase}
+.viewer{background:var(--panel);border:1px solid var(--line);margin-top:20px}
+.viewer .bar{display:flex;flex-wrap:wrap;gap:10px;padding:12px;border-bottom:1px solid var(--line);align-items:center}
+.viewer select{background:#000;color:var(--paper);border:1px solid var(--amber-deep);padding:8px;font-family:var(--mono);font-size:14px;max-width:100%}
+.layers{display:flex;gap:6px;flex-wrap:wrap}
+.layers button{background:var(--panel2);color:var(--steel);border:1px solid var(--line);padding:8px 14px;font-family:"Chakra Petch",sans-serif;cursor:pointer}
+.layers button[aria-pressed="true"]{background:var(--amber);color:#0e1013;border-color:var(--amber);font-weight:700}
+.viewer pre{margin:0;padding:18px;font-family:var(--mono);font-size:13.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:560px;overflow:auto;color:var(--paper)}
+.viewer .meta{padding:12px;border-top:1px solid var(--line);color:var(--steel);font-size:14px}
+.viewer .meta a{margin-right:14px}
+table{width:100%;border-collapse:collapse;margin-top:18px;font-size:15px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--panel2);vertical-align:top}
+th{font-family:"Chakra Petch",sans-serif;color:var(--amber)}
+.status{font-family:var(--mono);font-size:13px;color:var(--paper);white-space:nowrap}
+.rings{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:20px}
+.ring{background:var(--panel);border:1px dashed var(--amber-deep);padding:16px 18px}
+.ring h3{margin:0 0 6px;color:var(--amber)}
+.ring p{margin:0;color:var(--steel);font-size:15px}
+.limits{background:var(--panel);border-left:4px solid var(--red);padding:18px 20px;margin-top:18px}
+.limits p{margin:0 0 10px}
+footer{border-top:2px solid var(--amber-deep);padding:28px 0 44px;color:var(--steel);font-size:14px}
+.sr{position:absolute;left:-9999px}
+@media (max-width:560px){
+  .hero{padding:36px 0 28px}
+  table,tbody,tr,td{display:block;width:100%}
+  thead{display:none}
+  tr{background:var(--panel);border:1px solid var(--line);margin-bottom:10px;padding:6px 4px}
+  td{border-bottom:none;padding:5px 10px}
+  td:first-child{font-weight:700}
+  .viewer pre{font-size:12.5px;max-height:70vh}
+  header.site nav{gap:10px}
+}
 </style>
 </head>
 <body>
-<div class="board">
-<header>
-<p class="kicker">Case file EZ / fake_malware / 01 &nbsp; Examiner: Epsilon0xCell</p>
-<h1>Event Zero: the fake_malware case file, opened on the examination table</h1>
-<p>Classification: one specimen, examined on paper. Specimen is a real Mach-O 64-bit ARM64 executable, 33,920 bytes, held in the repo as the test sample for my analyzer. Examined, not executed.</p>
-<div class="meta"><span>Tool: <b>Event Zero</b></span><span>Modes: <b>local and autonomous</b></span><span>Local run filed: <b>31 Oct 2026</b></span><span>Repo: <a href="https://github.com/Epsilon0xCell/Event_Zero">github.com/Epsilon0xCell/Event_Zero</a></span></div>
-<div class="badges">
-<img alt="GitHub stars" src="https://img.shields.io/github/stars/Epsilon0xCell/Event_Zero?style=flat-square&label=stars">
-<img alt="GitHub forks" src="https://img.shields.io/github/forks/Epsilon0xCell/Event_Zero?style=flat-square&label=forks">
-<img alt="Last commit" src="https://img.shields.io/github/last-commit/Epsilon0xCell/Event_Zero?style=flat-square&label=last%20commit">
-<img alt="Top language" src="https://img.shields.io/github/languages/top/Epsilon0xCell/Event_Zero?style=flat-square">
-<img alt="Repository size" src="https://img.shields.io/github/repo-size/Epsilon0xCell/Event_Zero?style=flat-square&label=size">
-</div>
-<figure><img src="themed-intro.png" alt="Inside the specimen file: layered header structures like geological strata in frosted glass and gunmetal, a dense band of sparkling entropy crystals between clean layers, one amber seam"><figcaption>The specimen from inside: the wordless picture for this build.</figcaption></figure>
-<figure><img src="themed-banner.png" alt="The evidence examination table in cold white light: one sealed specimen file in a steel tray at the center, calipers, a magnifier and tweezers arranged around it without touching it, one blank amber tag"><figcaption>Frontispiece: banner.png from the repository, filed at the front of this case so the folder and the repo carry the same face.</figcaption></figure>
-<p><a class="btn" href="https://github.com/Epsilon0xCell/Event_Zero">The repository</a><a class="btn" href="#run">Run it</a><a class="btn" href="#findings">Findings</a></p>
+<header class="site">
+  <div class="wrap">
+    <img src="assets/ez-mark.svg" alt="Event Zero mark">
+    <span class="brand">EVENT ZERO</span>
+    <nav aria-label="Sections">
+      <a href="#verdict">The Verdict</a>
+      <a href="#examination">Examination</a>
+      <a href="#capabilities">Capabilities</a>
+      <a href="#benchmark">Benchmark</a>
+      <a href="#limits">Limits</a>
+      <a href="#get">Get it</a>
+    </nav>
+  </div>
 </header>
-<div class="hexrule" aria-hidden="true"></div>
-<section>
-<h2>What was built</h2>
-<p>I built Event Zero because I wanted a first look at a suspicious file without handing it to a website and without running it. I point the tool at a path, and it reads the bytes and tells me what it can prove from those bytes alone: hashes, format, entropy, strings, and the indicators hiding in those strings.</p>
-<p>Local mode is the part I trust for a first look. It is pure Python standard library, it works offline, it needs nothing installed beyond Python itself, and it never executes the sample. It writes a plain summary to the terminal and a JSON report beside it, and that report states its own limits in writing.</p>
-<p>Autonomous mode is the longer route. It builds a BlackArch container, copies the sample in, and lets Gemini direct standard analysis tools over several rounds until the model marks the work complete or the iteration cap is reached. I keep both modes in one file so the command line, the exit codes, and the report shape stay in one place.</p>
-<div class="tray"><h3>Handling note</h3>
-<p>Sample handling in local mode: read as bytes, never executed. Network in local mode: none. Dependencies in local mode: none beyond Python itself.</p>
-<p>Links: <a href="https://github.com/Epsilon0xCell/Event_Zero">the repository</a> and <a href="https://github.com/Epsilon0xCell">my GitHub profile</a>.</p></div>
-</section>
-<section id="findings">
-<h2>Findings sheet, from my own re-run</h2>
-<p>I re-ran the tool myself for this rebuild, in a copy of the repo, with the command shown under Run it below. The numbers are that run, filed as I found it, untouched.</p>
-<div class="cards">
-<div class="card"><div class="v">59</div><p>strings extracted from the specimen</p></div>
-<div class="card"><div class="v">2</div><p>IP addresses found in those strings</p></div>
-<div class="card"><div class="v">0.879</div><p>whole file entropy, out of 8.0</p></div>
+
+<main>
+<div class="wrap hero">
+  <span class="case-tag">CASE FILE OPEN: EVERY SAMPLE IS A CASE</span>
+  <h1>EVENT ZERO</h1>
+  <p class="short">Malware in. Plain English out. Evidence attached.</p>
+  <p class="pos">Event Zero turns a suspicious file into a plain English report anyone can act on, with every claim tied to evidence found in the file itself.</p>
+  <div class="cmd">
+    <code id="hero-cmd">python3 -m event_zero verdict fake_malware</code>
+    <button type="button" id="copy-btn" aria-label="Copy the command">COPY</button>
+  </div>
+  <div class="verdict-strip" role="img" aria-label="Real verdict on the bundled sample: YES, malware found, proven">
+    <span class="v">YES: MALWARE FOUND</span>
+    <span class="why">Case 001, the bundled sample fake_malware. Reason class: PROVEN. Stealer, persistence plus a remote host, and a miner, each named with its evidence in the report below.</span>
+  </div>
 </div>
-<dl class="hash">
-<dt>File</dt><dd>fake_malware</dd>
-<dt>Size</dt><dd>33,920 bytes</dd>
-<dt>SHA-256</dt><dd>c9ab06a4fd594a82eb36d1aeb72e83e99df77a2ccd6a8ebd0ad078dd6b707802</dd>
-<dt>MD5</dt><dd>a61191886fcf20bc8df01fe64c99203f</dd>
-<dt>Format and architecture</dt><dd>Mach-O (64-bit), ARM64</dd>
-<dt>Entropy</dt><dd>0.879 / 8.0</dd>
-</dl>
-<table>
-<tr><th>Item</th><th>As printed by the run</th></tr>
-<tr><td>Segments</td><td>__PAGEZERO, __TEXT, __DATA_CONST, __LINKEDIT</td></tr>
-<tr><td>Sections</td><td>__text, __stubs, __cstring, __unwind_info, __got</td></tr>
-<tr><td>Linked library</td><td>/usr/lib/libSystem.B.dylib</td></tr>
-<tr><td>Strings</td><td>59 extracted</td></tr>
-<tr><td>IP addresses</td><td>127.0.0.1 and 192.168.1.100</td></tr>
-<tr><td>Keyword hits</td><td>credential, /bin/bash, socket</td></tr>
-</table>
-<p>The run also prints an assessment in plain sentences: the low entropy comes from large zero padded regions, strings alone do not prove the sample contacts those addresses, keyword hits are leads for review rather than proof, and a file with no indicators is not thereby proven safe.</p>
-<h3 style="margin-top:22px">A short piece of the engine, as written</h3>
-<pre class="code">    @staticmethod
-    def _shannon_entropy(data: bytes) -&gt; float:
-        if not data:
-            return 0.0
-        # I count bytes in a plain Python loop. That is slow on a large
-        # file, and I keep it because local mode promises standard
-        # library only and the files I analyse are small enough that
-        # the simple version wins.
-        counts = [0] * 256
-        for b in data:
-            counts[b] += 1
-        entropy = 0.0
-        for c in counts:
-            if c:
-                p = c / len(data)
-                entropy -= p * math.log2(p)
-        return entropy</pre>
-<p>Excerpt: autonomous_docker_malware_analyzer.py, lines 1713 to 1729 at the head this page was first built from, as written. This is the whole file Shannon entropy that local mode reports.</p>
+
+<section id="verdict">
+  <div class="wrap">
+    <h2><span class="no">SECTION 01</span>The Verdict: a proven YES or NO on any crack</h2>
+    <p class="lede">Drop in a cracked game, a keygen, an installer, an archive, or a whole release folder. The Verdict takes it apart piece by piece and accounts for every byte as genuine program or explained crack. One headline comes back. Not a score. Not a probability.</p>
+    <div class="grid">
+      <div class="card red">
+        <span class="exhibit-tag">Headline one</span>
+        <h3>YES: MALWARE FOUND, PROVEN</h3>
+        <p>A behaviour chain was demonstrated: theft, a miner mining for someone else, persistence plus a remote host, antivirus tampering, or the scope test, which is the first behaviour a file does not need for its claimed job.</p>
+      </div>
+      <div class="card red">
+        <span class="exhibit-tag">Headline two</span>
+        <h3>YES: MALWARE FOUND, UNACCOUNTED</h3>
+        <p>Something could not be explained: an unexplained code region, an archive layer that would not open, a virtualized section. The accounting fails closed. Silence never becomes a pass.</p>
+      </div>
+      <div class="card green">
+        <span class="exhibit-tag">Headline three</span>
+        <h3>NO: NO MALWARE, ACCOUNTED</h3>
+        <p>Issued only when every byte is accounted for as genuine or explained crack, against a signature-valid original or a fully classified diff. The crack itself is never counted as malware: a patched licence check, a key generator, and KMS emulation sit in the accounting, not the proof.</p>
+      </div>
+    </div>
+  </div>
 </section>
-<section>
-<h2>Exhibits: the sheets I drew by hand</h2>
-<p>I drew these sheets on paper to explain a tool that has no screen of its own. I file them here in order, as exhibits.</p>
-<div class="exhibits">
-<figure class="exhibit"><img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/Event_Zero-Visuals/architecture.png" alt="Hand drawn architecture sheet for Event Zero"><figcaption>Exhibit 1 / Architecture: one entry point, then a fork between the local analyzer and the Docker plus Gemini analyzer.</figcaption></figure>
-<figure class="exhibit"><img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/Event_Zero-Visuals/flowchart.png" alt="Hand drawn flowchart of an Event Zero run"><figcaption>Exhibit 2 / Flowchart: local mode is one pass; autonomous mode loops to its cap until the model marks the analysis complete.</figcaption></figure>
-<figure class="exhibit"><img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/Event_Zero-Visuals/product-map.png" alt="Hand drawn product map for Event Zero"><figcaption>Exhibit 3 / Product map: who the tool serves, what goes in, what comes out, and where it stops.</figcaption></figure>
-<figure class="exhibit"><img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/Event_Zero-Visuals/data-flow.png" alt="Hand drawn data flow sheet for Event Zero"><figcaption>Exhibit 4 / Data flow: bytes in, hashes and format parsing, entropy and strings, indicators, assessment, and a JSON report out.</figcaption></figure>
-<figure class="exhibit"><img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/Event_Zero-Visuals/statistics.png" alt="Hand drawn statistics sheet for Event Zero"><figcaption>Exhibit 5 / Statistics: numbers from the repo itself, drawn as bars on paper.</figcaption></figure>
-<figure class="exhibit"><img src="https://raw.githubusercontent.com/Epsilon0xCell/Event_Zero/main/Event_Zero-Visuals/schematic.png" alt="Hand drawn schematic sheet for Event Zero"><figcaption>Exhibit 6 / Schematic: the analyzer and its parts set out in plan form.</figcaption></figure>
-</div>
+
+<section id="examination">
+  <div class="wrap">
+    <h2><span class="no">SECTION 02</span>The examination table</h2>
+    <p class="lede">Real reports, generated by the tool and shipped with this page. Nothing here is a mock-up and nothing is uploaded: pick a case, switch layers, read the evidence. ELI5 is the plain summary, Plain is the technical summary, Evidence is the full record.</p>
+    <div class="viewer">
+      <div class="bar">
+        <label class="sr" for="case-picker">Choose a case</label>
+        <select id="case-picker"></select>
+        <div class="layers" role="group" aria-label="Report layer">
+          <button type="button" data-layer="eli5" aria-pressed="true">ELI5</button>
+          <button type="button" data-layer="plain" aria-pressed="false">PLAIN</button>
+          <button type="button" data-layer="evidence" aria-pressed="false">EVIDENCE</button>
+        </div>
+      </div>
+      <pre id="report-view" tabindex="0">Loading the case file...</pre>
+      <div class="meta" id="case-meta"></div>
+    </div>
+  </div>
 </section>
-<section>
-<h2>How local mode computes what it claims</h2>
-<ul style="margin:13px 0 0 22px">
-<li>Hashes: MD5, SHA-1 and SHA-256.</li>
-<li>Real header parsing for Mach-O including fat binaries, ELF, and PE.</li>
-<li>Entropy, whole file Shannon entropy.</li>
-<li>Strings: ASCII and UTF-16LE.</li>
-<li>Indicators: URL and IP indicators found in strings.</li>
-<li>The suspicious keyword watchlist, presented as leads and not proof.</li>
-<li>EICAR detection by known SHA-256.</li>
-<li>A rule based assessment that states its own limits in the report.</li>
-</ul>
-<p>Static reading only. No indicators found is not a certificate that a file is safe.</p>
+
+<section id="capabilities">
+  <div class="wrap">
+    <h2><span class="no">SECTION 03</span>Capabilities, with their status</h2>
+    <p class="lede">Status words are copied from the project capability matrix, which carries the test or run that proves each row. BUILT means in the core and test-proven. ADAPTER means used when you install the tool. SERVICE means an external hash lookup with your own key. HANDOFF means a link or a documented next step, never automation that is not there.</p>
+    <table>
+      <thead><tr><th>Capability</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>The Verdict: YES / NO accounting on pirated software</td><td class="status">BUILT</td></tr>
+        <tr><td>ELF, PE, Mach-O parsing, imports explained, Capstone disassembly</td><td class="status">BUILT</td></tr>
+        <tr><td>String decoding: ASCII, UTF-16, Base64, XOR, RC4, multi-layer chains</td><td class="status">BUILT</td></tr>
+        <tr><td>Unpacking: UPX detection, overlay, embedded binary carving</td><td class="status">BUILT</td></tr>
+        <tr><td>Firmware: magic scan, UEFI volumes, DXE driver carving</td><td class="status">BUILT</td></tr>
+        <tr><td>Rootkit indicators for drivers, stated as indicators consistent with</td><td class="status">BUILT</td></tr>
+        <tr><td>Evasion decoding: direct syscalls, API hashing, injection chains, anti-VM</td><td class="status">BUILT</td></tr>
+        <tr><td>.NET, Android APK, Office, PDF, email, PCAP analysis</td><td class="status">BUILT</td></tr>
+        <tr><td>ELI5 layer with jargon gate and reading metrics</td><td class="status">BUILT</td></tr>
+        <tr><td>Folder manifest and connection ledger</td><td class="status">BUILT</td></tr>
+        <tr><td>Devirtualization: protector ID, handler census, entry-stub trace</td><td class="status">BUILT</td></tr>
+        <tr><td>Ghidra, capa, FLOSS, radare2, binwalk, unblob, Detect It Easy, YARA, Volatility, jadx, oletools, tshark</td><td class="status">ADAPTER</td></tr>
+        <tr><td>VirusTotal, Hybrid Analysis, abuse.ch, urlscan, OTX, MetaDefender, filescan, tria.ge</td><td class="status">SERVICE</td></tr>
+        <tr><td>Gemini narration behind the evidence gate (live call)</td><td class="status">SERVICE</td></tr>
+        <tr><td>Rootkit confirmation via Volatility 3; sandbox detonation in your own CAPE; ANY.RUN, Joe Sandbox, Koodous, Intezer hash links</td><td class="status">HANDOFF</td></tr>
+        <tr><td>Devirtualization: handler semantics pass (Triton, NoVmp class tools)</td><td class="status">ADAPTER / HANDOFF</td></tr>
+      </tbody>
+    </table>
+  </div>
 </section>
-<section>
-<h2>The long route: autonomous mode</h2>
-<p>Autonomous mode builds a BlackArch Docker image, places the sample at /analysis/malware_sample, and Gemini directs file, strings, readelf and radare2 across iterations until it marks the work complete or the cap is reached. If the API fails, a fallback static analysis runs instead. It writes a timestamped JSON report; the container is removed and the image is kept.</p>
-<table>
-<tr><th>Point</th><th>Local</th><th>Autonomous</th></tr>
-<tr><td>Needs</td><td>Python 3.8 or newer. Nothing else.</td><td>Docker running, plus a Google Gemini API key.</td></tr>
-<tr><td>Sample handling</td><td>Read as bytes, never executed, no network.</td><td>Copied into a container; analysis tooling runs against it there.</td></tr>
-<tr><td>Writes</td><td>JSON report beside the run, or the path passed with the output option.</td><td>Timestamped autonomous report. Container removed, image kept.</td></tr>
-<tr><td>Stops when</td><td>The single pass finishes.</td><td>The model marks the work complete, or the iteration cap is reached. Default cap is 50.</td></tr>
-<tr><td>Exit codes</td><td colspan="2">0 on success, 1 on a clean explained failure such as a missing file, a missing key, or Docker unavailable, 2 on bad command line arguments.</td></tr>
-</table>
+
+<section id="benchmark">
+  <div class="wrap">
+    <h2><span class="no">SECTION 04</span>Benchmark, with its method</h2>
+    <p class="lede">Method: the same fixtures scored by the built-in capability rules alone, then by the full pipeline, as recorded in the project verification file. Five adversarial fixtures (S1 to S5) were built after the modules, with tricks the modules were not designed around. Two cold misses were found, fixed, and locked in as regression tests.</p>
+    <table>
+      <thead><tr><th>Fixture</th><th>Rules only</th><th>Full pipeline</th></tr></thead>
+      <tbody>
+        <tr><td>fake_malware (bundled sample)</td><td>12 findings</td><td>12 findings</td></tr>
+        <tr><td>EICAR test file</td><td>0</td><td>0</td></tr>
+        <tr><td>evil.py (synthetic)</td><td>5</td><td>5</td></tr>
+        <tr><td>S1 APK (XOR string hidden in DEX)</td><td>1</td><td>2</td></tr>
+        <tr><td>S2 DOCM (macro, DDE, template injection)</td><td>3</td><td>4</td></tr>
+        <tr><td>S3 blob (Base64, Base64, XOR chain)</td><td>0 cold, 1 after fix</td><td>1</td></tr>
+        <tr><td>S4 .NET evasion (ConfuserEx, API hashing, injection)</td><td>1</td><td>4</td></tr>
+        <tr><td>S5 firmware (UEFI plus SquashFS plus nested DXE)</td><td>0</td><td>1</td></tr>
+      </tbody>
+    </table>
+    <p class="lede">Test suite: 91 tests passing at the v3 verification run. ELI5 sections measured 10.2 to 11.8 average words per sentence across six reports, with 0 untranslated banned jargon terms.</p>
+  </div>
 </section>
-<section id="run">
-<h2>Run it</h2>
-<pre class="cmd">git clone https://github.com/Epsilon0xCell/Event_Zero.git
-cd Event_Zero
-python3 autonomous_docker_malware_analyzer.py --file fake_malware --local</pre>
-<pre class="cmd">export GEMINI_API_KEY="your key here"
-python3 autonomous_docker_malware_analyzer.py --file /path/to/sample</pre>
-<pre class="cmd">python3 -m unittest discover -s tests -v</pre>
-<p>The suite checks hashes against the standard library, checks EICAR detection, parses the bundled Mach-O sample, and runs the command line end to end in local mode.</p>
+
+<section id="ecosystem">
+  <div class="wrap">
+    <h2><span class="no">SECTION 05</span>Three rings: core, adapters, services</h2>
+    <p class="lede">Event Zero does not replace the tools in the outer rings. It fuses them into one evidence file, and credits each by name.</p>
+    <img src="assets/ecosystem.svg" alt="Diagram of three rings: the built in Event Zero core, free tool adapters around it, and hash lookup services on the outside, with Gemini as the optional narration layer" style="max-width:100%;height:auto;background:var(--panel);border:1px solid var(--line)">
+    <div class="rings">
+      <div class="ring"><h3>Ring 1: built in</h3><p>Parsers, decoders, unpacking, firmware, rootkit indicators, evasion, verdict accounting, ledgers, ELI5, defences (YARA, Sigma style summary, IOC exports), and its own tools: ez-carver, ez-shellcode, ez-capgen, ez-diff.</p></div>
+      <div class="ring"><h3>Ring 2: adapters</h3><p>Ghidra headless, capa, FLOSS, radare2, binwalk, unblob, Detect It Easy, YARA, binutils, Speakeasy, Unicorn, Volatility 3, jadx, oletools, tshark. Detected automatically, used when installed, absent gracefully.</p></div>
+      <div class="ring"><h3>Ring 3: services</h3><p>VirusTotal, Hybrid Analysis, MalwareBazaar, ThreatFox, URLhaus, urlscan.io, OTX, MetaDefender, filescan.io, tria.ge. Hash first, keys from the environment only. Gemini sits outside the rings as the optional narration layer, behind the evidence gate.</p></div>
+    </div>
+  </div>
 </section>
-<section>
-<h2>Where it stands, and disclosure on the specimen</h2>
-<p>Local mode is the finished half of this tool in the way that matters to me: it runs anywhere Python runs, it states its limits inside its own report, and I can verify every number it prints by hand. Static analysis only is a real limit, and I would rather print that limit than dress a lead up as a verdict.</p>
-<p>Autonomous mode works, but its container path is still verified by hand more than by test. If I return to this repo, that is the gap I would close first.</p>
-<p>For a genuinely hostile file, use a hardened, network isolated virtual machine rather than a workstation. Neither mode in this tool replaces a real sandbox.</p>
-<div class="disclosure">
-<p>fake_malware is a real Mach-O 64-bit ARM64 executable, not inert text. If executed, its embedded steps write whoami, id, and uname output to files under /tmp, create /tmp/persistence.sh and make it executable (written, not installed in any autostart location), dump a process list to /tmp, remove a test file, and attempt a connection to 127.0.0.1:4444.</p>
-<p>Its printed simulation list includes a crypto mining simulation line, with no mining pool endpoint in the binary. Local mode never executes it: local mode reads it as bytes and analyzes it, and autonomous mode runs analysis tooling on it inside a container.</p>
-<p>I treat this file as live sample code. I do not execute it outside a controlled analysis environment, and I ask anyone who clones the repo to do the same.</p>
-</div>
+
+<section id="limits">
+  <div class="wrap">
+    <h2><span class="no">SECTION 06</span>Safety and honest limits</h2>
+    <div class="limits">
+      <p><strong>Samples are never executed on the host.</strong> Reports are built by reading bytes. Emulation services no syscalls. Detonation belongs in your own isolated CAPE sandbox.</p>
+      <p><strong>Full decompilation of packed or virtualized code is not possible, for any tool.</strong> Event Zero censuses virtualized regions, traces what crosses into the real world, and marks the rest UNACCOUNTED rather than guessing.</p>
+      <p><strong>A NO from The Verdict is an accounting claim, stated exactly:</strong> every byte accounted for as genuine or explained crack, no behaviour beyond genuine plus explained crack observed, manifest linked. Environment-keyed and server-gated payloads stay on the disclosed open list.</p>
+      <p><strong>Zero-day is a disclosure status, not something a binary can certify.</strong> Exploit reports state the bug class and the primitive, and print disclosure status: unknown.</p>
+    </div>
+  </div>
 </section>
+
+<section id="get">
+  <div class="wrap">
+    <h2><span class="no">SECTION 07</span>Get it</h2>
+    <div class="cmd"><code>git clone https://github.com/Epsilon0xCell/Event_Zero.git &amp;&amp; cd Event_Zero &amp;&amp; pip install -r requirements.txt &amp;&amp; python3 -m event_zero verdict fake_malware</code></div>
+    <p class="lede" style="margin-top:16px">Repository: <a href="https://github.com/Epsilon0xCell/Event_Zero">github.com/Epsilon0xCell/Event_Zero</a>. Every bundled fixture is synthetic and self-crafted. No live malware is included or downloaded.</p>
+  </div>
+</section>
+</main>
+
 <footer>
-<div class="hexrule" aria-hidden="true"></div>
-<p style="margin-top:16px">Built by Epsilon0xCell. <a href="https://github.com/Epsilon0xCell/Event_Zero">Repository</a> <a href="https://github.com/Epsilon0xCell">Profile</a></p>
-<p>Colophon: this file is set in Chakra Petch (headings) and Inter (reading text), both SIL Open Font License 1.1, self-hosted in the site fonts folder with their licence texts. Filed 31 Oct 2026.</p>
+  <div class="wrap">
+    <p>Event Zero, by Gavin Blacklock (Epsilon0xCell). License: Creative Commons Attribution-NonCommercial 4.0 International.</p>
+    <p>Built on named work: LIEF, Capstone, Unicorn, and the design lineage of capa, FLOSS, Ghidra, YARA and CyberChef. Fonts: Chakra Petch and Inter, SIL Open Font License 1.1, self-hosted with their licences. No trackers on this page.</p>
+  </div>
 </footer>
-</div>
+
+<script>
+var CASES = [
+  {id:"001", title:"Case 001: fake_malware, The Verdict", file:"reports/fake_malware.verdict.txt", kind:"verdict",
+   sha:"c9ab06a4fd594a82eb36d1aeb72e83e99df77a2ccd6a8ebd0ad078dd6b707802",
+   note:"Bundled synthetic sample. Verdict: YES, PROVEN."},
+  {id:"002", title:"Case 002: clean patched crack, The Verdict", file:"reports/clean_crack.verdict.txt", kind:"verdict",
+   sha:"befce7d65b1b5347c48d946a3b6b426056c1a18873af9d6ef9655ced0341fb",
+   note:"Synthetic clean crack checked against its genuine reference. Verdict: NO, ACCOUNTED. The hash below is the cracked file inside the release."},
+  {id:"001R", title:"Case 001: fake_malware, full analysis report", file:"reports/fake_malware.report.txt", kind:"report",
+   sha:"c9ab06a4fd594a82eb36d1aeb72e83e99df77a2ccd6a8ebd0ad078dd6b707802",
+   note:"The full 22 section report on the same sample: HIGH RISK 100/100, 12 capabilities."},
+  {id:"003", title:"Case 003: firmware image (UEFI)", file:"reports/firmware_uefi.report.txt", kind:"report",
+   sha:"dd4389af76fc6bbf9a77cc2e6422ced2bcc6c8ec97842043a008fc536880d922",
+   note:"Synthetic firmware fixture with a UEFI volume and a nested DXE driver. Verdict in report: LOW TO MEDIUM RISK, rule score 15/100."},
+  {id:"004", title:"Case 004: .NET evasion sample", file:"reports/dotnet_evasion.report.txt", kind:"report",
+   sha:"87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05",
+   note:"Synthetic .NET fixture with ConfuserEx indicators, API hashing and an injection chain. Verdict in report: HIGH RISK, rule score 55/100."},
+  {id:"005", title:"Case 005: EICAR test file", file:"reports/eicar.report.txt", kind:"report",
+   sha:"275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+   note:"The standard harmless antivirus test file. Verdict in report: TEST FILE, rule score 0/100."}
+];
+var picker = document.getElementById("case-picker");
+CASES.forEach(function(c, i){
+  var o = document.createElement("option"); o.value = i; o.textContent = c.title; picker.appendChild(o);
+});
+var current = CASES[0], currentText = "", layer = "eli5";
+function splitSections(text){
+  var lines = text.split("\n"), sections = [], cur = null;
+  lines.forEach(function(line){
+    var m = line.match(/^(\d+)\.\s+([A-Z][A-Z0-9 ,\/()\-]+)$/);
+    if(m){ cur = {n: parseInt(m[1], 10), lines: [line]}; sections.push(cur); }
+    else if(cur){ cur.lines.push(line); }
+  });
+  return sections.map(function(s){ return s.lines.join("\n"); });
+}
+function render(){
+  if(!currentText){ return; }
+  var secs = splitSections(currentText), out;
+  if(layer === "eli5"){ out = secs.length ? secs[0] : currentText; }
+  else if(layer === "plain"){
+    if(current.kind === "verdict"){ out = secs.slice(0, 2).join("\n"); }
+    else { out = secs.slice(0, 3).join("\n"); }
+  } else {
+    out = current.kind === "verdict" ? secs.slice(2).join("\n") : secs.slice(3).join("\n");
+    if(!out){ out = currentText; }
+  }
+  document.getElementById("report-view").textContent = out;
+  var h = current.sha;
+  document.getElementById("case-meta").innerHTML =
+    "<span class='exhibit-tag'>Exhibit: real report text, unedited</span><br>" +
+    current.note + "<br>SHA-256: <span style='font-family:var(--mono)'>" + h + "</span><br>" +
+    "Hash-only lookups (only the hash leaves this page, nothing is uploaded): " +
+    "<a href='https://www.virustotal.com/gui/file/" + h + "'>VirusTotal</a>" +
+    "<a href='https://app.any.run/submissions/#filehash:" + h + "'>ANY.RUN</a>" +
+    "<a href='https://www.joesandbox.com/search?q=" + h + "'>Joe Sandbox</a>" +
+    "<a href='https://analyze.intezer.com/files/" + h + "'>Intezer</a>";
+}
+function loadCase(i){
+  current = CASES[i]; currentText = "";
+  document.getElementById("report-view").textContent = "Loading the case file...";
+  fetch(current.file).then(function(r){ return r.text(); }).then(function(t){
+    currentText = t; render();
+  }).catch(function(){
+    document.getElementById("report-view").textContent = "The case file could not be loaded from this copy of the site. The same report ships in the repository under examples/.";
+  });
+}
+picker.addEventListener("change", function(){ loadCase(parseInt(picker.value, 10)); });
+document.querySelectorAll(".layers button").forEach(function(b){
+  b.addEventListener("click", function(){
+    layer = b.getAttribute("data-layer");
+    document.querySelectorAll(".layers button").forEach(function(x){ x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+    render();
+  });
+});
+document.getElementById("copy-btn").addEventListener("click", function(){
+  var t = document.getElementById("hero-cmd").textContent;
+  if(navigator.clipboard){ navigator.clipboard.writeText(t); }
+  this.textContent = "COPIED";
+  var b = this; setTimeout(function(){ b.textContent = "COPY"; }, 1600);
+});
+loadCase(0);
+</script>
 </body>
 </html>

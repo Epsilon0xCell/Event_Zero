@@ -1,0 +1,218 @@
+EVENT ZERO: PLAIN-ENGLISH MALWARE REPORT
+============================================================
+File: s4.exe  (944 bytes)
+Path analysed: /tmp/adv/s4.exe
+Parser backend: lief   Disassembly available: True
+
+0. EXPLAINED LIKE YOU ARE FIVE (ELI5)
+  This is about a computer file called s4.exe.
+  This file looks bad. It does things a good file should not do.
+  Think of it like hiding inside a friend's coat.
+  It can hide inside another program, like hiding inside a friend's big coat.
+  Think of it like wearing a disguise.
+  It tries a trick so the guards do not spot it.
+  Think of it like wearing a disguise.
+  It tries a trick so the guards do not spot it.
+  What should you do? Do not open it. Give it to a grown up who studies bad files.
+  This simple part says only what the proof shows.
+  It does not add new proof.
+  Note: this simple part is a translation of the proof below. It does not create new certainty.
+
+1. IDENTITY AND HASHES
+  md5: d76a3a7fb2baa47f087f63167e7d95f5
+  sha1: 46202145044ce677eace65697c5dd81ad3c6f17b
+  sha256: 87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05
+  sha512: 9110510d3bb749b3ede22b88a40a888d3c5325f6f619bdc0759165b89b8bfa5977e96d1b742122df536d5a57183ef3274cfc4bcf9616529caea71f56302d70b6
+  EICAR test file: False
+
+2. WHAT THIS FILE IS, IN PLAIN ENGLISH
+  This file is called s4.exe and it is 944 bytes in size.
+  It is a PE file for x86-64, variant PE32+.
+  Its fingerprint (SHA-256) is 87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05. If anyone else reports this exact fingerprint, they are talking about the exact same file, byte for byte.
+  It borrows these ready-made functions from the operating system and libraries: CreateRemoteThread, WriteProcessMemory. In plain terms: CreateRemoteThread means it starts a thread in another process; WriteProcessMemory means it writes into another process memory.
+  Here is what the evidence says it can do:
+  - Inject code into another process (MITRE ATT&CK T1055, Process Injection): Puts its code inside a legitimate process so the activity looks like it came from that process. Evidence: import/symbol: CreateRemoteThread, import/symbol: WriteProcessMemory.
+  Packing check: No strong packing signal: whole-file entropy is 0.971/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.
+  Verdict: HIGH RISK (rule score 55/100).
+  What is not known: Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence.
+
+3. FORMAT AND ARCHITECTURE
+  format: PE
+  variant: PE32+
+  architecture: x86-64
+  entry_point: 0x1000
+
+4. SECTIONS AND PACKING
+  {'name': '.text', 'size': 512, 'entropy': -0.0}
+  No strong packing signal: whole-file entropy is 0.971/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.
+  Overall entropy: 0.971 / 8.0
+
+5. IMPORTED FUNCTIONS, EXPLAINED
+  CreateRemoteThread: it starts a thread in another process
+  WriteProcessMemory: it writes into another process memory
+
+6. STRINGS FOUND IN THE FILE
+  Total: 6 (ASCII 6, UTF-16 0)
+  - .text
+  - mscorlib
+  - ConfuserEx
+  - VirtualAllocEx
+  - WriteProcessMemory
+  - CreateRemoteThread
+
+7. DECODED STRINGS (things the file tried to hide)
+  Base64 decoded: none found
+  XOR decoded: none found
+
+8. CAPABILITIES (capa-style, mapped to MITRE ATT&CK)
+  [T1055] Inject code into another process (Defense Evasion: Process Injection)
+    Puts its code inside a legitimate process so the activity looks like it came from that process.
+    Evidence: import/symbol: CreateRemoteThread, import/symbol: WriteProcessMemory
+
+9. DISASSEMBLY AND FUNCTIONS
+  Disassembled 50 instructions (cap 4000) from executable section bytes  Instructions shown: 50
+  0x1000: add byte ptr [rax], al
+  0x1002: add byte ptr [rax], al
+  0x1004: add byte ptr [rax], al
+  0x1006: add byte ptr [rax], al
+  0x1008: add byte ptr [rax], al
+  0x100a: add byte ptr [rax], al
+  0x100c: add byte ptr [rax], al
+  0x100e: add byte ptr [rax], al
+  0x1010: add byte ptr [rax], al
+  0x1012: add byte ptr [rax], al
+  0x1014: add byte ptr [rax], al
+  0x1016: add byte ptr [rax], al
+  0x1018: add byte ptr [rax], al
+  0x101a: add byte ptr [rax], al
+  0x101c: add byte ptr [rax], al
+  0x101e: add byte ptr [rax], al
+  0x1020: add byte ptr [rax], al
+  0x1022: add byte ptr [rax], al
+  0x1024: add byte ptr [rax], al
+  0x1026: add byte ptr [rax], al
+  0x1028: add byte ptr [rax], al
+  0x102a: add byte ptr [rax], al
+  0x102c: add byte ptr [rax], al
+  0x102e: add byte ptr [rax], al
+  0x1030: add byte ptr [rax], al
+  0x1032: add byte ptr [rax], al
+  0x1034: add byte ptr [rax], al
+  0x1036: add byte ptr [rax], al
+  0x1038: add byte ptr [rax], al
+  0x103a: add byte ptr [rax], al
+  0x103c: add byte ptr [rax], al
+  0x103e: add byte ptr [rax], al
+  0x1040: add byte ptr [rax], al
+  0x1042: add byte ptr [rax], al
+  0x1044: add byte ptr [rax], al
+  0x1046: add byte ptr [rax], al
+  0x1048: add byte ptr [rax], al
+  0x104a: add byte ptr [rax], al
+  0x104c: add byte ptr [rax], al
+  0x104e: add byte ptr [rax], al
+  0x1050: add byte ptr [rax], al
+  0x1052: add byte ptr [rax], al
+  0x1054: add byte ptr [rax], al
+  0x1056: add byte ptr [rax], al
+  0x1058: add byte ptr [rax], al
+  0x105a: add byte ptr [rax], al
+  0x105c: add byte ptr [rax], al
+  0x105e: add byte ptr [rax], al
+  0x1060: add byte ptr [rax], al
+  0x1062: add byte ptr [rax], al
+
+10. INDICATORS OF COMPROMISE (IOCs)
+  urls: none found
+  ip_addresses: none found
+  domains: none found
+  file_paths: none found
+
+11. RISK VERDICT
+  HIGH RISK  (rule score 55/100)
+  - Capability detected: inject-process
+  - Evasion findings: 2
+  - Embedded binaries carved
+
+12. UNKNOWNS: WHAT STATIC ANALYSIS COULD NOT DETERMINE
+  - Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence.
+
+13. UNPACKING, CARVING AND HIDDEN LAYERS
+  UPX: {'detected': False, 'unpacked': False, 'note': ''}
+  Overlay: {'present': False, 'size': 0}
+  Carved embedded binaries: [{'type': 'PE', 'offset': 0, 'offset_hex': '0x0', 'validated': 'PE signature at e_lfanew'}]
+  Multi-layer decoded strings: none
+  Virtualization: No virtualizing packer signature (VMProtect, Themida, Enigma) was found in section names or strings.
+  High entropy regions: none
+
+14. FIRMWARE AND UEFI
+  This file does not show strong firmware image structure (no UEFI volume and no flash filesystem signature cluster). The magic scan results are still listed so embedded content is not missed.
+  Magic hits: [{'magic': 'PE/DOS binary embedded in firmware', 'offset': 0, 'offset_hex': '0x0'}]
+  UEFI volumes: none
+  DXE drivers carved: [{'offset': 0, 'offset_hex': '0x0', 'kind': 'PE32/PE32+ image inside firmware, consistent with a UEFI DXE driver or UEFI application', 'context_strings': []}]
+  Red flags: none
+
+15. ROOTKIT AND KERNEL
+  No kernel driver structure was identified, so rootkit specific checks found no driver to judge. User mode hiding patterns, if any, are covered by the evasion section.
+  Windows kernel indicators: none
+  Linux kernel indicators: none
+  eBPF: none
+  Hiding indicators: none
+
+16. EXPLOIT AND SHELLCODE
+  Explainer: An exploit is code that turns a bug into control. Event Zero separates the bug evidence (what looks broken), the primitive (what control it gives, stated only when evidence supports it), and the payload stages (sled, egghunter, GetPC, decoded shellcode). A zero day is simply a bug with no patch yet, so no static tool can certify that a sample is or is not a zero day. What can be done, and is done here, is to map the bug pattern and payload structure in plain words and label the rest as unknown.
+  Bug class evidence: not identified from static evidence alone
+  Payload stages: none
+  Sleds and spray: none  Egghunter: False  GetPC: none
+  ROP gadgets found: 0 (showing up to 20)
+
+17. EVASION DECODED (AV BYPASS TRICKS)
+  Evasion findings: API hashing (names hidden), Process injection API chain.
+  [T1027] API hashing (names hidden): Instead of naming the Windows functions it wants, which antivirus can read, the code stores short fingerprints and compares each library function name against them at run time. The names only exist for a moment in memory. Evidence: ['rotate right by 13 instruction, the heart of the ROR13 API hash used since classic shellcode']
+  [T1055] Process injection API chain: These functions together, not alone, are the recipe: reserve memory in another process, write code into it, then start it running there. Malware hides inside a trusted process this way. Event Zero reports the chain as one finding because each step alone has innocent uses. Evidence: ['virtualallocex', 'writeprocessmemory', 'createremotethread']
+  Emulation: {'available': False, 'note': 'No shellcode region was identified for emulation.', 'instructions_emulated': 0}
+
+18. HYBRID AND EXTERNAL ENRICHMENT
+  Sandbox report merged: none supplied
+  Enrichment consensus: Enrichment not run. Run event_zero enrich <file> or analyze --enrich to query hash lookup services. Local evidence is complete without it.
+  Tools that contributed or were available: ['strings', 'objdump', 'readelf', 'nm', 'unicorn', 'pestudio-style checks', 'ghidra-mcp', 'x64dbg']
+
+19. AI NARRATIVE (GEMINI, EVIDENCE GATED)
+  {'status': 'not_configured', 'provider': 'gemini', 'model': 'gemini-2.5-flash', 'note': 'LLM layer not configured: run with --gemini and a GEMINI_API_KEY or GOOGLE_API_KEY in the environment to enable the evidence-gated Gemini narrative. The deterministic report is complete without it.'}
+
+20. EXTRA FORMATS: .NET, ANDROID, OFFICE, PDF, EMAIL, PCAP
+  .NET: {'is_dotnet': True, 'evidence': ['CLR runtime header present (RVA 0x2000, size 72)', 'IL metadata streams or mscorlib reference found'], 'metadata_strings': ['mscorlib'], 'obfuscator_indicators': ['ConfuserEx obfuscator marker', 'Confuser obfuscator marker'], 'plain_english': 'This is a .NET program: it runs on the Microsoft runtime, so its middle language (IL) and metadata can usually be read far more completely than native code, unless an obfuscator scrambled the names. Event Zero reports the metadata and any obfuscator markers.'}
+  APK: {'is_apk': False}
+  Office: {'is_ole_compound': False, 'has_macros': False, 'auto_open_triggers': [], 'dde': False, 'template_injection_urls': [], 'stream_notes': [], 'oletools_adapter': 'oletools (olevba) is used through the tool registry when installed; the built in checks above run regardless.', 'plain_english': 'No macro streams, auto-open triggers or DDE links were found by the built in Office checks.'}
+  PDF: {'is_pdf': False}
+  Email: {'is_email': False}
+  PCAP: {'is_pcap': False, 'note': 'Not a classic pcap file. If tshark is installed, use it for pcapng and deep protocol work; Event Zero lists tshark in the tool registry.'}
+
+21. KILL CHAIN TIMELINE
+  - Hiding from guards (defence evasion): Evidence for this stage: evasion-api-hashing, inject-chain. ELI5: It tries to hide from the guards.
+  - Doing its job (actions on objective): Evidence for this stage: inject-process, inject-chain. ELI5: It does the job it came for.
+  Order is the logical kill chain order (MITRE ATT&CK tactic order), reconstructed from static evidence. It is not observed timing: the sample was never run, so the report does not claim these steps happened at specific times.
+
+22. GENERATED YARA RULE (review before production use)
+rule EZ_s4 {
+  meta:
+    author = "Event Zero (generated from local evidence)"
+    sha256 = "87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05"
+    description = "Generated rule: review before production use"
+  strings:
+    $h = "87e456f138192aef"
+  condition:
+    $h
+}
+
+
+BROWSER LOOKUP LINKS (hash only, nothing uploaded)
+  ANY.RUN: https://app.any.run/submissions/#filehash:87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05 (hash search page, no file shared)
+  Joe Sandbox: https://www.joesandbox.com/search?q=87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05 (hash search page, no file shared)
+  Koodous: https://koodous.com/apks?search=87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05 (hash search page, mainly Android, no file shared)
+  Intezer: https://analyze.intezer.com/files/87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05 (hash lookup page, no file shared)
+  CyberChef: https://gchq.github.io/CyberChef/ (tool page only, nothing is sent until you paste data yourself)
+  dogbolt decompiler: https://dogbolt.org/ (tool page only, uploading there is your choice and is NOT done by Event Zero)
+  UnpacMe: https://www.unpac.me/ (tool page only, uploading there is your choice and is NOT done by Event Zero)
+
+End of report. The sample was read as bytes and was never executed on the host.

@@ -1,0 +1,250 @@
+{
+  "accuracy": 0.992,
+  "correct": 992,
+  "error_counts": {
+    "false-no": 7,
+    "false-yes": 1
+  },
+  "errors_by_class": {
+    "false-no": [
+      "pilot-0937",
+      "pilot-0941",
+      "pilot-0945",
+      "pilot-0949",
+      "pilot-0953",
+      "pilot-0956",
+      "pilot-0960"
+    ],
+    "false-yes": [
+      "pilot-0997"
+    ]
+  },
+  "incorrect": 8,
+  "pass": false,
+  "per_case_errors": {
+    "pilot-0937": [
+      "false-no"
+    ],
+    "pilot-0941": [
+      "false-no"
+    ],
+    "pilot-0945": [
+      "false-no"
+    ],
+    "pilot-0949": [
+      "false-no"
+    ],
+    "pilot-0953": [
+      "false-no"
+    ],
+    "pilot-0956": [
+      "false-no"
+    ],
+    "pilot-0960": [
+      "false-no"
+    ],
+    "pilot-0997": [
+      "false-yes"
+    ]
+  },
+  "per_stratum": {
+    "designed-open": {
+      "correct": 4,
+      "errors": {},
+      "total": 4
+    },
+    "family-proven": {
+      "correct": 20,
+      "errors": {},
+      "total": 20
+    },
+    "flagship-sample": {
+      "correct": 1,
+      "errors": {},
+      "total": 1
+    },
+    "fp-twin": {
+      "correct": 9,
+      "errors": {},
+      "total": 9
+    },
+    "lone-binary-unaccounted": {
+      "correct": 1,
+      "errors": {},
+      "total": 1
+    },
+    "repo-malicious-script": {
+      "correct": 1,
+      "errors": {},
+      "total": 1
+    },
+    "surprise": {
+      "correct": 4,
+      "errors": {},
+      "total": 4
+    },
+    "synthetic-benign-banking_article": {
+      "correct": 14,
+      "errors": {
+        "false-yes": 1
+      },
+      "total": 15
+    },
+    "synthetic-benign-benign_utility": {
+      "correct": 30,
+      "errors": {},
+      "total": 30
+    },
+    "synthetic-benign-eicar": {
+      "correct": 20,
+      "errors": {},
+      "total": 20
+    },
+    "synthetic-benign-twin_backup": {
+      "correct": 25,
+      "errors": {},
+      "total": 25
+    },
+    "synthetic-benign-twin_capture": {
+      "correct": 20,
+      "errors": {},
+      "total": 20
+    },
+    "synthetic-benign-twin_keygen": {
+      "correct": 25,
+      "errors": {},
+      "total": 25
+    },
+    "synthetic-benign-twin_kms": {
+      "correct": 20,
+      "errors": {},
+      "total": 20
+    },
+    "synthetic-benign-twin_miner_disclosed": {
+      "correct": 25,
+      "errors": {},
+      "total": 25
+    },
+    "synthetic-benign-twin_password_manager": {
+      "correct": 30,
+      "errors": {},
+      "total": 30
+    },
+    "synthetic-benign-twin_proxy_disclosed": {
+      "correct": 20,
+      "errors": {},
+      "total": 20
+    },
+    "synthetic-benign-twin_xmrig": {
+      "correct": 15,
+      "errors": {},
+      "total": 15
+    },
+    "synthetic-open-malformed": {
+      "correct": 23,
+      "errors": {
+        "false-no": 7
+      },
+      "total": 30
+    },
+    "synthetic-proven-banking": {
+      "correct": 30,
+      "errors": {},
+      "total": 30
+    },
+    "synthetic-proven-bootkit": {
+      "correct": 20,
+      "errors": {},
+      "total": 20
+    },
+    "synthetic-proven-botnet": {
+      "correct": 30,
+      "errors": {},
+      "total": 30
+    },
+    "synthetic-proven-fileless": {
+      "correct": 30,
+      "errors": {},
+      "total": 30
+    },
+    "synthetic-proven-hijacker": {
+      "correct": 30,
+      "errors": {},
+      "total": 30
+    },
+    "synthetic-proven-keylogger": {
+      "correct": 40,
+      "errors": {},
+      "total": 40
+    },
+    "synthetic-proven-loader_dead_drop": {
+      "correct": 40,
+      "errors": {},
+      "total": 40
+    },
+    "synthetic-proven-loader_inject": {
+      "correct": 50,
+      "errors": {},
+      "total": 50
+    },
+    "synthetic-proven-miner_hidden": {
+      "correct": 54,
+      "errors": {},
+      "total": 54
+    },
+    "synthetic-proven-ppi": {
+      "correct": 30,
+      "errors": {},
+      "total": 30
+    },
+    "synthetic-proven-proxy_operator": {
+      "correct": 30,
+      "errors": {},
+      "total": 30
+    },
+    "synthetic-proven-ransomware": {
+      "correct": 50,
+      "errors": {},
+      "total": 50
+    },
+    "synthetic-proven-rat": {
+      "correct": 50,
+      "errors": {},
+      "total": 50
+    },
+    "synthetic-proven-script_bad": {
+      "correct": 40,
+      "errors": {},
+      "total": 40
+    },
+    "synthetic-proven-server_keyed": {
+      "correct": 40,
+      "errors": {},
+      "total": 40
+    },
+    "synthetic-proven-stealer_chain": {
+      "correct": 50,
+      "errors": {},
+      "total": 50
+    },
+    "synthetic-proven-stealer_config": {
+      "correct": 50,
+      "errors": {},
+      "total": 50
+    },
+    "synthetic-proven-wiper": {
+      "correct": 20,
+      "errors": {},
+      "total": 20
+    },
+    "test-file": {
+      "correct": 1,
+      "errors": {},
+      "total": 1
+    }
+  },
+  "release_blocking": {
+    "false-no": 7
+  },
+  "total": 1000
+}

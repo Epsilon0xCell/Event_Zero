@@ -1,0 +1,761 @@
+{
+  "tool": "Event Zero",
+  "version": "3.0.0",
+  "file": "/tmp/adv/s4.exe",
+  "filename": "s4.exe",
+  "size_bytes": 944,
+  "hashes": {
+    "md5": "d76a3a7fb2baa47f087f63167e7d95f5",
+    "sha1": "46202145044ce677eace65697c5dd81ad3c6f17b",
+    "sha256": "87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05",
+    "sha512": "9110510d3bb749b3ede22b88a40a888d3c5325f6f619bdc0759165b89b8bfa5977e96d1b742122df536d5a57183ef3274cfc4bcf9616529caea71f56302d70b6"
+  },
+  "eicar_test_file": false,
+  "format": {
+    "format": "PE",
+    "variant": "PE32+",
+    "architecture": "x86-64",
+    "entry_point": "0x1000",
+    "sections": [
+      {
+        "name": ".text",
+        "size": 512,
+        "entropy": -0.0
+      }
+    ],
+    "imports": [],
+    "symbols": [],
+    "libraries": [],
+    "lief_format": "PE"
+  },
+  "parser_backend": "lief",
+  "overall_entropy": 0.971,
+  "sections": [
+    {
+      "name": ".text",
+      "size": 512,
+      "entropy": -0.0
+    }
+  ],
+  "packing_assessment": [
+    "No strong packing signal: whole-file entropy is 0.971/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing."
+  ],
+  "imports": [
+    {
+      "name": "CreateRemoteThread",
+      "plain_english": "starts a thread in another process"
+    },
+    {
+      "name": "WriteProcessMemory",
+      "plain_english": "writes into another process memory"
+    }
+  ],
+  "symbols": [],
+  "strings": {
+    "count": 6,
+    "ascii_count": 6,
+    "utf16_count": 0,
+    "all": [
+      ".text",
+      "mscorlib",
+      "ConfuserEx",
+      "VirtualAllocEx",
+      "WriteProcessMemory",
+      "CreateRemoteThread"
+    ],
+    "base64_decoded": [],
+    "xor_decoded": []
+  },
+  "disassembly": {
+    "available": true,
+    "note": "Disassembled 50 instructions (cap 4000) from executable section bytes",
+    "instruction_count": 50,
+    "instructions": [
+      {
+        "address": "0x1000",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1002",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1004",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1006",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1008",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x100a",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x100c",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x100e",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1010",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1012",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1014",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1016",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1018",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x101a",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x101c",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x101e",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1020",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1022",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1024",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1026",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1028",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x102a",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x102c",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x102e",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1030",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1032",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1034",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1036",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1038",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x103a",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x103c",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x103e",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1040",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1042",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1044",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1046",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1048",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x104a",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x104c",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x104e",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1050",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1052",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1054",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1056",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1058",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x105a",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x105c",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x105e",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1060",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      },
+      {
+        "address": "0x1062",
+        "mnemonic": "add",
+        "op_str": "byte ptr [rax], al",
+        "text": "add byte ptr [rax], al"
+      }
+    ],
+    "call_sites": []
+  },
+  "capabilities": [
+    {
+      "id": "inject-process",
+      "name": "Inject code into another process",
+      "attack_id": "T1055",
+      "tactic": "Defense Evasion",
+      "technique": "Process Injection",
+      "evidence": [
+        "import/symbol: CreateRemoteThread",
+        "import/symbol: WriteProcessMemory"
+      ],
+      "explanation": "Puts its code inside a legitimate process so the activity looks like it came from that process."
+    }
+  ],
+  "script_analysis": null,
+  "script_source_excerpt": null,
+  "iocs": {
+    "urls": [],
+    "ip_addresses": [],
+    "domains": [],
+    "file_paths": []
+  },
+  "unpack": {
+    "upx": {
+      "detected": false,
+      "unpacked": false,
+      "note": ""
+    },
+    "overlay": {
+      "present": false,
+      "size": 0
+    },
+    "carved": [
+      {
+        "type": "PE",
+        "offset": 0,
+        "offset_hex": "0x0",
+        "validated": "PE signature at e_lfanew"
+      }
+    ],
+    "decoded_layers": [],
+    "entropy_map": [
+      {
+        "offset": 0,
+        "entropy": 0.478
+      },
+      {
+        "offset": 256,
+        "entropy": 2.402
+      },
+      {
+        "offset": 512,
+        "entropy": -0.0
+      },
+      {
+        "offset": 768,
+        "entropy": -0.0
+      }
+    ],
+    "high_entropy_regions": [],
+    "virtualization": {
+      "detected": false,
+      "section_evidence": [],
+      "string_evidence": [],
+      "plain_english": "No virtualizing packer signature (VMProtect, Themida, Enigma) was found in section names or strings."
+    },
+    "rc4_note": "RC4 decoding is available in this module (rc4 function) and is tried by the multi-layer decoder when key material appears as a string."
+  },
+  "firmware": {
+    "is_firmware_image": false,
+    "magic_hits": [
+      {
+        "magic": "PE/DOS binary embedded in firmware",
+        "offset": 0,
+        "offset_hex": "0x0"
+      }
+    ],
+    "uefi_volumes": [],
+    "dxe_drivers_carved": [
+      {
+        "offset": 0,
+        "offset_hex": "0x0",
+        "kind": "PE32/PE32+ image inside firmware, consistent with a UEFI DXE driver or UEFI application",
+        "context_strings": []
+      }
+    ],
+    "red_flags": [],
+    "plain_english": "This file does not show strong firmware image structure (no UEFI volume and no flash filesystem signature cluster). The magic scan results are still listed so embedded content is not missed."
+  },
+  "rootkit": {
+    "is_kernel_driver": false,
+    "driver_kind": "not identified as a kernel driver",
+    "windows_kernel_indicators": [],
+    "linux_kernel_indicators": [],
+    "ebpf": [],
+    "hiding_indicators": [],
+    "volatility_handoff": "Confirmation requires a memory dump analysed with Volatility 3 cross-view plugins: windows.ssdt, windows.driverirp, windows.pslist versus windows.psscan, linux.check_syscall, linux.check_idt, linux.hidden_modules. Static file analysis alone cannot confirm a rootkit.",
+    "plain_english": "No kernel driver structure was identified, so rootkit specific checks found no driver to judge. User mode hiding patterns, if any, are covered by the evasion section."
+  },
+  "exploit": {
+    "nop_sleds_and_spray": [],
+    "egghunter_detected": false,
+    "getpc_detected": [],
+    "rop": {
+      "available": true,
+      "gadgets": [],
+      "note": "Found 0 ret-ending gadget sequences by decoding backwards from each ret byte."
+    },
+    "format_string_pattern": false,
+    "unsafe_copy_functions": [],
+    "long_repeated_run": false,
+    "explainer": {
+      "bug_class": "not identified from static evidence alone",
+      "payload_stages": [],
+      "disclosure_status": "unknown: zero-day is a disclosure status, not a property visible in a binary, and Event Zero never certifies zero-day status from a sample",
+      "plain_english": "An exploit is code that turns a bug into control. Event Zero separates the bug evidence (what looks broken), the primitive (what control it gives, stated only when evidence supports it), and the payload stages (sled, egghunter, GetPC, decoded shellcode). A zero day is simply a bug with no patch yet, so no static tool can certify that a sample is or is not a zero day. What can be done, and is done here, is to map the bug pattern and payload structure in plain words and label the rest as unknown."
+    }
+  },
+  "evasion": {
+    "findings": [
+      {
+        "id": "evasion-api-hashing",
+        "name": "API hashing (names hidden)",
+        "attack_id": "T1027",
+        "technique": "Obfuscated Files or Information",
+        "evidence": [
+          "rotate right by 13 instruction, the heart of the ROR13 API hash used since classic shellcode"
+        ],
+        "plain_english": "Instead of naming the Windows functions it wants, which antivirus can read, the code stores short fingerprints and compares each library function name against them at run time. The names only exist for a moment in memory."
+      },
+      {
+        "id": "inject-chain",
+        "name": "Process injection API chain",
+        "attack_id": "T1055",
+        "technique": "Process Injection",
+        "evidence": [
+          "virtualallocex",
+          "writeprocessmemory",
+          "createremotethread"
+        ],
+        "plain_english": "These functions together, not alone, are the recipe: reserve memory in another process, write code into it, then start it running there. Malware hides inside a trusted process this way. Event Zero reports the chain as one finding because each step alone has innocent uses."
+      }
+    ],
+    "direct_syscall_stubs": [],
+    "plain_english": "Evasion findings: API hashing (names hidden), Process injection API chain."
+  },
+  "emulation": {
+    "available": false,
+    "note": "No shellcode region was identified for emulation.",
+    "instructions_emulated": 0
+  },
+  "risk": {
+    "score": 55,
+    "verdict": "HIGH RISK",
+    "reasons": [
+      "Capability detected: inject-process",
+      "Evasion findings: 2",
+      "Embedded binaries carved"
+    ]
+  },
+  "unknowns": [
+    "Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence."
+  ],
+  "plain_english": [
+    "This file is called s4.exe and it is 944 bytes in size.",
+    "It is a PE file for x86-64, variant PE32+.",
+    "Its fingerprint (SHA-256) is 87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05. If anyone else reports this exact fingerprint, they are talking about the exact same file, byte for byte.",
+    "It borrows these ready-made functions from the operating system and libraries: CreateRemoteThread, WriteProcessMemory. In plain terms: CreateRemoteThread means it starts a thread in another process; WriteProcessMemory means it writes into another process memory.",
+    "Here is what the evidence says it can do:",
+    "- Inject code into another process (MITRE ATT&CK T1055, Process Injection): Puts its code inside a legitimate process so the activity looks like it came from that process. Evidence: import/symbol: CreateRemoteThread, import/symbol: WriteProcessMemory.",
+    "Packing check: No strong packing signal: whole-file entropy is 0.971/8.0 and no UPX markers were found. Low whole-file entropy can be pulled down by zero padding in Mach-O and ELF files, so this is not proof of no packing.",
+    "Verdict: HIGH RISK (rule score 55/100).",
+    "What is not known: Runtime behaviour was not observed: the sample was never executed, so network traffic, timing, and environment checks it performs can only be inferred from static evidence."
+  ],
+  "llm": {
+    "status": "not_configured",
+    "provider": "gemini",
+    "model": "gemini-2.5-flash",
+    "note": "LLM layer not configured: run with --gemini and a GEMINI_API_KEY or GOOGLE_API_KEY in the environment to enable the evidence-gated Gemini narrative. The deterministic report is complete without it."
+  },
+  "dotnet": {
+    "is_dotnet": true,
+    "evidence": [
+      "CLR runtime header present (RVA 0x2000, size 72)",
+      "IL metadata streams or mscorlib reference found"
+    ],
+    "metadata_strings": [
+      "mscorlib"
+    ],
+    "obfuscator_indicators": [
+      "ConfuserEx obfuscator marker",
+      "Confuser obfuscator marker"
+    ],
+    "plain_english": "This is a .NET program: it runs on the Microsoft runtime, so its middle language (IL) and metadata can usually be read far more completely than native code, unless an obfuscator scrambled the names. Event Zero reports the metadata and any obfuscator markers."
+  },
+  "apk": {
+    "is_apk": false
+  },
+  "office": {
+    "is_ole_compound": false,
+    "has_macros": false,
+    "auto_open_triggers": [],
+    "dde": false,
+    "template_injection_urls": [],
+    "stream_notes": [],
+    "oletools_adapter": "oletools (olevba) is used through the tool registry when installed; the built in checks above run regardless.",
+    "plain_english": "No macro streams, auto-open triggers or DDE links were found by the built in Office checks."
+  },
+  "pdf": {
+    "is_pdf": false
+  },
+  "email": {
+    "is_email": false
+  },
+  "pcap": {
+    "is_pcap": false,
+    "note": "Not a classic pcap file. If tshark is installed, use it for pcapng and deep protocol work; Event Zero lists tshark in the tool registry."
+  },
+  "timeline": {
+    "timeline": [
+      {
+        "stage": "defence_evasion",
+        "name": "Hiding from guards (defence evasion)",
+        "evidence_ids": [
+          "evasion-api-hashing",
+          "inject-chain"
+        ],
+        "eli5": "It tries to hide from the guards.",
+        "plain_english": "Evidence for this stage: evasion-api-hashing, inject-chain."
+      },
+      {
+        "stage": "actions",
+        "name": "Doing its job (actions on objective)",
+        "evidence_ids": [
+          "inject-process",
+          "inject-chain"
+        ],
+        "eli5": "It does the job it came for.",
+        "plain_english": "Evidence for this stage: inject-process, inject-chain."
+      }
+    ],
+    "note": "Order is the logical kill chain order (MITRE ATT&CK tactic order), reconstructed from static evidence. It is not observed timing: the sample was never run, so the report does not claim these steps happened at specific times."
+  },
+  "generated_yara": "rule EZ_s4 {\n  meta:\n    author = \"Event Zero (generated from local evidence)\"\n    sha256 = \"87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05\"\n    description = \"Generated rule: review before production use\"\n  strings:\n    $h = \"87e456f138192aef\"\n  condition:\n    $h\n}\n",
+  "tools_available": [
+    {
+      "tool": "strings",
+      "category": "binary",
+      "installed": true,
+      "version": "GNU strings (GNU Binutils for Ubuntu) 2.42",
+      "adds": "Binutils printable string extraction",
+      "blackarch_package": "binutils",
+      "install_hint": "apt install binutils"
+    },
+    {
+      "tool": "objdump",
+      "category": "disassembler",
+      "installed": true,
+      "version": "GNU objdump (GNU Binutils for Ubuntu) 2.42",
+      "adds": "Binutils disassembly and section dumps",
+      "blackarch_package": "binutils",
+      "install_hint": "apt install binutils"
+    },
+    {
+      "tool": "readelf",
+      "category": "binary",
+      "installed": true,
+      "version": "GNU readelf (GNU Binutils for Ubuntu) 2.42",
+      "adds": "ELF header, section and symbol reading",
+      "blackarch_package": "binutils",
+      "install_hint": "apt install binutils"
+    },
+    {
+      "tool": "nm",
+      "category": "binary",
+      "installed": true,
+      "version": "GNU nm (GNU Binutils for Ubuntu) 2.42",
+      "adds": "Symbol listing",
+      "blackarch_package": "binutils",
+      "install_hint": "apt install binutils"
+    },
+    {
+      "tool": "unicorn",
+      "category": "malware",
+      "installed": true,
+      "version": "python module importable",
+      "adds": "CPU emulation engine for shellcode and entry tracing (Python module: unicorn)",
+      "blackarch_package": "python-unicorn",
+      "install_hint": "pip install unicorn"
+    },
+    {
+      "tool": "pestudio-style checks",
+      "category": "binary",
+      "installed": true,
+      "version": "built in",
+      "adds": "Built in: imports, sections, entropy, TLS callbacks and overlay checks in the core, no external tool needed",
+      "blackarch_package": "(built in)",
+      "install_hint": "Always available in Event Zero core"
+    },
+    {
+      "tool": "ghidra-mcp",
+      "category": "reversing",
+      "installed": true,
+      "version": "built in",
+      "adds": "Optional Ghidra MCP bridge when a user runs one",
+      "blackarch_package": "ghidra-mcp",
+      "install_hint": "Optional, user configured"
+    },
+    {
+      "tool": "x64dbg",
+      "category": "reversing",
+      "installed": true,
+      "version": "built in",
+      "adds": "Windows debugger, listed for the analyst workstation, not run by Event Zero",
+      "blackarch_package": "x64dbg",
+      "install_hint": "Windows only, manual use"
+    }
+  ],
+  "browser_links": [
+    [
+      "ANY.RUN",
+      "https://app.any.run/submissions/#filehash:87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05",
+      "hash search page, no file shared"
+    ],
+    [
+      "Joe Sandbox",
+      "https://www.joesandbox.com/search?q=87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05",
+      "hash search page, no file shared"
+    ],
+    [
+      "Koodous",
+      "https://koodous.com/apks?search=87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05",
+      "hash search page, mainly Android, no file shared"
+    ],
+    [
+      "Intezer",
+      "https://analyze.intezer.com/files/87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05",
+      "hash lookup page, no file shared"
+    ],
+    [
+      "CyberChef",
+      "https://gchq.github.io/CyberChef/",
+      "tool page only, nothing is sent until you paste data yourself"
+    ],
+    [
+      "dogbolt decompiler",
+      "https://dogbolt.org/",
+      "tool page only, uploading there is your choice and is NOT done by Event Zero"
+    ],
+    [
+      "UnpacMe",
+      "https://www.unpac.me/",
+      "tool page only, uploading there is your choice and is NOT done by Event Zero"
+    ]
+  ],
+  "enrichment": {
+    "sha256": "87e456f138192aef34cbb402b6b0d5356571acab139f6f7a5e6dd84a1fed5f05",
+    "services": [],
+    "found_count": 0,
+    "detections": null,
+    "consensus": "Enrichment not run. Run event_zero enrich <file> or analyze --enrich to query hash lookup services. Local evidence is complete without it."
+  },
+  "sandbox": null,
+  "eli5": [
+    "This is about a computer file called s4.exe.",
+    "This file looks bad. It does things a good file should not do.",
+    "Think of it like hiding inside a friend's coat.",
+    "It can hide inside another program, like hiding inside a friend's big coat.",
+    "Think of it like wearing a disguise.",
+    "It tries a trick so the guards do not spot it.",
+    "Think of it like wearing a disguise.",
+    "It tries a trick so the guards do not spot it.",
+    "What should you do? Do not open it. Give it to a grown up who studies bad files.",
+    "This simple part says only what the proof shows.",
+    "It does not add new proof.",
+    "A picture in words is not exact.",
+    "Real code does more than any one picture can show."
+  ],
+  "eli5_metrics": {
+    "flesch_reading_ease": 96.4,
+    "flesch_kincaid_grade": 2.3,
+    "design_target": "FRE >= 80 and FK <= 6 (Event Zero design target, labelled as such)",
+    "meets_design_target": true
+  }
+}

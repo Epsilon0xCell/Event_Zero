@@ -1,0 +1,6 @@
+Banking trojans in the news, explained for readers.
+Security reporters this week described stealers that watch for banking sites.
+The article mentions several banks by name for context:
+Bank of America (bankofamerica.com), JPMorgan Chase (chase.com),
+Wells Fargo (wellsfargo.com), and Citibank (citi.com) were all named in vendor blogs.
+No code is included in this article; it is reporting, not software.

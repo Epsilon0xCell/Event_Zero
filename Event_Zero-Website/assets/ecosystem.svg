@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-label="Event Zero ecosystem: three rings">
+  <rect width="900" height="520" fill="#0e1013"/>
+  <rect x="20" y="20" width="860" height="480" fill="#14161a" stroke="#454b51"/>
+  <text x="44" y="58" font-family="monospace" font-size="17" fill="#e39a1e">RING 3: SERVICES (hash first, your key)</text>
+  <text x="44" y="86" font-family="monospace" font-size="15" fill="#b9bfc2">VirusTotal, Hybrid Analysis, MalwareBazaar, ThreatFox, URLhaus, urlscan.io, OTX, MetaDefender, filescan.io, tria.ge</text>
+  <rect x="60" y="110" width="780" height="330" fill="#191c1e" stroke="#a96f0c"/>
+  <text x="84" y="148" font-family="monospace" font-size="17" fill="#e39a1e">RING 2: ADAPTERS (used when installed)</text>
+  <text x="84" y="176" font-family="monospace" font-size="15" fill="#b9bfc2">Ghidra, capa, FLOSS, radare2, binwalk, unblob, Detect It Easy, YARA, binutils, Speakeasy, Volatility 3, jadx, oletools, tshark</text>
+  <rect x="150" y="205" width="600" height="195" fill="#0e1013" stroke="#e39a1e" stroke-width="2"/>
+  <text x="450" y="248" font-family="monospace" font-size="19" fill="#eceff0" text-anchor="middle">RING 1: EVENT ZERO CORE (BUILT)</text>
+  <text x="450" y="280" font-family="monospace" font-size="15" fill="#b9bfc2" text-anchor="middle">parsers, decoders, unpacking, firmware, evasion,</text>
+  <text x="450" y="304" font-family="monospace" font-size="15" fill="#b9bfc2" text-anchor="middle">THE VERDICT, ledgers, ELI5, defences,</text>
+  <text x="450" y="328" font-family="monospace" font-size="15" fill="#b9bfc2" text-anchor="middle">ez-carver, ez-shellcode, ez-capgen, ez-diff</text>
+  <text x="450" y="472" font-family="monospace" font-size="15" fill="#e39a1e" text-anchor="middle">OUTSIDE THE RINGS: Gemini, optional narration only, behind the evidence gate</text>
+</svg>
