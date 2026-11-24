@@ -17,6 +17,12 @@ Event Zero turns a suspicious file into a plain English report anyone can act on
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10 or newer, as declared in pyproject.toml">
 </p>
 
+<p align="center">
+  <a href="demo/event-zero-demo.mp4"><img src="demo/event-zero-demo.gif" width="720" alt="The Event Zero demo playing: real runs of the tool analysing the bundled sample, issuing a proven YES verdict on it, a NO verdict on a clean patched program, and an open case on a protected file, then verifying a signed report."></a>
+</p>
+
+<p align="center"><strong>Watch it work.</strong> The film above is Event Zero running for real, every shot a live run. Click it to watch the <a href="demo/event-zero-demo.mp4">full demo video</a>.</p>
+
 > [!WARNING]
 > **The Global Defence Initiative warning:** software obtained outside accountable channels is one of the most reliable malware delivery routes aimed at ordinary people, and the moment that decides the outcome is the moment before the first run. Event Zero is part of a global defence initiative to put a free, checkable verdict in exactly that moment, after the download and before the run. The full case, with dated and sourced figures, is in [Why this exists: a global defence initiative](#why-this-exists-a-global-defence-initiative) below.
 
