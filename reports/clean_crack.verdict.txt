@@ -1,0 +1,66 @@
+EVENT ZERO: PIRATED SOFTWARE VERDICT
+============================================================
+NO: NO MALWARE
+Reason class: ACCOUNTED
+============================================================
+Subject: /tmp/ezex/release
+Genuine reference: /tmp/ezex/genuine
+Time taken: 0.106 seconds
+
+0. EXPLAINED LIKE YOU ARE FIVE (ELI5)
+  No, we checked every part and found no thief.
+  We took the whole thing apart, piece by piece.
+  Every piece is accounted for. It is a piece of the real program, or a crack piece we can point at and explain.
+  No piece does a bad thing that no honest program needs to do.
+
+1. THE VERDICT IN PLAIN ENGLISH
+  Headline: NO: NO MALWARE
+  Reason class: ACCOUNTED
+  Subject: /tmp/ezex/release (1 file(s) enumerated and analysed in 0.106 seconds).
+  Every byte is accounted for as genuine or explained crack, and no behaviour beyond the genuine program plus the explained crack was observed in the evidence. This verdict is linked to the evidence manifest in this report.
+
+2. PER-FILE TABLE
+  game.py  (198 bytes, format: text / script)
+    sha256: befce7d65b1b5347c48d946a3b3b6b426056c1a18873af9d6ef9655ced0341fb
+    signed: None  signature valid: None
+    per-file verdict: NO: ACCOUNTED
+    why: Differs from the genuine reference in 3 region(s): 3 classified expected-crack or benign-repack, 0 unaccounted. Full ledger in this report.
+    why: Accounted: every differing region against the genuine reference is classified expected-crack or benign-repack in the diff ledger, and no malicious capability chain exists.
+    crack patch evidence:
+      - The file itself names the thing that was patched: '    key = input("license key: ")'
+      - The file itself names the thing that was patched: '    if True:  # license check patched'
+      - The file itself names the thing that was patched: '        print("welcome, licensed user")'
+      - The file itself names the thing that was patched: '        print("license check failed")'
+
+3. INSTALLER AND ARCHIVE DROP LIST
+  Installer or archive: False  kind: None  extracted: False
+  Not an installer or archive subject.
+
+4. DIFF LEDGER AGAINST THE GENUINE REFERENCE
+  game.py: insert old bytes [71, 71] new bytes [71, 92] size change +21 => expected-crack
+    The differing bytes sit in or beside the license check (the surrounding bytes name it), and the change is the size and shape of a check being bypassed, for example a conditional jump replaced so the check always passes. No capability was added.
+  game.py: insert old bytes [72, 72] new bytes [93, 99] size change +6 => expected-crack
+    The differing bytes sit in or beside the license check (the surrounding bytes name it), and the change is the size and shape of a check being bypassed, for example a conditional jump replaced so the check always passes. No capability was added.
+  game.py: replace old bytes [73, 82] new bytes [100, 101] size change -8 => expected-crack
+    The differing bytes sit in or beside the license check (the surrounding bytes name it), and the change is the size and shape of a check being bypassed, for example a conditional jump replaced so the check always passes. No capability was added.
+
+5. PROOF AND ACCOUNTING
+  Accounting: Every byte is accounted for as genuine or explained crack, and no behaviour beyond the genuine program plus the explained crack was observed in the evidence. This verdict is linked to the evidence manifest in this report.
+  Every file in the per-file table carries its own NO: ACCOUNTED line with the reason its bytes are accounted for.
+
+6. CONNECTION LEDGER (every link found, classified)
+  No links were found in any file.
+  Observed-live entries are not produced by this static build: they arrive through sandbox ingestion (CAPE), marked SERVICE/HANDOFF in CAPABILITY-MATRIX.md.
+
+7. BEHAVIOUR LEDGER (static-predicted effects)
+  No behaviour effects were predicted from the capabilities found.
+  Static-predicted effects, diffed against the genuine reference baseline. Effects the genuine program also has are baseline, not findings. A crack removing the vendor activation call appears in baseline_only and is expected: that removal is the crack. Observed-live behaviour entries come from sandbox ingestion and are marked SERVICE/HANDOFF in CAPABILITY-MATRIX.md.
+  Manifest tree SHA-256: 933f9526f420e09b31d5891640ed313599f0258ac244abdf6f619c46e1030a76
+
+8. THE STANDARD THIS VERDICT WAS ISSUED UNDER
+  YES_PROVEN: Malicious capability or behaviour proven in context: a capability chain (stealer, injection plus payload, download-and-execute, persistence plus command and control, miner, ransomware pattern, backdoor, rootkit hiding), a scope test failure (the first behaviour unnecessary for the claimed function decides it), antivirus tampering, Safe Mode manipulation or reboot-count gating (the Crackonosh pattern), a known-bad family hash hit, or an unaccounted executable difference that carries a proven malicious chain. An unneeded remote download-and-execute capability is itself malicious class.
+  YES_UNACCOUNTED: Any byte, file, script, archive layer or behaviour that could not be accounted for as genuine or as the explained crack: an unopened or password-protected archive layer, a virtualized region, an unaccounted diff region, an executable that is not part of the genuine program, a compiled binary with no reference, no valid signature and no identified crack patch, or generic-only service detections that need behaviour evidence. UNACCOUNTED is stated plainly as unaccounted, never as proven malware.
+  NO: Every file byte-identical to a genuine signature-valid original (hash match or reference-manifest hash equality), or a fully reverse-engineered difference classified expected-crack or benign-repack in the diff ledger, with all archive layers unpacked to the bottom. Phrased exactly as the accounting claim: Every byte is accounted for as genuine or explained crack, and no behaviour beyond the genuine program plus the explained crack was observed in the evidence. This verdict is linked to the evidence manifest in this report.
+  CIRCUMVENTION: Circumvention itself is not malware: patched checks, keygen algorithms, KMS emulation (local emulator service, renewal task, GVLK keys), and hosts-file activation blocks are the expected crack. Antivirus HackTool or CrackTool labels alone never trigger YES.
+
+End of verdict. Nothing was executed on the host. No score and no probability are used anywhere in this verdict, by design.
