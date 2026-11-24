@@ -10,7 +10,8 @@ from event_zero.report import to_text
 ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def write(tmp,name,data):
     p=os.path.join(str(tmp),name)
-    with open(p,'wb' if isinstance(data,bytes) else 'w') as f: f.write(data)
+    # newline="" for text writes: byte-exact fixtures on every platform.
+    with open(p,'wb' if isinstance(data,bytes) else 'w', newline=None if isinstance(data,bytes) else '') as f: f.write(data)
     return p
 def pe_dotnet():
     dos=bytearray(0x80); dos[0:2]=b'MZ'; struct.pack_into('<I',dos,0x3c,0x80)

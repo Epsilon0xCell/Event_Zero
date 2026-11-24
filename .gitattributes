@@ -1,0 +1,20 @@
+# Event Zero hashes and compares file bytes exactly as they are on disk:
+# known-bad hash lists, reference manifests, the verification corpus and
+# the example reports are all byte-sensitive. Pin LF line endings for text
+# so a Windows checkout (core.autocrlf) can never silently rewrite fixture
+# bytes and change their hashes (CI verify run #1, 2026-11-23).
+* text=auto eol=lf
+
+# Binary artefacts: never subject to line-ending conversion or text diffs.
+*.png binary
+*.gif binary
+*.mp4 binary
+*.zip binary
+*.com binary
+*.exe binary
+*.dll binary
+*.sys binary
+*.bin binary
+*.pyc binary
+fake_malware binary
+fixtures/hello_elf binary

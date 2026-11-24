@@ -6,7 +6,9 @@ def write(tmp, name, data, sub=""):
     d = os.path.join(str(tmp), sub) if sub else str(tmp)
     os.makedirs(d, exist_ok=True)
     p = os.path.join(d, name)
-    with open(p, "wb" if isinstance(data, bytes) else "w") as f:
+    # newline="" for text writes: byte-exact fixtures on every platform
+    # (Windows text mode would otherwise write CRLF and change hashes).
+    with open(p, "wb" if isinstance(data, bytes) else "w", newline=None if isinstance(data, bytes) else "") as f:
         f.write(data)
     return p
 

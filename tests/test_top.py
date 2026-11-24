@@ -7,7 +7,8 @@ import base64
 ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def write(tmp,name,data):
     p=os.path.join(str(tmp),name)
-    with open(p,'wb' if isinstance(data,bytes) else 'w') as f: f.write(data)
+    # newline="" for text writes: byte-exact fixtures on every platform.
+    with open(p,'wb' if isinstance(data,bytes) else 'w', newline=None if isinstance(data,bytes) else '') as f: f.write(data)
     return p
 def test_regression_multilayer_token_in_sentence():
     inner=bytes(b^0x55 for b in b"EGGHUNT http://layer.example/shellcode VirtualAlloc")

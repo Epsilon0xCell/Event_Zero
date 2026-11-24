@@ -7,8 +7,12 @@ ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EICAR=b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
 def write(tmp,name,data):
     p=os.path.join(str(tmp),name)
-    mode='wb' if isinstance(data,bytes) else 'w'
-    with open(p,mode) as f: f.write(data)
+    # newline="" for text writes: byte-exact fixtures on every platform
+    # (Windows text mode would otherwise write CRLF and change hashes).
+    if isinstance(data,bytes):
+        with open(p,'wb') as f: f.write(data)
+    else:
+        with open(p,'w',newline='') as f: f.write(data)
     return p
 def minimal_pe():
     # Minimal PE32+ : DOS header, PE sig, COFF, optional header, one .text section
@@ -84,6 +88,8 @@ def test_no_api_key_needed(tmp_path, monkeypatch):
 
 def test_compiled_elf(tmp_path):
     import shutil
+    if not sys.platform.startswith("linux"):
+        pytest.skip("requires a Linux ELF toolchain: the sample source uses POSIX <sys/socket.h> (absent from Windows gcc) and the test asserts an ELF binary, while macOS and Windows toolchains emit Mach-O and PE binaries (CI verify run #1, 2026-11-23)")
     if not shutil.which("gcc"): pytest.skip("gcc not available")
     src=write(tmp_path,"h.c",'#include <stdio.h>\n#include <sys/socket.h>\nint main(){int s=socket(2,1,0); (void)s; FILE*f=fopen("/tmp/x.txt","w"); fputs("hi",f); fclose(f); puts("hello"); return 0;}\n')
     exe=os.path.join(str(tmp_path),"hello")

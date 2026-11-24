@@ -17,7 +17,8 @@ from event_zero.hybrid import ingest_sandbox_report
 ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def write(tmp,name,data):
     p=os.path.join(str(tmp),name)
-    with open(p,'wb' if isinstance(data,bytes) else 'w') as f: f.write(data)
+    # newline="" for text writes: byte-exact fixtures on every platform.
+    with open(p,'wb' if isinstance(data,bytes) else 'w', newline=None if isinstance(data,bytes) else '') as f: f.write(data)
     return p
 def pe_with_body(body, extra_strings=b""):
     dos=bytearray(0x80); dos[0:2]=b'MZ'; struct.pack_into('<I',dos,0x3c,0x80)
@@ -77,7 +78,13 @@ def test_shellcode_fixture(tmp_path):
 def test_rop_on_compiled_elf(tmp_path):
     if not __import__("shutil").which("gcc"): pytest.skip("no gcc")
     src=write(tmp_path,"r.c",'int f(int x){return x*3+1;}\nint main(){return f(7);}\n')
-    exe=os.path.join(str(tmp_path),"ropelf"); assert subprocess.run(["gcc","-o",exe,src]).returncode==0
+    # Windows gcc appends .exe to the output name; without the suffix the
+    # compiled binary exists but the test looked for the wrong path and
+    # failed with FileNotFoundError (CI verify run #1, 2026-11-23). The
+    # ROP gadget scan itself runs on raw code bytes and is format-agnostic.
+    exe=os.path.join(str(tmp_path),"ropelf"+(".exe" if sys.platform.startswith("win") else ""))
+    assert subprocess.run(["gcc","-o",exe,src]).returncode==0
+    assert os.path.exists(exe)
     r=analyze(exe); assert r["exploit"]["rop"]["available"]
 def test_evasion_fixture(tmp_path):
     stub=b'\x4c\x8b\xd1\xb8\x3f\x00\x00\x00\x0f\x05\xc3'

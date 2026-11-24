@@ -10,8 +10,17 @@ def write(tmp, name, data, sub=""):
     d = os.path.join(str(tmp), sub) if sub else str(tmp)
     os.makedirs(d, exist_ok=True)
     p = os.path.join(d, name)
-    with open(p, "wb" if isinstance(data, bytes) else "w") as f:
-        f.write(data)
+    # Byte-exact writes: newline="" stops text mode translating "\n" to
+    # os.linesep (CRLF on Windows), which changed file bytes and therefore
+    # hashes on Windows CI (verify run #1, 2026-11-23). The engine hashes
+    # the bytes on disk, so test fixtures must land on disk byte-identical
+    # to the in-memory string on every platform.
+    if isinstance(data, bytes):
+        with open(p, "wb") as f:
+            f.write(data)
+    else:
+        with open(p, "w", newline="") as f:
+            f.write(data)
     return p
 
 def pe_with_body(body, extra_strings=b"", section=b".text"):
@@ -156,6 +165,17 @@ def test_yes_known_bad_hash(tmp_path):
     v = verdict(p, known_bad={sha: "TestFamily (synthetic test entry)"})
     assert v["headline"] == "YES: MALWARE FOUND" and v["reason_class"] == "PROVEN"
     assert any(y["chain"] == "known-bad-hash" for y in v["yes_reasons"])
+
+# 13b. regression (CI verify run #1, Windows, 2026-11-23): the write helper
+# must land text fixtures on disk byte-identical to the in-memory string.
+# Windows text mode translated "\n" to CRLF, changing hashes, which made
+# test_yes_known_bad_hash return NO and the manifest test return YES.
+def test_write_helper_is_byte_exact(tmp_path):
+    p = write(tmp_path, "tool.py", KEYGEN_CLEAN)
+    with open(p, "rb") as f:
+        on_disk = f.read()
+    assert on_disk == KEYGEN_CLEAN.encode()
+    assert hashlib.sha256(on_disk).hexdigest() == hashlib.sha256(KEYGEN_CLEAN.encode()).hexdigest()
 
 # 14. reference manifest equality: NO requires hash equality
 def test_reference_manifest_equality(tmp_path):
