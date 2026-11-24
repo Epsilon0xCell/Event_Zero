@@ -65,7 +65,7 @@ jobs:
           mode: client
       - name: Verify WARP is on
         run: |
-          curl -s --retry 3 https://www.cloudflare.com/cdn-cgi/trace/ || true
+          sudo warp-cli --accept-tos status || true; curl -s --retry 3 https://one.one.one.one/cdn-cgi/trace || true
 
       - uses: actions/setup-python@v5
         with:
