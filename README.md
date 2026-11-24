@@ -17,6 +17,9 @@ Event Zero turns a suspicious file into a plain English report anyone can act on
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10 or newer, as declared in pyproject.toml">
 </p>
 
+> [!WARNING]
+> **The Global Defence Initiative warning:** software obtained outside accountable channels is one of the most reliable malware delivery routes aimed at ordinary people, and the moment that decides the outcome is the moment before the first run. Event Zero is part of a global defence initiative to put a free, checkable verdict in exactly that moment, after the download and before the run. The full case, with dated and sourced figures, is in [Why this exists: a global defence initiative](#why-this-exists-a-global-defence-initiative) below.
+
 ## The Verdict: a proof-backed YES or NO on any file you download
 
 The flagship feature is **The Verdict**. Drop in any download: an installer, an update, a game mod, a patched program, an archive, or a whole folder. Event Zero takes it apart piece by piece, accounts for every byte as genuine program or explained difference, and gives you one headline. Not a score. Not a probability. A verdict with its proof attached, or an open case where the accounting cannot close.
@@ -51,7 +54,7 @@ The rules that make the headline worth trusting:
 
 ## Why this exists: a global defence initiative
 
-> **The warning this project is built on:** software obtained outside accountable channels is one of the most reliable malware delivery routes aimed at ordinary people, and the moment that decides the outcome is the moment before the first run. Event Zero exists to put a free, checkable verdict in exactly that moment. Read the figures below with their dates and sponsors attached: they are the best published measurements, several are industry funded, and the impact model at the end is scenario arithmetic, not a measured result and not a promise.
+> **The warning at the top of this README is the warning this project is built on.** Read the figures below with their dates and sponsors attached: they are the best published measurements, several are industry funded, and the impact model at the end is scenario arithmetic, not a measured result and not a promise.
 
 Event Zero is one instrument in a global defence initiative: cut malware infections where unlicensed software is most prevalent, by giving the person holding the file a verdict they can verify instead of a label they have to trust.
 
