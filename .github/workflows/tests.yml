@@ -5,6 +5,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Cloudflare WARP VPN: route all host traffic in this job
+      # (pip installs, test run) through Cloudflare WARP. Free WARP
+      # egress mode: no secrets or Zero Trust org are needed.
+      - name: Setup Cloudflare WARP
+        uses: fscarmen/warp-on-actions@v1.3
+        with:
+          stack: dual
+          mode: client
+      - name: Verify WARP is on
+        run: |
+          curl -s https://www.cloudflare.com/cdn-cgi/trace/ | grep -E '^(warp|gateway)=' || true
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

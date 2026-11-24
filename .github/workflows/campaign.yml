@@ -51,6 +51,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Cloudflare WARP VPN: covers host stages only (dependency
+      # install, MalwareBazaar download stage, image build), so
+      # downloads egress through WARP instead of the raw GitHub
+      # runner IP. The analysis container still runs with
+      # --network none, so WARP never reaches the isolated stage
+      # and the egress canary still proves isolation. Free WARP
+      # egress mode: no secrets or Zero Trust org are needed.
+      - name: Setup Cloudflare WARP
+        uses: fscarmen/warp-on-actions@v1.3
+        with:
+          stack: dual
+          mode: client
+      - name: Verify WARP is on
+        run: |
+          curl -s https://www.cloudflare.com/cdn-cgi/trace/ | grep -E '^(warp|gateway)=' || true
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

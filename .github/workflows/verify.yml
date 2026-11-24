@@ -31,6 +31,19 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      # Cloudflare WARP VPN (Linux runners only: the WARP action is
+      # Linux-only, so Windows and macOS matrix jobs run direct).
+      # Free WARP egress mode: no secrets or Zero Trust org needed.
+      - name: Setup Cloudflare WARP
+        if: runner.os == 'Linux'
+        uses: fscarmen/warp-on-actions@v1.3
+        with:
+          stack: dual
+          mode: client
+      - name: Verify WARP is on
+        if: runner.os == 'Linux'
+        run: |
+          curl -s https://www.cloudflare.com/cdn-cgi/trace/ | grep -E '^(warp|gateway)=' || true
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -41,6 +54,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # Cloudflare WARP VPN: covers host stages only (image build).
+      # The verification container below still runs with
+      # --network none, so WARP never reaches the isolated stage
+      # and the egress canary still proves isolation. Free WARP
+      # egress mode: no secrets or Zero Trust org are needed.
+      - name: Setup Cloudflare WARP
+        uses: fscarmen/warp-on-actions@v1.3
+        with:
+          stack: dual
+          mode: client
+      - name: Verify WARP is on
+        run: |
+          curl -s https://www.cloudflare.com/cdn-cgi/trace/ | grep -E '^(warp|gateway)=' || true
 
       # Setup stage: network is allowed here, and only here.
       - name: Setup stage (build the verification image)
