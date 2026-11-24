@@ -39,9 +39,15 @@ Each workflow dispatch runs one shard (default 250 entries):
 2. Analysis stage: a container built from this repository runs with
    --network none. An egress canary must prove outbound connections
    fail before any ZIP is opened. Each sample is extracted into a
-   tmpfs scratch directory, the verdict runs, one results line is
-   appended (hash, verdict token, reason class, family if any,
-   ledger root), and the extracted bytes are deleted.
+   tmpfs scratch directory, the verdict runs in its own child
+   process under a 120 second per-sample timeout, one results line
+   is appended (hash, verdict token, reason class, family if any,
+   ledger root), and the extracted bytes are deleted. A sample
+   whose verdict exceeds the timeout is killed and recorded as
+   YES UNACCOUNTED with analysis_status "analysis-timeout": it
+   can neither stall the shard nor earn a clean verdict by
+   hanging. One progress line is printed per sample so the stage
+   log always shows where the shard is.
 3. A guard step fails the job if any file other than .jsonl or .txt
    appears in the artifact paths.
 

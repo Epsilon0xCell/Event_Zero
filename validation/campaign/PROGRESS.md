@@ -87,3 +87,35 @@ by hand before dispatching shard 1. Full 10,000 stage: shards 0
 to 39 at size 250, at most 8 dispatches per day under the
 campaign's aggregate self-cap of 2,000 downloads per day, so the
 stage spans at least 5 days.
+
+## 2026-11-24: smoke run lessons and the analysis-stage fix
+
+Smoke run 1 (run 45481999984, commit d4a548b): all 250 downloads
+succeeded in about 7 minutes; the analysis stage then failed in
+seconds with ModuleNotFoundError: the campaign image never
+installed the event_zero package, and analyze_shard.py runs as a
+script, so the repo root is not on sys.path. Fixed by installing
+the project in Dockerfile.campaign (commit e921dd1).
+
+Smoke run 2 (run 45483586290, commit e921dd1): downloads completed
+in 5m13s; the analysis stage then ran past one hour with no
+visible progress. The live log showed parser and emulator output
+from early samples and then silence at the tail: the stage had no
+per-sample timeout and printed nothing per sample, so one heavy
+or pathological sample could hold the whole shard and the state
+was unreadable from outside. Whether that run was stalled or
+merely slow could not be determined, which is itself the defect.
+
+Fix (analyze_shard.py, locally proven 2026-11-24 on synthetic
+shards built from the repo's own fixtures): each verdict now runs
+in a forked child process under a per-sample timeout (default
+120s, --sample-timeout). A timed-out sample is killed and written
+as YES UNACCOUNTED with analysis_status "analysis-timeout". One
+progress line is printed per downloads line (index, total, short
+hash, token, status, seconds), the canary result is printed, and
+the final counts print as before. Local proof: normal shard of 3
+(fake_malware YES PROVEN in 4.9s, EICAR-string file NO ACCOUNTED,
+one not_found carried) completed with exit 0; a 400-file folder
+with --sample-timeout 2 hit the timeout branch, was killed, and
+was written as YES UNACCOUNTED while the shard still completed
+with exit 0 and full line accounting.
