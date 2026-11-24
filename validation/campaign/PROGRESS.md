@@ -119,3 +119,32 @@ one not_found carried) completed with exit 0; a 400-file folder
 with --sample-timeout 2 hit the timeout branch, was killed, and
 was written as YES UNACCOUNTED while the shard still completed
 with exit 0 and full line accounting.
+
+## 2026-11-24: smoke run 3, the 429 wall, and download retries
+
+Smoke run 3 (run 45499880998, commit d47fd05) succeeded end to
+end in 3m36s: downloads in 2m32s, analysis in 40s, progress lines
+to [250/250], artifact uploaded and read back by hand. But only
+3 of 250 samples actually downloaded: 246 fetches were refused
+with HTTP 429 and 1 with a 502. The abuse.ch get_file limit
+(2,000 per day) is counted per IP address, and GitHub-hosted
+runners share egress addresses with other tenants; after the
+day's earlier runs the shared bucket was spent. All 247 refusals
+were recorded as their own downloads lines, so the shard still
+accounts for all 250 entries. The 3 downloaded samples were
+analysed and all returned NO ACCOUNTED; as bazaar-listed samples
+they are adjudication cases under CAMPAIGN.md (their bazaar
+identities could not be pulled from the agent side at the time;
+adjudication stays open and named, never guessed).
+
+Fix (run_shard.py): transient refusals (HTTP 429 and 5xx,
+network errors) are now retried with exponential backoff
+(20s/60s/180s, 4 attempts, Retry-After honoured when sent), the
+attempt count is recorded on every downloads line, one progress
+line prints per entry, and a circuit breaker drops the shard to
+single attempts after 10 consecutive files exhaust retries on
+429, so a spent quota makes the shard finish and record the
+state instead of burning hours. Locally proven with a scripted
+download stub: 429 twice then success (attempts 3, ZIP saved),
+file_not_found terminal (attempts 1), persistent 429 recorded
+as error after 4 attempts, exit 0 with full accounting.
