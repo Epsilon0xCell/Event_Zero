@@ -45,6 +45,31 @@ header.site nav a:hover{color:var(--amber)}
 .verdict-strip{margin-top:22px;border:2px solid var(--red);background:var(--panel);padding:16px 20px;display:flex;flex-wrap:wrap;gap:8px 22px;align-items:baseline}
 .verdict-strip .v{font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:clamp(24px,4.6vw,40px);color:var(--red)}
 .verdict-strip .why{color:var(--steel);font-size:15px}
+/* INTIMIDATION LAYER: motion, glow, glitch */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(0deg,rgba(255,255,255,.028) 0 1px,transparent 1px 3px)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:49;background:radial-gradient(ellipse at 50% -10%,rgba(230,46,46,.16),transparent 55%);animation:alertPulse 5s ease-in-out infinite}
+@keyframes alertPulse{0%,100%{opacity:.5}50%{opacity:1}}
+.hero{position:relative;overflow:hidden}
+#embers{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hero-banner{position:relative;animation:bannerPulse 6s ease-in-out infinite}
+@keyframes bannerPulse{0%,100%{box-shadow:0 0 22px rgba(230,46,46,.12)}50%{box-shadow:0 0 58px rgba(230,46,46,.38)}}
+.hero .case-tag{position:relative;animation:tagBlink 2.4s steps(1) infinite}
+@keyframes tagBlink{0%,88%{background:transparent}92%,96%{background:var(--amber-deep);color:#fff}}
+.hero h1{position:relative;text-shadow:0 0 28px rgba(230,46,46,.35);animation:h1Flicker 7s linear infinite}
+@keyframes h1Flicker{0%,93%,95.5%,100%{opacity:1}94%,95%{opacity:.7}}
+.glitch{position:relative;display:inline-block;z-index:0}
+.glitch::before,.glitch::after{content:attr(data-text);position:absolute;left:0;top:0;width:100%;overflow:hidden;opacity:0}
+.glitch::before{color:#ff2222;z-index:-1;animation:gl1 3.4s infinite steps(2)}
+.glitch::after{color:#7dd7ff;z-index:-2;animation:gl2 2.9s infinite steps(2)}
+@keyframes gl1{0%,91%{transform:none;opacity:0}92%{transform:translate(-3px,1px);opacity:.85}96%{transform:translate(3px,-1px);opacity:.85}100%{transform:none;opacity:0}}
+@keyframes gl2{0%,88%{transform:none;opacity:0}89%{transform:translate(3px,0);opacity:.7}94%{transform:translate(-2px,1px);opacity:.7}100%{transform:none;opacity:0}}
+.verdict-strip{animation:verdictPulse 2.6s ease-in-out infinite}
+@keyframes verdictPulse{0%,100%{box-shadow:0 0 0 rgba(255,34,34,0)}50%{box-shadow:0 0 36px rgba(255,34,34,.38)}}
+.card{transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
+.card:hover{transform:translateY(-3px);border-color:var(--amber);box-shadow:0 8px 30px rgba(230,46,46,.25)}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
 section{padding:44px 0;border-top:1px solid var(--panel2)}
 h2{font-size:clamp(26px,4.5vw,38px);margin:0 0 8px}
 h2 .no{color:var(--amber);font-family:var(--mono);font-size:.62em;letter-spacing:.12em;display:block}
@@ -106,9 +131,10 @@ footer{border-top:2px solid var(--amber-deep);padding:28px 0 44px;color:var(--st
 
 <main>
 <div class="wrap hero">
+  <canvas id="embers" aria-hidden="true"></canvas>
   <img class="hero-banner" src="assets/banner-web.png" alt="Event Zero banner: a shattered steel ring with a molten red core behind the words EVENT ZERO">
   <span class="case-tag">CASE FILE OPEN: EVERY SAMPLE IS A CASE</span>
-  <h1>EVENT ZERO</h1>
+  <h1><span class="glitch" data-text="EVENT ZERO">EVENT ZERO</span></h1>
   <p class="short">Malware in. Plain English out. Evidence attached.</p>
   <p class="pos">Event Zero turns a suspicious file into a plain English report anyone can act on, with every claim tied to evidence found in the file itself.</p>
   <div class="cmd">
@@ -336,6 +362,47 @@ document.getElementById("copy-btn").addEventListener("click", function(){
   var b = this; setTimeout(function(){ b.textContent = "COPY"; }, 1600);
 });
 loadCase(0);
+</script>
+<script>
+(function(){
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  /* Reveal on scroll */
+  var targets = document.querySelectorAll("main section, .card, .viewer");
+  if(!reduced && "IntersectionObserver" in window){
+    targets.forEach(function(el){ el.classList.add("reveal"); });
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, {threshold: 0.08});
+    targets.forEach(function(el){ io.observe(el); });
+  }
+  /* Rising embers over the hero */
+  var canvas = document.getElementById("embers");
+  if(reduced || !canvas || !canvas.getContext){ return; }
+  var ctx = canvas.getContext("2d"), W = 0, H = 0, parts = [];
+  function size(){
+    var hero = canvas.parentElement;
+    W = canvas.width = hero.clientWidth; H = canvas.height = hero.clientHeight;
+  }
+  function spawn(init){
+    return { x: Math.random()*W, y: init ? Math.random()*H : H + 4, r: 0.6 + Math.random()*1.9,
+      s: 0.25 + Math.random()*0.85, drift: (Math.random()-0.5)*0.3, a: 0.25 + Math.random()*0.55,
+      hue: 8 + Math.random()*26 };
+  }
+  function frame(){
+    ctx.clearRect(0,0,W,H);
+    for(var i=0;i<parts.length;i++){
+      var p = parts[i];
+      p.y -= p.s; p.x += p.drift + Math.sin(p.y*0.02)*0.15;
+      if(p.y < -6 || p.x < -6 || p.x > W+6){ parts[i] = spawn(false); continue; }
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832);
+      ctx.fillStyle = "hsla(" + p.hue + ", 95%, 55%, " + p.a + ")"; ctx.fill();
+    }
+    requestAnimationFrame(frame);
+  }
+  size(); window.addEventListener("resize", size);
+  for(var i=0;i<70;i++){ parts.push(spawn(true)); }
+  requestAnimationFrame(frame);
+})();
 </script>
 </body>
 </html>
