@@ -59,6 +59,19 @@ Route facts behind the API build:
   on broad tags. The campaign declaration in CAMPAIGN.md states
   the pool construction plainly.
 
+## Correction (2026-11-23, later the same night)
+
+The first campaign push (0966b24) carried the right manifest and
+the wrong builder: a parallel draft of manifest_build.py aimed at
+the v2 export overwrote the API builder in the working tree before
+the sync, and the copy carried it into the push. The manifest
+itself was always the API-built one (its source field reads
+"malwarebazaar-api-siginfo" and its root verifies). The builder
+file has been restored to the API version that actually froze the
+manifest, compile-checked, and its parsing and seeded-selection
+logic verified offline. The manifest was not regenerated: the
+frozen artefact stands.
+
 ## Exact next commands
 
 The smoke shard (after this tree is pushed and the
