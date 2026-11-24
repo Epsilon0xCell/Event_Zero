@@ -1,0 +1,165 @@
+name: campaign
+
+# MalwareBazaar verdict campaign: one shard per dispatch.
+#
+# Shape of a run (see validation/campaign/CAMPAIGN.md):
+#   1. Download stage (network allowed, this stage only): the shard's
+#      samples are fetched from MalwareBazaar as their original
+#      password-protected AES ZIPs. Nothing is extracted here.
+#   2. Analysis stage: a container built from the repo runs with
+#      --network none. Inside it, an egress canary must prove the
+#      network is dead before any ZIP is opened; each sample is
+#      extracted to a scratch dir, the Event Zero verdict runs
+#      (static only, the sample is never executed), the result line
+#      is written, and the extracted bytes are deleted.
+#   3. Only hashes and verdicts leave the runner: results.jsonl and
+#      downloads.jsonl. A guard step fails the job if anything else
+#      tries to enter the artifact paths.
+#
+# The campaign self-caps acquisition at 2,000 get_file downloads per
+# day in aggregate (engineering discipline, see CAMPAIGN.md). With
+# the default shard size of 250, that is at most 8 shard dispatches
+# per day across all runners.
+#
+# Retention note: Actions artifacts expire after 90 days. Artifact
+# copies are a convenience; the durable record is the scorecard the
+# team commits back to validation/campaign/ from the results.
+
+on:
+  workflow_dispatch:
+    inputs:
+      shard_index:
+        description: "Shard index into manifest-10k.jsonl"
+        required: true
+        default: "0"
+      shard_size:
+        description: "Entries per shard"
+        required: true
+        default: "250"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: campaign
+  cancel-in-progress: false
+
+jobs:
+  campaign-shard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install download-stage dependencies
+        run: pip install -r requirements.txt pyzipper unicorn cryptography
+
+      # Download stage: network is allowed here, and only here.
+      # Samples land as encrypted ZIPs under campaign-out/zips and
+      # are never extracted, executed, committed, or uploaded.
+      - name: Download stage (fetch the shard as encrypted ZIPs)
+        env:
+          ABUSECH_API_KEY: ${{ secrets.ABUSECH_API_KEY }}
+        run: |
+          python3 validation/campaign/run_shard.py \
+            --manifest validation/campaign/manifest-10k.jsonl \
+            --shard-index "${{ inputs.shard_index }}" \
+            --shard-size "${{ inputs.shard_size }}" \
+            --out campaign-out/downloads.jsonl
+
+      - name: Build the analysis image (setup stage, network allowed)
+        run: docker build -f validation/campaign/Dockerfile.campaign -t event-zero-campaign .
+
+      # Analysis stage: the container runs with --network none. The
+      # downloaded ZIPs are mounted read-only, the scratch work dir
+      # is a tmpfs inside the container, and only the results
+      # directory is mounted writable.
+      - name: Analysis stage (network-disabled container, canary, verdicts)
+        run: |
+          mkdir -p campaign-results
+          docker run --network none --rm \
+            --tmpfs /work:rw,noexec,nosuid,size=2g \
+            -v "$GITHUB_WORKSPACE/campaign-out/zips:/zips:ro" \
+            -v "$GITHUB_WORKSPACE/campaign-out/downloads.jsonl:/input/downloads.jsonl:ro" \
+            -v "$GITHUB_WORKSPACE/campaign-results:/results" \
+            event-zero-campaign \
+            python3 validation/campaign/analyze_shard.py \
+              --downloads /input/downloads.jsonl \
+              --zips /zips \
+              --results /results/results.jsonl \
+              --work /work
+
+      - name: Copy the downloads ledger into the results directory
+        run: cp campaign-out/downloads.jsonl campaign-results/downloads.jsonl
+
+      # Hard guard: only .jsonl and .txt files may be uploaded. Any
+      # executable, archive, or sample-shaped file in the artifact
+      # paths fails the job before upload.
+      - name: Artifact guard (hashes and verdicts only)
+        run: |
+          bad=$(find campaign-results -type f ! -name '*.jsonl' ! -name '*.txt' | head -20)
+          if [ -n "$bad" ]; then
+            echo "Artifact guard failed, unexpected files in campaign-results:"
+            echo "$bad"
+            exit 1
+          fi
+          if find campaign-results -type f \( -name '*.exe' -o -name '*.dll' -o -name '*.zip' -o -name '*.bin' -o -name '*.elf' -o -name '*.so' -o -name '*.dylib' -o -name '*.com' -o -name '*.scr' -o -name '*.sys' \) | grep -q .; then
+            echo "Artifact guard failed, executable or archive extension present."
+            exit 1
+          fi
+          echo "Artifact guard passed: only .jsonl and .txt files present."
+
+      - name: Publish shard counts to the job summary
+        if: always()
+        run: |
+          {
+            echo "# Event Zero campaign shard ${{ inputs.shard_index }}"
+            echo ""
+            echo "Shard size: ${{ inputs.shard_size }}"
+            echo ""
+            echo "## Verdict counts"
+            echo '```json'
+            python3 -c "
+          import json, collections
+          counts = collections.Counter()
+          try:
+              for line in open('campaign-results/results.jsonl'):
+                  r = json.loads(line)
+                  counts[r.get('verdict') or r.get('analysis_status')] += 1
+          except FileNotFoundError:
+              counts['results-file-missing'] = 1
+          print(json.dumps(dict(counts), indent=2, sort_keys=True))
+          " || echo "counts unavailable (stage failed)"
+            echo '```'
+            echo ""
+            echo "## Download counts"
+            echo '```json'
+            python3 -c "
+          import json, collections
+          counts = collections.Counter()
+          try:
+              for line in open('campaign-results/downloads.jsonl'):
+                  counts[json.loads(line).get('status')] += 1
+          except FileNotFoundError:
+              counts['downloads-file-missing'] = 1
+          print(json.dumps(dict(counts), indent=2, sort_keys=True))
+          " || echo "counts unavailable (stage failed)"
+            echo '```'
+            echo ""
+            echo "Retention: this artifact is a convenience copy (Actions artifacts expire after 90 days)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the downloaded ZIPs
+        if: always()
+        run: rm -rf campaign-out/zips
+
+      - name: Upload shard results (hashes and verdicts only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: campaign-shard-${{ inputs.shard_index }}
+          path: campaign-results/

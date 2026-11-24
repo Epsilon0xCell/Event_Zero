@@ -1,0 +1,11 @@
+# Campaign analysis image for the MalwareBazaar verdict campaign.
+# The image is BUILT in the workflow's setup stage (network allowed).
+# It is only ever RUN with --network none in the analysis stage:
+# samples are extracted and analysed with no outbound network, by
+# design, not by trust. The analysis stage also runs an egress
+# canary before any extraction. See .github/workflows/campaign.yml
+# and validation/campaign/CAMPAIGN.md.
+FROM python:3.12-slim
+WORKDIR /app
+COPY . /app
+RUN pip install --no-cache-dir -r requirements.txt pyzipper unicorn cryptography
