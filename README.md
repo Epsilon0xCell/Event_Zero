@@ -1,6 +1,3 @@
-> [!WARNING]
-> **The Global Defence Initiative warning:** software obtained outside accountable channels is one of the most reliable malware delivery routes aimed at ordinary people, and the moment that decides the outcome is the moment before the first run. Event Zero is part of a global defence initiative to put a free, checkable verdict in exactly that moment, after the download and before the run. The full case, with dated and sourced figures, is in [Why this exists: a global defence initiative](#why-this-exists-a-global-defence-initiative) below.
-
 <p align="center">
   <img src="Event_Zero-Website/assets/ez-mark.svg" width="120" alt="Event Zero mark: an amber ring under crosshair ticks on black">
 </p>
@@ -19,6 +16,9 @@ Event Zero turns a suspicious file into a plain English report anyone can act on
   <a href="https://github.com/Epsilon0xCell/Event_Zero/actions/workflows/verify.yml"><img src="https://github.com/Epsilon0xCell/Event_Zero/actions/workflows/verify.yml/badge.svg" alt="Verification corpus status from the verify workflow"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10 or newer, as declared in pyproject.toml">
 </p>
+
+> [!WARNING]
+> **The Global Defence Initiative warning:** software obtained outside accountable channels is one of the most reliable malware delivery routes aimed at ordinary people, and the moment that decides the outcome is the moment before the first run. Event Zero is part of a global defence initiative to put a free, checkable verdict in exactly that moment, after the download and before the run. The full case, with dated and sourced figures, is in [Why this exists: a global defence initiative](#why-this-exists-a-global-defence-initiative) below.
 
 ## The Verdict: a proof-backed YES or NO on any file you download
 
