@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Event_Zero-Website/assets/ez-mark.svg" width="120" alt="Event Zero mark: an amber ring under crosshair ticks on black">
+  <img src="banner.png" width="100%" alt="Event Zero banner: a shattered steel ring with a molten red core behind the words EVENT ZERO and the line: Malware in. Plain English out. Evidence attached.">
 </p>
 
 <h1 align="center">EVENT ZERO</h1>

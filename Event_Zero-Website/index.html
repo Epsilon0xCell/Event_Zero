@@ -16,9 +16,9 @@
 @font-face{font-family:"Inter";src:url("fonts/Inter-Regular.ttf") format("truetype");font-weight:400}
 @font-face{font-family:"Inter";src:url("fonts/Inter-Bold.ttf") format("truetype");font-weight:700}
 :root{
-  --ground:#0e1013; --panel:#14161a; --panel2:#191c1e; --line:#454b51;
-  --amber:#e39a1e; --amber-deep:#a96f0c; --paper:#eceff0; --steel:#b9bfc2;
-  --red:#d9534a; --green:#5da85f; --mono:ui-monospace,Menlo,Consolas,monospace;
+  --ground:#060607; --panel:#0b0c0e; --panel2:#101114; --line:#3d434a;
+  --amber:#e62e2e; --amber-deep:#8f1414; --paper:#eceff0; --steel:#b9bfc2;
+  --red:#ff2222; --green:#5da85f; --mono:ui-monospace,Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -34,8 +34,9 @@ header.site nav{margin-left:auto;display:flex;gap:18px;flex-wrap:wrap}
 header.site nav a{color:var(--steel);text-decoration:none;font-size:14px}
 header.site nav a:hover{color:var(--amber)}
 .hero{padding:56px 0 40px;text-align:left}
+.hero-banner{width:100%;height:auto;display:block;border:1px solid var(--line);margin:0 0 24px}
 .hero .case-tag{display:inline-block;border:1px solid var(--amber-deep);color:var(--amber);padding:3px 12px;font-family:var(--mono);font-size:13px;letter-spacing:.14em}
-.hero h1{font-size:clamp(44px,9vw,96px);line-height:.98;margin:18px 0 6px;font-weight:700}
+.hero h1{font-size:clamp(44px,9vw,96px);line-height:.98;margin:18px 0 6px;font-weight:700;text-transform:uppercase;letter-spacing:.01em}
 .hero .short{font-family:"Chakra Petch",sans-serif;font-size:clamp(19px,3.4vw,28px);color:var(--amber);margin:0 0 12px;font-weight:700}
 .hero .pos{font-size:clamp(16px,2.4vw,20px);color:var(--paper);max-width:44ch;margin:0 0 26px}
 .cmd{background:#000;border:1px solid var(--line);border-left:4px solid var(--amber);padding:14px 16px;font-family:var(--mono);font-size:15px;display:flex;gap:12px;align-items:center;overflow-x:auto}
@@ -105,6 +106,7 @@ footer{border-top:2px solid var(--amber-deep);padding:28px 0 44px;color:var(--st
 
 <main>
 <div class="wrap hero">
+  <img class="hero-banner" src="assets/banner-web.png" alt="Event Zero banner: a shattered steel ring with a molten red core behind the words EVENT ZERO">
   <span class="case-tag">CASE FILE OPEN: EVERY SAMPLE IS A CASE</span>
   <h1>EVENT ZERO</h1>
   <p class="short">Malware in. Plain English out. Evidence attached.</p>
