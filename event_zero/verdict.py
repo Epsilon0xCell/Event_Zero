@@ -43,7 +43,7 @@ opened with parsers only, never run. Installer extraction adapters
 .torrent file lists and .sfv files are enumeration aids only, and an
 .sfv match proves self-consistency of the release, nothing more.
 """
-import difflib, hashlib, io, json, os, re, shutil, struct, subprocess, tarfile, tempfile, time, zipfile
+import difflib, hashlib, io, ipaddress, json, os, re, shutil, struct, subprocess, tarfile, tempfile, time, zipfile
 from .analyzer import analyze, hashes
 from .unpack import analyze_unpack, carve
 from .evasion import analyze_evasion
@@ -86,8 +86,9 @@ def malicious_chains(report, data=None, filename=""):
     caps = {c["id"]: c for c in report.get("capabilities", [])}
     ev_ids = {f["id"] for f in report.get("evasion", {}).get("findings", [])}
     strings_blob = "\n".join(report.get("strings", {}).get("all", [])).lower()
-    if report.get("script_source_excerpt"):
-        strings_blob += "\n" + report["script_source_excerpt"].lower()
+    _src = report.get("script_source_full") or report.get("script_source_excerpt")
+    if _src:
+        strings_blob += "\n" + _src.lower()
     out = []
 
     def ev(*ids):
@@ -171,8 +172,9 @@ def tampering_findings(report):
     manipulation, reboot-count gating. Each is PROVEN class: none of
     them is ever part of a crack's claimed function."""
     blob = "\n".join(report.get("strings", {}).get("all", []))
-    if report.get("script_source_excerpt"):
-        blob += "\n" + report["script_source_excerpt"]
+    _src = report.get("script_source_full") or report.get("script_source_excerpt")
+    if _src:
+        blob += "\n" + _src
     out = []
     seen = set()
     for kind, pat, why in TAMPER_PATTERNS:
@@ -184,15 +186,50 @@ def tampering_findings(report):
             out.append({"kind": kind, "evidence": m.group(0)[:160], "why": why})
     return out
 
-KMS_MARKERS = ("kms", "gvlk", "autokms", "kmspico", "kmsauto", "slmgr", "1688")
+# KMS evidence must live in behaviour-bearing content: tool names and
+# protocol vocabulary in the file's own strings. The file NAME never
+# qualifies (a name is chosen by whoever ships the file, so a baseline
+# keyed on it acquits by filename), and neither does a bare "1688"
+# substring (the KMS port number appears inside unrelated digit
+# strings, filler text and counters, and tripped this test on filler
+# during the 2026-11-24 accuracy audit).
+KMS_MARKERS = ("kmspico", "kmsauto", "autokms", "gvlk", "slmgr",
+               "keymanagementservice", "key management service",
+               "kms emulator", "kms server", "kms host", "kms client")
 def kms_baseline(report):
     """True when the file presents as a KMS activator. The expected
     baseline for a KMS activator is exactly: a local emulator service,
     a renewal scheduled task, and GVLK key installation. Everything
     outside that baseline is judged normally."""
     blob = "\n".join(report.get("strings", {}).get("all", [])).lower()
-    name = (report.get("filename") or "").lower()
-    return any(m in blob or m in name for m in KMS_MARKERS)
+    src = report.get("script_source_full") or report.get("script_source_excerpt")
+    if src:
+        blob += "\n" + src.lower()
+    return any(m in blob for m in KMS_MARKERS)
+
+def _ip_is_local(ip):
+    """Real private-range test. A prefix test is wrong: "172." covers
+    all of 172.0.0.0/8, but only 172.16.0.0/12 is private, so public
+    addresses such as 172.217.14.206 (Google) were classified local."""
+    try:
+        a = ipaddress.ip_address(ip)
+    except Exception:
+        return False
+    return a.is_loopback or a.is_private or a.is_link_local or a.is_unspecified
+
+_INTERNAL_DOMAIN_SUFFIXES = (".local", ".lan", ".home", ".internal", ".intranet", ".corp")
+def external_contacts(report):
+    """Every contact in the file that reaches outside this machine:
+    any URL, any non-local IP address, and any bare domain that is
+    not a provably internal name. A bare domain counts as external:
+    a name is resolved by an external resolver to an external host
+    unless its suffix marks it as an internal name."""
+    iocs = report.get("iocs", {})
+    ext = list(iocs.get("urls", []))
+    ext += [ip for ip in iocs.get("ip_addresses", []) if not _ip_is_local(ip)]
+    ext += [d for d in iocs.get("domains", [])
+            if d != "localhost" and not d.endswith(_INTERNAL_DOMAIN_SUFFIXES)]
+    return ext
 
 def claimed_function(name, report):
     n = name.lower()
@@ -228,9 +265,7 @@ def scope_test(report, name):
             # KMS baseline: a local emulator listener on the KMS port is
             # the claimed function. Only network reach beyond that
             # baseline is a scope violation.
-            iocs = report.get("iocs", {})
-            external = [u for u in iocs.get("urls", [])] + [ip for ip in iocs.get("ip_addresses", []) if not ip.startswith(("127.", "0.", "192.168.", "10.", "172."))]
-            if not external:
+            if not external_contacts(report):
                 net = []
         if net:
             out.append({"behaviour": f"network access for a {claimed}", "evidence": ev(*net),
@@ -537,10 +572,15 @@ def pe_signature(data):
 
 
 def find_patch_evidence(data, report):
-    """Identify the crack patch in a single binary with no reference.
-    Two honest signals only: patched-out code (a run of NOP bytes where
-    a check used to be, in a code-bearing file) and crack or license
-    markers in the file's own strings. Returns a list of findings."""
+    """Collect patch-like signals in a single binary with no reference:
+    patched-out code (a run of NOP bytes where a check used to be, in
+    a code-bearing file) and crack or license markers in the file's
+    own strings. Returns a list of findings. These signals ANNOTATE a
+    report only: a NOP run is also ordinary alignment padding, and a
+    license string appears in every licensed program, so neither is
+    an accounting. A compiled binary with no reference and no
+    verifying signature is unaccounted by definition, however many of
+    these signals it carries (2026-11-24 accuracy audit, defect 1)."""
     out = []
     fmt = (report.get("format") or {}).get("format", "")
     if fmt in ("PE", "ELF", "Mach-O"):
@@ -724,7 +764,7 @@ def _safe_extract_tar(tf, dest):
 
 def enumerate_subject(path, workdir):
     """Return (entries, installer_info, blockers, unexpanded,
-    failed_containers, expanded_containers).
+    failed_containers, expanded_containers, entry_blockers).
     entries: [{rel, abspath, origin}] with origin in file/dir/archive/installer.
     Nested archives are expanded up to depth 3 and also listed.
     failed_containers holds the rel path of every detected container
@@ -733,12 +773,18 @@ def enumerate_subject(path, workdir):
     an unaccounted unit by construction. expanded_containers holds the
     rel path of every container that was fully enumerated, so the
     verdict can judge its members as the content units and not
-    re-judge the container's own raw bytes as if they were code."""
+    re-judge the container's own raw bytes as if they were code.
+    entry_blockers maps a rel path to blocker text that belongs to
+    that file's own record (an installer subject, an installer file
+    inside a folder): the per-file table is the accounting, so a
+    blocker that decides a file's verdict must be attached to the
+    file, not only to the release-level list."""
     entries = []
     blockers = []
     unexpanded = []
     failed_containers = []
     expanded_containers = []
+    entry_blockers = {}
     installer = {"is_installer_or_archive": False, "kind": None, "contents": [], "drop_list": [], "extracted": False}
 
     def add_tree(base, origin, prefix=""):
@@ -748,11 +794,53 @@ def enumerate_subject(path, workdir):
                 rel = os.path.relpath(ap, base)
                 entries.append({"rel": (prefix + rel).replace(os.sep, "/"), "abspath": ap, "origin": origin})
 
+    def expand_email(ap, rel, origin, depth):
+        """Enumerate an email file's attachments as entries, exactly
+        like archive members: an attachment that is never listed is
+        never judged, and email is the most common delivery route
+        there is (2026-11-24 accuracy audit, defect 5). The email
+        file itself stays a content entry and is judged as well."""
+        try:
+            with open(ap, "rb") as f:
+                data = f.read()
+        except Exception:
+            return
+        head = data[:4096].lstrip().lower()
+        if not (head.startswith((b"from:", b"from ", b"subject:", b"return-path:", b"received:", b"mime-version:", b"content-type:"))
+                or str(ap).lower().endswith(".eml")):
+            return
+        try:
+            from email import policy as _email_policy
+            from email.parser import BytesParser as _BytesParser
+            msg = _BytesParser(policy=_email_policy.default).parsebytes(data)
+            atts = []
+            for part in msg.walk():
+                if part.get_content_disposition() == "attachment":
+                    payload = part.get_payload(decode=True)
+                    if payload is not None:
+                        atts.append((part.get_filename() or "attachment", payload))
+        except Exception:
+            return
+        if not atts:
+            return
+        dest = os.path.join(workdir, f"extract_email_{hashlib.sha256(rel.encode('utf-8')).hexdigest()[:16]}")
+        os.makedirs(dest, exist_ok=True)
+        for i, (fn, payload) in enumerate(atts):
+            safe = os.path.basename(str(fn).replace("\\", "/")) or f"attachment_{i}"
+            target = os.path.join(dest, f"{i}_{safe}")
+            with open(target, "wb") as out:
+                out.write(payload)
+            arel = rel + "!" + safe
+            entries.append({"rel": arel, "abspath": target, "origin": "archive"})
+            if depth < 3:
+                expand(target, arel, "archive", depth + 1)
+
     def expand(ap, rel, origin, depth):
         with open(ap, "rb") as f:
             data = f.read()
         kind = container_kind(ap, data)
         if kind is None:
+            expand_email(ap, rel, origin, depth)
             return False
         installer["is_installer_or_archive"] = True
         installer["kind"] = installer["kind"] or f"{kind} archive"
@@ -760,7 +848,14 @@ def enumerate_subject(path, workdir):
             blockers.append(f"Archive {rel} is a {kind} container, and this build has no parser that can enumerate {kind} containers. Its contents cannot be enumerated, so they are unaccounted and no NO verdict can cover them. Next step: open it with a {kind} parser and run the verdict on the extracted folder.")
             failed_containers.append(rel)
             return True
-        dest = os.path.join(workdir, f"extract_{depth}_{abs(hash(rel)) % 99999}")
+        # Deterministic, collision-free extraction directory: the
+        # SHA-256 of the archive's release path plus the depth. The
+        # previous name used Python's hash() of the path, which is
+        # randomised per process (the same archive extracted to a
+        # different directory on every run) and had only 99,999
+        # buckets (two archives in one release could collide into
+        # one directory and be judged on each other's bytes).
+        dest = os.path.join(workdir, f"extract_{depth}_{hashlib.sha256(rel.encode('utf-8')).hexdigest()[:16]}")
         os.makedirs(dest, exist_ok=True)
         try:
             if kind == "zip":
@@ -814,16 +909,46 @@ def enumerate_subject(path, workdir):
             entries.append({"rel": os.path.basename(path), "abspath": path, "origin": "installer"})
             tool = shutil.which("innoextract") if "Inno" in ik else shutil.which("7z") if "NSIS" in ik or "7-Zip" in ik else shutil.which("msiextract") if "MSI" in ik else None
             if tool:
-                blockers.append(f"Installer {os.path.basename(path)} ({ik}): the parser adapter {tool} is present as a handoff, but this build reads installers with parsers only and the adapter step was not run, so the files this installer would drop are unaccounted. Next step: run the parser adapter ({tool}) or extract in a disposable VM and run the verdict on the extracted folder.")
+                msg = f"Installer {os.path.basename(path)} ({ik}): the parser adapter {tool} is present as a handoff, but this build reads installers with parsers only and the adapter step was not run, so the files this installer would drop are unaccounted. Next step: run the parser adapter ({tool}) or extract in a disposable VM and run the verdict on the extracted folder."
             else:
-                blockers.append(f"Installer {os.path.basename(path)} ({ik}) could not be opened with any parser installed, so the files it would drop are unaccounted. Next step: open it with a parser adapter (innoextract for Inno Setup, 7z for NSIS script and contents, an MSI table reader for MSI) or extract it in a disposable VM, then run the verdict on the extracted folder.")
+                msg = f"Installer {os.path.basename(path)} ({ik}) could not be opened with any parser installed, so the files it would drop are unaccounted. Next step: open it with a parser adapter (innoextract for Inno Setup, 7z for NSIS script and contents, an MSI table reader for MSI) or extract it in a disposable VM, then run the verdict on the extracted folder."
+            # The blocker belongs to the installer's own record, not
+            # only to the release list: the per-file table is the
+            # accounting, and it previously claimed this same file
+            # was ACCOUNTED while the headline said UNACCOUNTED
+            # (2026-11-24 accuracy audit, defect 16).
+            entry_blockers.setdefault(os.path.basename(path), []).append(msg)
             installer["contents"] = [os.path.basename(path) + " (contents not extracted)"]
             installer["drop_list"] = installer["contents"]
         else:
             entries.append({"rel": os.path.basename(path), "abspath": path, "origin": "file"})
+            expand(path, os.path.basename(path), "file", 0)
     else:
         blockers.append(f"Subject not found: {path}")
-    return entries, installer, blockers, unexpanded, failed_containers, expanded_containers
+    # Installer files inside a folder or archive get the installer
+    # test too, not only single-file subjects: an installer EXE whose
+    # own bytes raise no chain was previously judged as an ordinary
+    # file, so its payload was never treated as unaccounted
+    # (2026-11-24 accuracy audit, defect 10). Fully enumerated or
+    # failed containers are skipped: their contents are the members,
+    # judged as units of their own.
+    expanded_set = set(expanded_containers)
+    failed_set = set(failed_containers)
+    for e in list(entries):
+        if e["origin"] not in ("dir", "archive"):
+            continue
+        if e["rel"] in expanded_set or e["rel"] in failed_set:
+            continue
+        try:
+            with open(e["abspath"], "rb") as fh:
+                edata = fh.read()
+        except Exception:
+            continue
+        ik = installer_kind(e["abspath"], edata)
+        if ik:
+            entry_blockers.setdefault(e["rel"], []).append(
+                f"{e['rel']}: this file is an installer ({ik}) sitting inside the release. The files it would drop are not in this release listing, so they are unaccounted, and this file blocks any NO for the release. Next step: extract the installer with a parser adapter (innoextract for Inno Setup, 7z for NSIS, an MSI table reader for MSI) and run the verdict on the extracted folder.")
+    return entries, installer, blockers, unexpanded, failed_containers, expanded_containers, entry_blockers
 
 
 def enumerate_reference(reference):
@@ -833,7 +958,7 @@ def enumerate_reference(reference):
     if not reference:
         return out
     with tempfile.TemporaryDirectory(prefix="ezref_") as td:
-        entries, _inst, blockers, _un, _fc, _ec = enumerate_subject(reference, td)
+        entries, _inst, blockers, _un, _fc, _ec, _eb = enumerate_subject(reference, td)
         for e in entries:
             with open(e["abspath"], "rb") as f:
                 data = f.read()
@@ -874,7 +999,14 @@ def _crack_pattern(tag, old_seg, new_seg, ctx):
     if tag == "replace" and len(old_seg) == len(new_seg) and _diff_positions(old_seg, new_seg) <= 4 and len(new_seg) <= 64:
         if any(w in ctx for w in ("checksum", "crc", "integrity", "signature check")):
             return "checksum-or-integrity-fix"
-        return "license-flag-flip"
+        if any(w in ctx for w in LICENSE_WORDS):
+            return "license-flag-flip"
+        # A small equal-length change with NO positive license or
+        # integrity context names nothing: it is as consistent with a
+        # settings change, a counter, or a call-target redirection
+        # as with a license flag. Fall through to the remaining
+        # patterns; if none matches, the region is unaccounted
+        # (2026-11-24 accuracy audit, defect 7).
     if tag in ("replace", "insert") and ("if true" in low_new or "if 1:" in low_new or "return true" in low_new
                                          or ("==" in low_old and "==" not in low_new and any(w in ctx for w in LICENSE_WORDS))):
         return "license-condition-neutralised"
@@ -915,7 +1047,9 @@ def _expand_span(data, a, b):
 def _region_profile(seg):
     """Capability profile of one diff region's bytes: capability
     rule hits over the region's strings and text, network indicators,
-    and embedded executable headers."""
+    embedded executable headers, and the printable strings found (the
+    string count is what proves the profile actually examined
+    something)."""
     text = seg.decode("latin-1", "replace")
     strings = re.findall(r"[\x20-\x7e]{4,}", text)
     caps = {c["id"] for c in match_capabilities([], strings, [], text)}
@@ -926,17 +1060,73 @@ def _region_profile(seg):
     for sname in (b".vmp", b".themida", b".enigma"):
         if sname in seg:
             headers.add("protector-section")
-    return caps, indicators, headers
+    return caps, indicators, headers, len(strings)
+
+def _region_instruction_profile(data, start):
+    """Decode the instruction at the region start (both x86 modes).
+    Returns (decoded, kind, target): kind classifies the instruction
+    as call, jmp, jcc (conditional jump) or other; target is its
+    direct branch operand text when it has one. This is what makes
+    the capability check non-vacuous for pure code regions, where
+    there are no strings to profile (2026-11-24 accuracy audit,
+    defect 7)."""
+    try:
+        from .disasm import disassemble
+    except Exception:
+        return (False, None, None)
+    chunk = data[start:start + 24]
+    if not chunk:
+        return (False, None, None)
+    for arch in ("x86-64", "x86"):
+        d = disassemble(chunk, arch, start)
+        ins = d.get("instructions") or []
+        if d.get("available") and ins:
+            first = ins[0]
+            mn = first["mnemonic"].lower()
+            if mn == "call":
+                kind = "call"
+            elif mn.startswith("j"):
+                kind = "jmp" if mn == "jmp" else "jcc"
+            else:
+                kind = "other"
+            target = first["op_str"] if kind in ("call", "jmp", "jcc") else None
+            return (True, kind, target)
+    return (False, None, None)
 
 def _region_capability_check(old, new, i1, i2, j1, j2):
     """The verification half of an expected-crack classification:
     the new region must add nothing the genuine region did not have.
-    Profiles the enclosing string spans of the region in both files.
+    Profiles the enclosing string spans AND the region's own bytes
+    AND the instruction decoded at the region start, in both files.
+    A region where nothing at all could be profiled (no strings, no
+    capability hits, no indicators, no decodable instruction) FAILS
+    the check: a check that examined nothing is not a pass.
     Returns (passed, added_capabilities, added_indicators)."""
-    oc, oi, oh = _region_profile(_expand_span(old, i1, i2))
-    nc, ni, nh = _region_profile(_expand_span(new, j1, j2))
+    oc, oi, oh, os_ = _region_profile(_expand_span(old, i1, i2))
+    nc, ni, nh, ns_ = _region_profile(_expand_span(new, j1, j2))
+    orc, ori, orh, ors = _region_profile(old[i1:i2])
+    nrc, nri, nrh, nrs = _region_profile(new[j1:j2])
+    oc, oi, oh = oc | orc, oi | ori, oh | orh
+    nc, ni, nh = nc | nrc, ni | nri, nh | nrh
     added_caps = sorted(nc - oc)
     added_ind = sorted((ni - oi) | (nh - oh))
+    o_dec, o_kind, o_tgt = _region_instruction_profile(old, i1)
+    n_dec, n_kind, n_tgt = _region_instruction_profile(new, j1)
+    profiled = bool(oc or oi or oh or nc or ni or nh or os_ or ns_ or ors or nrs or o_dec or n_dec)
+    if not profiled:
+        added_ind.append("region could not be profiled: no strings, capabilities, indicators or decodable instruction in the region or its enclosing span, so the check examined nothing")
+    # Control-flow novelty in a code region: a call whose target the
+    # genuine region did not call is added behaviour, however
+    # patch-shaped the region looks. A conditional jump flipped to
+    # an unconditional jump to the same target is the canonical
+    # crack and is not flagged. Text regions (both sides printable)
+    # skip this: coincidental decodings of text bytes are not code.
+    old_seg, new_seg = old[i1:i2], new[j1:j2]
+    def _mostly_printable(seg):
+        return bool(seg) and sum(1 for b in seg if 0x20 <= b <= 0x7E or b in (9, 10, 13)) / len(seg) > 0.9
+    if o_dec and n_dec and not (_mostly_printable(old_seg) and _mostly_printable(new_seg)):
+        if n_kind == "call" and (o_kind != "call" or o_tgt != n_tgt):
+            added_ind.append(f"control-flow: the new region calls {n_tgt}, a target the genuine region did not call")
     return (not added_caps and not added_ind), added_caps, added_ind
 
 
@@ -1003,7 +1193,9 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
     known_bad = kb
     ref_map = enumerate_reference(reference)
     # A reference may itself be a manifest (.sfv or checksum file). Then
-    # NO requires hash equality with that manifest, per file.
+    # NO requires hash equality with that manifest, per file, on a
+    # collision-resistant hash: CRC32 (.sfv) and MD5 entries match as
+    # corroboration only and never account for a file on their own.
     ref_manifest = None
     if reference and os.path.isfile(str(reference)) and manifest_kind(str(reference)):
         try:
@@ -1021,7 +1213,7 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
     diff_ledger_all = []
 
     with tempfile.TemporaryDirectory(prefix="ezverdict_") as td:
-        entries, installer, enum_blockers, unexpanded, failed_containers, expanded_containers = enumerate_subject(path, td)
+        entries, installer, enum_blockers, unexpanded, failed_containers, expanded_containers, entry_blockers = enumerate_subject(path, td)
         failed_container_set = set(failed_containers)
         expanded_container_set = set(expanded_containers)
         blockers.extend(enum_blockers)
@@ -1048,7 +1240,7 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
         baseline_effects = set()
         if reference and ref_manifest is None and os.path.exists(str(reference)):
             try:
-                bent, _bi, _bb, _bu, _bfc, _bec = enumerate_subject(str(reference), os.path.join(td, "baseline"))
+                bent, _bi, _bb, _bu, _bfc, _bec, _beb = enumerate_subject(str(reference), os.path.join(td, "baseline"))
                 for be in bent[:100]:
                     try:
                         brep = analyze(be["abspath"])
@@ -1080,6 +1272,7 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
             rec["signed"] = signed
             rec["signature_valid"] = sig_valid
             file_blockers = []
+            file_blockers.extend(entry_blockers.get(rel, []))
             import zlib as _zlib
             rec["crc32"] = format(_zlib.crc32(data) & 0xffffffff, "08x")
             if base.lower().endswith((".nfo", ".txt", ".md", ".url", ".diz")) and len(data) < 200000:
@@ -1105,7 +1298,18 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                 else:
                     actual = rec["crc32"] if len(expected) == 8 else h["md5"] if len(expected) == 32 else h["sha1"] if len(expected) == 40 else h["sha256"]
                     if actual == expected:
-                        rec["reference"] = "manifest-match"
+                        if len(expected) in (8, 32):
+                            # CRC32 and MD5 are checksums, not
+                            # collision-resistant hashes: a
+                            # substituted file can be padded to the
+                            # listed value by construction, so the
+                            # match is corroboration only and can
+                            # never close the accounting on its own
+                            # (2026-11-24 accuracy audit, defect 11).
+                            rec["reference"] = "manifest-match-weak"
+                            rec["why"].append(f"Matches the reference manifest only on a {'CRC32' if len(expected) == 8 else 'MD5'} value ({expected}). That match is corroboration only: CRC32 and MD5 values can be forged onto different bytes, so this file still has to be accounted for on other grounds.")
+                        else:
+                            rec["reference"] = "manifest-match"
                     else:
                         file_blockers.append(f"{rel}: hash does not equal the reference manifest entry ({actual} vs {expected}), so these bytes are unaccounted.")
                         rec["reference"] = "manifest-mismatch"
@@ -1124,6 +1328,37 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
             rec["capabilities"] = [c["id"] for c in rep.get("capabilities", [])]
             rec["analysis_verdict"] = rep.get("risk", {}).get("verdict")
             rec["behaviour_effects"] = predicted_effects(rep)
+            # ---- document and firmware analysis feeds the verdict ----
+            # The analyzer computes PDF, Office and firmware findings
+            # for every file; until now the verdict never read them,
+            # so a PDF with auto-run JavaScript and a launch action
+            # earned NO "as data" (2026-11-24 accuracy audit,
+            # defects 5 and 14). Active document content and the
+            # combined firmware flag are unaccounted markers here.
+            if rel not in failed_container_set:
+                _pdf = rep.get("pdf") or {}
+                if _pdf.get("is_pdf"):
+                    _feats = _pdf.get("features") or {}
+                    _active = sorted(k for k in ("/JavaScript", "/JS", "/OpenAction", "/AA", "/Launch", "/SubmitForm", "/XFA", "/EmbeddedFile") if _feats.get(k))
+                    if _active:
+                        file_blockers.append(f"{rel}: this PDF carries active content ({', '.join(_active)}): scripts, actions that run when the file opens, launch actions or embedded files are behaviour the data accounting cannot account for, so the document is unaccounted until the active content is extracted and judged. Next step: extract the embedded files and scripts and run the verdict on them.")
+                _office = rep.get("office") or {}
+                if _office.get("has_macros") or _office.get("auto_open_triggers") or _office.get("dde"):
+                    _bits = []
+                    if _office.get("has_macros"):
+                        _bits.append("macro streams")
+                    if _office.get("auto_open_triggers"):
+                        _bits.append("auto-open triggers (" + ", ".join(_office["auto_open_triggers"]) + ")")
+                    if _office.get("dde"):
+                        _bits.append("DDE links")
+                    file_blockers.append(f"{rel}: this Office document carries active content ({'; '.join(_bits)}) that the data accounting cannot account for, so the document is unaccounted until the macro code is extracted and judged.")
+                _fw = rep.get("firmware") or {}
+                if _fw.get("red_flags"):
+                    rec["firmware"] = {"is_firmware_image": _fw.get("is_firmware_image"),
+                                       "red_flags": [f["name"] for f in _fw["red_flags"]]}
+                    for _fl in _fw["red_flags"]:
+                        if "SMM" in _fl["name"] and "network" in _fl["name"].lower():
+                            file_blockers.append(f"{rel}: firmware analysis flags an SMM driver with network protocol access. System Management Mode code that can reach the network runs below the operating system, outside its view, so those bytes are unaccounted and block any NO. Detail: {_fl['plain_english']}")
             # extra streams where detectable (Linux xattrs here; NTFS
             # alternate data streams are separate manifest streams on
             # Windows hosts and are hashed per stream there)
@@ -1156,6 +1391,18 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
             # self-extracting PE, say): that file is judged as code in
             # its own right as well as enumerated.
             container_entry = rel in expanded_container_set and rec["format"] not in EXECUTABLE_FORMATS
+            # A container that FAILED enumeration gets the same
+            # judgement exemption, for the opposite reason: its
+            # contents could not be enumerated at all, so nothing in
+            # it is proven either way. Chains, scope hits and carve
+            # verdicts computed from its raw bytes would print a
+            # PROVEN token for unreadable content, which breaks the
+            # proof contract even when the headline direction happens
+            # to match (2026-11-24 accuracy audit, defect 8). The
+            # failed-container blocker already recorded above makes
+            # the file YES UNACCOUNTED, which is the correct output.
+            failed_container = rel in failed_container_set
+            judgement_exempt = container_entry or failed_container
             # ---- connection ledger: every link this file contains ----
             seen_dest = set()
             def _add_url(u, provenance, note=""):
@@ -1218,12 +1465,12 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                 for le in connection_ledger:
                     if le["source_file"] == rel and le["classification"] in ("lookalike", "shortener") and le["tag"] == "needs-more-evidence":
                         file_blockers.append(f"{rel}: connection ledger entry {le['id']} is a {le['classification']} link ({(le['dest'].get('domain') or le['dest'].get('url'))}) inside an executable or script file. An unknown shortener or lookalike link is needs-more-evidence: it cannot be accounted for as genuine or as the explained crack until it is resolved and classified.")
-            chains = [] if container_entry else malicious_chains(rep, data, base)
+            chains = [] if judgement_exempt else malicious_chains(rep, data, base)
             # embedded payloads carved from this file alone. A fully
             # enumerated container is not carved: its members are
             # already enumerated and analysed as units of their own,
             # so carving the container would judge member bytes twice.
-            carved = [] if container_entry else carve(data)
+            carved = [] if judgement_exempt else carve(data)
             ends = sorted([c["offset"] for c in carved if c["offset"] > 0] + [len(data)])
             for c in carved:
                 if c["offset"] == 0:
@@ -1286,10 +1533,13 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
             # installation are expected crack for an activator. A
             # persistence-plus-C2 chain built only on that baseline is
             # not malware; everything outside the baseline is judged.
+            # The baseline is content based (a filename never qualifies,
+            # and neither does a bare port-number substring), and the
+            # local test is a real address test: 172.0.0.0/8 is not
+            # local, only 172.16.0.0/12 is, and a bare domain counts as
+            # external (2026-11-24 accuracy audit, defect 6).
             if kms_baseline(rep):
-                iocs = rep.get("iocs", {})
-                external = [u for u in iocs.get("urls", [])] + [ip for ip in iocs.get("ip_addresses", []) if not ip.startswith(("127.", "0.", "192.168.", "10.", "172."))]
-                if not external:
+                if not external_contacts(rep):
                     kept = [c for c in chains if c["chain"] != "persistence-plus-c2"]
                     if len(kept) != len(chains):
                         rec["why"].append("KMS baseline applied: the local emulator service, renewal task and GVLK keys are the expected crack for an activator, so the persistence-plus-local-listener pattern was accounted as expected crack. Everything outside that baseline was judged normally.")
@@ -1300,9 +1550,10 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
             # THE SCOPE TEST: first behaviour unnecessary for the claimed
             # function decides YES (PROVEN class).
             scope_hits, claimed = scope_test(rep, base)
-            if container_entry:
+            if judgement_exempt:
                 # the scope test judges content; a fully enumerated
-                # container's content is its members, judged above
+                # container's content is its members, judged above,
+                # and a failed container has no judged content at all
                 scope_hits = []
             rec["claimed_function"] = claimed
             rec["scope_test"] = scope_hits
@@ -1321,13 +1572,32 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                 rec["beacon_config"] = {k: v for k, v in ff["beacon_config"].items() if k != "public_key"}
             if ff["script_ledger"]:
                 rec["script_ledger"] = ff["script_ledger"]
-                if rec.get("claimed_function") == "activator" and ff["script_ledger"]["unaccounted"]:
-                    file_blockers.append(f"{rel}: this activation script has {len(ff['script_ledger']['unaccounted'])} line(s) outside the KMS allowlist and outside ordinary script structure, so those lines are unaccounted: " + "; ".join(f"line {u['line']}: {u['text']}" for u in ff["script_ledger"]["unaccounted"][:4]))
+                # The gate applies to files the engine identifies as
+                # scripts (a real script language from a code
+                # extension or a shebang). A prose text file also
+                # receives a ledger for display, with language None;
+                # its lines are prose, not code lines, and an
+                # "unaccounted" prose line is not unaccounted
+                # behaviour.
+                _is_script = bool((rep.get("script_analysis") or {}).get("language"))
+                if _is_script and ff["script_ledger"]["unaccounted"]:
+                    # The ledger gate applies to every script, not
+                    # only to activators: a NO on a script claims its
+                    # behaviour is accounted, and a line the ledger
+                    # cannot classify is behaviour nobody accounted
+                    # for (2026-11-24 accuracy audit, defect 4). The
+                    # ledger itself is KMS-allowlist shaped, but its
+                    # flagged and unaccounted classes are generic
+                    # high-risk classes (download, tamper, exfil,
+                    # unknown), so the gate is the same for any
+                    # script; allowlisted KMS lines simply do not
+                    # occur in non-KMS scripts.
+                    file_blockers.append(f"{rel}: this script has {len(ff['script_ledger']['unaccounted'])} line(s) the line ledger cannot account for (outside the licence allowlist and outside ordinary script structure), so those lines are unaccounted: " + "; ".join(f"line {u['line']}: {u['text']}" for u in ff["script_ledger"]["unaccounted"][:4]))
             for fb in ff["blockers"]:
                 if fb not in file_blockers:
                     file_blockers.append(fb)
             for fc in ff["chains"]:
-                if container_entry:
+                if judgement_exempt:
                     # family proof standards judge content under the
                     # content file's own context; the container entry
                     # carries none of them (see container_entry above)
@@ -1346,7 +1616,7 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                 # the renewal service and task are the KMS baseline, not
                 # behaviour beyond key generation
                 kg_bad = [b for b in kg_bad if b["behaviour"] != "persistence"]
-            if kg and kg_bad and not chains and not container_entry:
+            if kg and kg_bad and not chains and not judgement_exempt:
                 for b in kg_bad:
                     yes_reasons.append({"file": rel, "chain": "keygen-with-malicious-behaviour",
                                         "name": f"This keygen or patcher does more than generate keys: it has {b['behaviour']}, which no key generator needs",
@@ -1365,7 +1635,7 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                 rec["virt_trace"] = {"available": trace["available"], "instructions_traced": trace["instructions_traced"],
                                      "api_crossings": trace["api_crossings"], "recovered_strings": trace["recovered_strings"],
                                      "gaps": trace.get("gaps", []), "note": trace["note"]}
-                if trace["recovered_strings"] and not container_entry:
+                if trace["recovered_strings"] and not judgement_exempt:
                     caps2 = match_capabilities([], trace["recovered_strings"], [], " ".join(trace["recovered_strings"]))
                     chains2 = malicious_chains({"capabilities": caps2, "evasion": {"findings": []},
                                                 "strings": {"all": trace["recovered_strings"]}, "rootkit": {}})
@@ -1431,6 +1701,14 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
             virt_is_patch_area = bool(file_ledger) and all(le["classification"] in ("expected-crack", "benign-repack") for le in file_ledger)
             if virt_detected and virt_is_patch_area:
                 rec["why"].append("The virtualized region is the known crack patch area: every differing region against the genuine original is enumerated in the diff ledger and classified expected-crack or benign-repack, so those virtualized units are accounted as the explained crack.")
+                _gaps = (rec.get("virt_trace") or {}).get("gaps") or []
+                if _gaps:
+                    # Entry-stub trace gaps are recorded, never
+                    # silent (2026-11-24 accuracy audit, defect 18).
+                    # They do not reopen this accounting: the
+                    # accounting here rests on the diff ledger against
+                    # the genuine reference, not on the trace.
+                    rec["why"].append(f"The entry-stub trace of the virtualized region had {len(_gaps)} gap(s) ({'; '.join(str(g) for g in _gaps[:3])}); the trace is coverage evidence only, and this file's accounting rests on the diff ledger above, not on the trace.")
             elif virt_detected:
                 file_blockers.append(f"{rel}: a virtualizing protector was detected ({virt.get('protector') or 'unknown VM'}). Census: {virt['handler_census']['indirect_jump_sites']} indirect jump site(s), {len(virt['entry_stubs'])} entry stub(s), {len(virt['encrypted_regions'])} encrypted region(s). The virtualized functions are unaccounted units: the original code is private bytecode that static analysis cannot decode, and hiding inside a VM can never earn a clean verdict here. Next step: run it in a self-hosted sandbox (CAPE) and merge the behaviour report, then re-run the verdict.")
             for cb in ff["conditional_blockers"]:
@@ -1438,10 +1716,27 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                     rec["why"].append("A gated trigger (logic bomb pattern) is present, but every differing region against the genuine reference is classified expected-crack or benign-repack, so the trigger is accounted as the genuine program's own logic or the explained crack.")
                 elif cb not in file_blockers:
                     file_blockers.append(cb)
-            if rec["format"] == "unknown binary data":
+            if rec["format"] == "unknown binary data" and not container_entry:
+                # A fully enumerated container whose own container
+                # format has no dedicated label (a tar.gz, say) is an
+                # enumeration unit: its members are the judged
+                # content, so the container's own format label is not
+                # unaccounted content.
                 file_blockers.append(f"{rel}: the file format was not recognised, so the file could not be fully decoded. Its bytes are unaccounted.")
             if rep.get("unpack", {}).get("high_entropy_regions") and virt_detected and not virt_is_patch_area:
                 file_blockers.append(f"{rel}: high entropy regions sit inside the virtualized protector and cannot be decoded statically. Those bytes are unaccounted.")
+            # ---- truncation markers: analysis caps that cut material
+            # a NO would depend on are explicit unaccounted markers.
+            # A file accounted by byte identity (hash match against a
+            # reference, or a strong manifest hash) does not depend
+            # on the truncated analysis, so those files are exempt;
+            # every other NO path does depend on it.
+            for _t in rep.get("truncations") or []:
+                if rec["reference"] in ("hash-match", "manifest-match") or container_entry or failed_container:
+                    continue
+                tb = f"{rel}: analysis was truncated: {_t}. A verdict of NO would claim this file was fully accounted for; with part of the analysis cut, the unexamined remainder is unaccounted."
+                if tb not in file_blockers:
+                    file_blockers.append(tb)
             file_yes = [y for y in yes_reasons if y["file"] == rel]
             if file_yes:
                 rec["verdict"] = "YES: MALWARE (PROVEN)"
@@ -1471,15 +1766,28 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                 elif fmt_name in ("script", "text / script"):
                     rec["verdict"] = "NO: ACCOUNTED"
                     rec["why"].append("Accounted: this is a script or text file, so it was fully reverse-engineered by reading all of its source. Every behaviour in it is enumerated in this report and classified expected-crack or benign, with no malicious chain.")
-                elif patch_ev:
-                    rec["verdict"] = "NO: ACCOUNTED"
-                    rec["why"].append("Accounted as the explained crack: the crack patch was identified and explained from the file itself (see patch evidence), every region was decoded, and no malicious capability chain exists.")
                 elif fmt_name not in ("PE", "ELF", "Mach-O"):
                     rec["verdict"] = "NO: ACCOUNTED"
                     rec["why"].append("Accounted as data: the file was fully read, it is not executable code, and it carries no malicious capability.")
                 else:
-                    msg = (f"{rel}: this compiled binary cannot be accounted for. It does not match a genuine reference, its signature does not verify, and no crack patch could be identified in it. "
-                           "Its bytes are unaccounted. Next step: supply the genuine original with --reference so every differing byte can be classified, or a publisher signature that verifies.")
+                    # A compiled binary with no reference and no
+                    # verifying signature is unaccounted, period.
+                    # Patch-like signals (a NOP run, license or crack
+                    # strings) are recorded in the patch evidence as
+                    # annotation, but they are not an accounting: a
+                    # NOP run is also ordinary alignment padding, and
+                    # a license string appears in every licensed
+                    # program. The earlier patch-evidence NO path
+                    # acquitted a clean compiler hello-world on
+                    # exactly those signals (2026-11-24 accuracy
+                    # audit, defect 1).
+                    if patch_ev:
+                        msg = (f"{rel}: this compiled binary cannot be accounted for. It does not match a genuine reference and its signature does not verify. "
+                               "Patch-like signals were found in the file (see patch evidence), but those signals are annotation, not an accounting: a NOP run is also ordinary alignment padding, and license or crack strings appear in ordinary licensed programs. Its bytes are unaccounted. "
+                               "Next step: supply the genuine original with --reference so every differing byte can be classified, or a publisher signature that verifies.")
+                    else:
+                        msg = (f"{rel}: this compiled binary cannot be accounted for. It does not match a genuine reference, its signature does not verify, and no crack patch could be identified in it. "
+                               "Its bytes are unaccounted. Next step: supply the genuine original with --reference so every differing byte can be classified, or a publisher signature that verifies.")
                     rec["verdict"] = "YES: UNACCOUNTED"
                     rec["why"].append(msg)
                     blockers.append(msg)

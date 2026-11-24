@@ -39,8 +39,11 @@ CAPTURE_CAPS = {"keylog", "screenshot", "clipboard"}
 
 def _blob(report):
     parts = list(report.get("strings", {}).get("all", []))
-    if report.get("script_source_excerpt"):
-        parts.append(report["script_source_excerpt"])
+    # Judgement consumes the FULL script source, never the display
+    # excerpt: evidence past the excerpt cap must still count.
+    src = report.get("script_source_full") or report.get("script_source_excerpt")
+    if src:
+        parts.append(src)
     return "\n".join(parts)
 
 
@@ -567,6 +570,12 @@ def script_line_ledger(text):
     proof; the allowlist defines the whole legitimate job of an
     activation script, so unaccounted lines block its NO."""
     out = {"lines": 0, "allowlisted": 0, "structural": 0, "flagged": [], "unaccounted": []}
+    # A call to a function defined in this same script is accounted
+    # by transitivity: the body's own lines are ledgered individually
+    # below, so the call line adds no behaviour the ledger has not
+    # already classified. A call to an undefined name stays
+    # unaccounted: what it does cannot be known from this file.
+    defined = set(re.findall(r"^\s*def\s+([A-Za-z_]\w*)\s*\(", text, re.M))
     for n, raw in enumerate(text.splitlines(), 1):
         line = raw.strip()
         if not line:
@@ -596,12 +605,19 @@ def script_line_ledger(text):
         if any(r.match(line) for r in STRUCT_RES):
             out["structural"] += 1
             continue
+        mcall = re.match(r"([A-Za-z_]\w*)\s*\(.*\)\s*;?$", line)
+        if mcall and mcall.group(1) in defined:
+            out["structural"] += 1
+            continue
         out["unaccounted"].append({"line": n, "text": line[:160]})
     return out
 
 
 def _scripts(report, caps, blob, low):
-    text = report.get("script_source_excerpt")
+    # The ledger runs over the full decoded source, never the capped
+    # display excerpt: a NO may not claim the whole source was read
+    # when only the first excerpt was.
+    text = report.get("script_source_full") or report.get("script_source_excerpt")
     if not text:
         return None, None
     ledger = script_line_ledger(text)

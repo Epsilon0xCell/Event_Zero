@@ -8,3 +8,5 @@
 - Wave 7: self-improvement promotion gate, public benchmark, ELI5 metrics.
 - Wave 8: deep research corrections: abuse.ch Auth-Key, VirusTotal limits, sandbox publication warning, rootkit phrasing, zero-day rule, VMProtect hard limit, format-spec.md plus validator plus 3 gold reports, FRE and FK design target.
 - Final: 64 passed in a clean venv. Not pushed. See PUSH-PLAN-V3.md.
+
+- 2026-11-23 22:52 CST: abuse.ch account created under Epsilon0xCell (GitHub sign-in, email verified). Free Auth-Key obtained by the founder on his phone (Turnstile blocks the cloud browser, including in-person takeover). Key PROVEN live against mb-api.abuse.ch: get_recent returned query_status ok with real entries. Key value is held by the founder only; it is not stored in this repo or any workspace file. Clients read it from the ABUSECH_API_KEY environment variable.

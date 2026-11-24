@@ -34,6 +34,16 @@ def analyze_firmware(data, strings):
     def flag(name, ev, why): flags.append({"name":name,"evidence":ev,"plain_english":why})
     if dxe and re.search(r'\b(Tcp|Http|Network|PXE|Dns)\b', joined): flag("DXE driver with network indicators", "network strings near carved PE32 images", "Firmware that can talk to the network before the operating system loads can download code that the operating system and its antivirus never see.")
     if re.search(r'\b(Smm|SMM|System Management Mode)\b', joined): flag("SMM indicator", "SMM strings present", "System Management Mode runs below the operating system with very high privilege. Code there is a classic firmware rootkit hiding place (CHIPSEC flags unexpected SMM code for this reason).")
+    # The combined flag. Its tests are substring based on purpose:
+    # DXE module names concatenate the mode and the protocol into the
+    # driver name itself (SmmAccessDxe, PiSmmCore, TcpDxe), so the
+    # word-boundary tests used by the single flags above structurally
+    # miss exactly the modules this flag exists to catch. The
+    # conjunction stays specific: carved PE32 driver images AND an
+    # SMM marker AND a network protocol marker, all in one image.
+    low_joined = joined.lower()
+    if dxe and "smm" in low_joined and any(p in low_joined for p in ("tcp", "http", "network", "pxe", "dns")):
+        flag("SMM driver with network protocol access", "carved PE32 driver images in a file whose strings carry both SMM and network protocol indicators", "The combined flag is the dangerous one: code running in System Management Mode, below the operating system and outside its view, that can also reach the network can fetch and hide code that no operating system tool can see. Either indicator alone is weaker; together they are treated as unaccounted at minimum.")
     if fv and not re.search(r'(SecureBoot|secure boot|dbx|PK\b|KEK)', joined): flag("Firmware volume with no secure-boot strings found", "no SecureBoot/PK/KEK strings", "No evidence of secure boot key material was found in strings. That is not proof secure boot is off, it means this static pass could not confirm it.")
     is_fw = bool(fv) or len([h for h in hits if "SquashFS" in h["magic"] or "UBI" in h["magic"] or "JFFS2" in h["magic"]])>=1 and len(data)>65536
     return {"is_firmware_image": is_fw, "magic_hits": hits, "uefi_volumes": fv, "dxe_drivers_carved": dxe, "red_flags": flags,

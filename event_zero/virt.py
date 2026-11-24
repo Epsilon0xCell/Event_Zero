@@ -34,6 +34,16 @@ PROTECTORS = [
     ("Safengine", (".safengine", ".se"), ("Safengine", "Shielden")),
 ]
 
+def _section_matches(sec_name, pat):
+    """Section pattern match with a leading boundary: the pattern
+    must be the whole section name or a prefix of it. A bare
+    substring match is wrong: the Safengine pattern ".se" is a
+    substring of ".plt.sec", the standard PLT section GCC emits in
+    ordinary dynamically linked ELFs, so substring matching flagged
+    nearly every GCC-built ELF as virtualized."""
+    n = sec_name.lower()
+    return n == pat or n.startswith(pat)
+
 def analyze_virtualization(data, strings, sections, filename=""):
     joined = "\n".join(strings)
     sec_names = [str(s.get("name", "")) for s in sections if isinstance(s, dict)]
@@ -41,7 +51,7 @@ def analyze_virtualization(data, strings, sections, filename=""):
     vm_sections = []
     sig_evidence = []
     for name, sec_pats, str_pats in PROTECTORS:
-        hit_secs = [s for s in sec_names if any(p in s.lower() for p in sec_pats)]
+        hit_secs = [s for s in sec_names if any(_section_matches(s, p) for p in sec_pats)]
         hit_strs = [p for p in str_pats if p in joined]
         if hit_secs or hit_strs:
             protector = name

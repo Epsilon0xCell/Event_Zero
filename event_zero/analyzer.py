@@ -88,6 +88,7 @@ def detect_format(data):
         except Exception: return {"format":"PE","architecture":"unknown"}
     if data[:4] in (b'\xcf\xfa\xed\xfe',b'\xfe\xed\xfa\xcf',b'\xce\xfa\xed\xfe',b'\xfe\xed\xfa\xce',b'\xca\xfe\xba\xbe',b'\xbe\xba\xfe\xca'): return parse_macho(data)
     if data[:4]==b'PK\x03\x04': return {"format":"ZIP archive","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
+    if len(data)>262 and data[257:262]==b'ustar': return {"format":"TAR archive","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
     if data[:5]==b'%PDF-': return {"format":"PDF","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
     if data[:6] in (b'#!/bin',) or data[:3]==b'#!/': return {"format":"script","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
     # text heuristic
@@ -125,7 +126,10 @@ def lief_parse(path, fallback):
             try: imps=[s.name for s in b.dynamic_symbols if s.name]
             except Exception: pass
         syms=[]
-        try: syms=[s.name for s in b.symbols if getattr(s,'name','')][:500]
+        try:
+            syms_all=[s.name for s in b.symbols if getattr(s,'name','')]
+            if len(syms_all)>500: out["symbols_truncated"]=True
+            syms=syms_all[:500]
         except Exception: pass
         if imps: out["imports"]=sorted(set(imps))
         if syms: out["symbols"]=syms
@@ -149,7 +153,12 @@ def script_analysis(path, data):
         elif text.startswith('#!'): kind='shell'
         elif ext in ('.txt','.com') and len(data)<200: kind=None
         else: return None if '\x00' in text[:2000] else None
-    info={"language":kind,"lines":len(text.splitlines()),"imports":[],"calls":[],"source":text[:20000]}
+    # The full decoded source is kept for judgement: capability
+    # matching and the per-line ledger must see every line, so no
+    # length cap is applied here. Display excerpts are capped where
+    # they are produced (script_source_excerpt), never the source
+    # the verdict relies on.
+    info={"language":kind,"lines":len(text.splitlines()),"imports":[],"calls":[],"source":text,"source_chars":len(text)}
     if kind=='Python':
         try:
             tree=ast.parse(text)
@@ -201,7 +210,7 @@ def analyze(path, use_llm=False, llm_client=None, sandbox_report=None, enrich=Fa
         imports=sorted(cand)
     script=script_analysis(path, data)
     # executable bytes for disassembly: ELF/Mach-O/PE first section raw approx: use whole file code heuristic = bytes after header; better: lief section content
-    code=b''; code_base=0
+    code=b''; code_base=0; code_from_window=False
     if HAVE_LIEF:
         try:
             b=lief.parse(path)
@@ -213,9 +222,9 @@ def analyze(path, use_llm=False, llm_client=None, sandbox_report=None, enrich=Fa
                 pass
         except Exception: pass
     if not code and fmt.get("format")=="ELF":
-        code=data[64:64+200000]
+        code=data[64:64+200000]; code_from_window=True
     elif not code and fmt.get("format") in ("Mach-O","PE"):
-        code=data[:200000]
+        code=data[:200000]; code_from_window=True
     arch_raw=str(fmt.get("architecture",""))
     arch_map={'X86_64':'x86-64','x86-64':'x86-64','AMD64':'x86-64','I386':'x86','x86':'x86','ARM64':'ARM64','AARCH64':'ARM64','ARM':'ARM'}
     arch=arch_map.get(arch_raw, arch_raw if arch_raw in ('x86','x86-64','ARM','ARM64') else 'x86-64' if fmt.get("format") in ('ELF','PE') else arch_raw)
@@ -288,6 +297,25 @@ def analyze(path, use_llm=False, llm_client=None, sandbox_report=None, enrich=Fa
     if h["sha256"]!=EICAR_SHA256:
         if score>=50: verdict="HIGH RISK"
         elif score>=25: verdict="SUSPICIOUS"
+    # ---- truncations: every cap that cut material a judgement can
+    # depend on is recorded explicitly. The verdict turns each entry
+    # into an unaccounted marker for NO purposes (a file accounted by
+    # byte identity, hash match or a strong manifest hash, does not
+    # depend on the truncated analysis and is exempt there). Silence
+    # about a cap is how truncated evidence once passed as complete.
+    truncs=[]
+    if code_from_window and len(data)>200000:
+        truncs.append("the disassembly code window covers only the first 200000 bytes of the file, so code past that window was not disassembled")
+    if len(dis["instructions"])>=4000:
+        truncs.append("disassembly stopped at the 4000-instruction cap, so instructions past the cap were not examined")
+    if fmt.get("symbols_truncated"):
+        truncs.append("the symbol list stopped at 500 entries, so symbols past that cap were not examined")
+    if len(data)>16384:
+        truncs.append("the entropy map covers only the first 16384 bytes, so high-entropy regions past that point were not mapped")
+    if emu.get("instructions_emulated",0)>=500:
+        truncs.append("shellcode emulation stopped at the 500-instruction budget, so behaviour past that budget was not emulated")
+    if script is None and (os.path.splitext(path)[1].lower() in SCRIPT_EXTS or data[:3]==b'#!/'):
+        truncs.append("the file looks like a script but its source could not be fully decoded as UTF-8, so script behaviour accounting is incomplete")
     if unpack_r["virtualization"]["detected"]: unknowns.append("Virtualizing packer detected: original code is private bytecode run by an interpreter, so static analysis can map the protector and entry, not the original logic. That remainder needs dynamic analysis in a sandbox.")
     if firmware_r["is_firmware_image"]: unknowns.append("Firmware was analysed statically. Whether each carved driver is signed and loaded at boot can only be confirmed against the platform firmware configuration.")
     report={
@@ -297,11 +325,13 @@ def analyze(path, use_llm=False, llm_client=None, sandbox_report=None, enrich=Fa
       "sections":secs,"packing_assessment":packing,
       "imports":[{"name":i,"plain_english":explain_import(i)} for i in imports],
       "symbols":(fmt.get("symbols") or [])[:200],
-      "strings":{"count":len(all_strings),"ascii_count":len(sx["ascii"]),"utf16_count":len(sx["utf16"]),"all":all_strings[:2000],"base64_decoded":sx["base64_decoded"],"xor_decoded":sx["xor_decoded"]},
+      "strings":{"count":len(all_strings),"ascii_count":len(sx["ascii"]),"utf16_count":len(sx["utf16"]),"all":all_strings,"base64_decoded":sx["base64_decoded"],"xor_decoded":sx["xor_decoded"]},
       "disassembly":{"available":dis["available"],"note":dis["note"],"instruction_count":len(dis["instructions"]),"instructions":dis["instructions"][:500],"call_sites":dis.get("call_sites",[])},
       "capabilities":caps,
       "script_analysis":({k:v for k,v in script.items() if k!='source'} if script else None),
       "script_source_excerpt":(script["source"][:4000] if script else None),
+      "script_source_full":(script["source"] if script else None),
+      "truncations":truncs,
       "iocs":{"urls":urls,"ip_addresses":ips,"domains":domains,"file_paths":files_mentioned},
       "unpack":unpack_r,"firmware":firmware_r,"rootkit":rootkit_r,"exploit":exploit_r,"evasion":evasion_r,"emulation":emu,
       "risk":{"score":min(score,100),"verdict":verdict,"reasons":reasons},

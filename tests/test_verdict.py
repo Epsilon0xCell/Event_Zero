@@ -110,12 +110,21 @@ def test_yes_unaccounted_unexplained_diff(tmp_path):
     assert v["headline"] == "YES: MALWARE FOUND" and v["reason_class"] == "UNACCOUNTED", v["diff_ledger"]
     assert any(le["classification"] == "unaccounted" for le in v["diff_ledger"])
 
-# 7. single cracked binary, clean = NO (patch identified from the file itself)
+# 7. single binary, no reference, no signature = YES UNACCOUNTED.
+# This test previously asserted NO on the strength of patch evidence
+# alone (a NOP run plus "license check"/"cracked" strings). The
+# 2026-11-24 accuracy audit proved that path is defect 1: the same
+# signals acquitted a clean compiler hello-world, because a NOP run
+# is also ordinary alignment padding and a license string appears in
+# every licensed program. Patch evidence is now annotation only; a
+# lone compiled binary with no reference and no verifying signature
+# is unaccounted by definition. The test was updated to encode the
+# corrected semantics (see validation/FIX-LOG-2026-11-24.md).
 def test_no_single_cracked_binary(tmp_path):
     body = b"\x90" * 12 + b"\x31\xc0\xc3" * 4
     p = write(tmp_path, "game_crack.exe", pe_with_body(body, b"license check\x00cracked\x00"))
     v = verdict(p)
-    assert v["headline"] == "NO: NO MALWARE", v["files"][0]["why"]
+    assert v["headline"] == "YES: MALWARE FOUND" and v["reason_class"] == "UNACCOUNTED", v["files"][0]["why"]
     assert v["files"][0]["patch_evidence"]
 
 # 8. single binary with embedded hidden payload = YES PROVEN
