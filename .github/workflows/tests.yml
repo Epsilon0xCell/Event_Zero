@@ -15,7 +15,7 @@ jobs:
           mode: client
       - name: Verify WARP is on
         run: |
-          curl -s https://www.cloudflare.com/cdn-cgi/trace/ | grep -E '^(warp|gateway)=' || true
+          curl -s --retry 3 https://www.cloudflare.com/cdn-cgi/trace/ || true
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

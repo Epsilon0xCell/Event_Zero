@@ -43,7 +43,7 @@ jobs:
       - name: Verify WARP is on
         if: runner.os == 'Linux'
         run: |
-          curl -s https://www.cloudflare.com/cdn-cgi/trace/ | grep -E '^(warp|gateway)=' || true
+          curl -s --retry 3 https://www.cloudflare.com/cdn-cgi/trace/ || true
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -67,11 +67,14 @@ jobs:
           mode: client
       - name: Verify WARP is on
         run: |
-          curl -s https://www.cloudflare.com/cdn-cgi/trace/ | grep -E '^(warp|gateway)=' || true
+          curl -s --retry 3 https://www.cloudflare.com/cdn-cgi/trace/ || true
 
       # Setup stage: network is allowed here, and only here.
+      # The build uses --network host because WARP client mode
+      # breaks DNS inside default Docker bridge build containers;
+      # host networking keeps the build on the WARP path instead.
       - name: Setup stage (build the verification image)
-        run: docker build -f fixtures/verification/Dockerfile.verify -t event-zero-verify .
+        run: docker build --network host -f fixtures/verification/Dockerfile.verify -t event-zero-verify .
 
       # Verification stage: the container runs with --network none.
       # Inside it, the egress canary must prove outbound connections

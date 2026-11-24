@@ -65,7 +65,7 @@ jobs:
           mode: client
       - name: Verify WARP is on
         run: |
-          curl -s https://www.cloudflare.com/cdn-cgi/trace/ | grep -E '^(warp|gateway)=' || true
+          curl -s --retry 3 https://www.cloudflare.com/cdn-cgi/trace/ || true
 
       - uses: actions/setup-python@v5
         with:
@@ -87,8 +87,11 @@ jobs:
             --shard-size "${{ inputs.shard_size }}" \
             --out campaign-out/downloads.jsonl
 
+      # The build uses --network host because WARP client mode
+      # breaks DNS inside default Docker bridge build containers;
+      # host networking keeps the build on the WARP path instead.
       - name: Build the analysis image (setup stage, network allowed)
-        run: docker build -f validation/campaign/Dockerfile.campaign -t event-zero-campaign .
+        run: docker build --network host -f validation/campaign/Dockerfile.campaign -t event-zero-campaign .
 
       # Analysis stage: the container runs with --network none. The
       # downloaded ZIPs are mounted read-only, the scratch work dir
