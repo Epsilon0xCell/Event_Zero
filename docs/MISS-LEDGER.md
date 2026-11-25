@@ -111,3 +111,7 @@ The ledger held no entries before 2026-11-23. An empty ledger is a statement abo
 ## Status addendum 2026-11-24 (fix wave 4)
 
 - EZ-BYPASS-2026-007, 008: re-judged by the wave 2 and 3 engine in campaign smoke run 6 (run 45541655584); both returned NO ACCOUNTED again on the real samples. Fix wave 4 (validation/FIX-LOG-2026-11-24-WAVE4.md) closes the shape classes the vendor behaviours of record and the batch, VBScript and JScript dialects define: resolved-source analysis (variable substitution, fragment and growth assembly, Chr() character construction, dialect-faithful decoding that never silently empties), HTA script-body references under R1, the fetch-object plus staged-executable composition rule, content-keyed classification for extensionless files, and written-stage accounting for echo-written second stages. Fourteen synthetic shapes that returned NO ACCOUNTED on the wave 3 engine now cap, each with its mechanism named, and the benign twins keep NO. Suite: 331 passed, operator-verified. Confirmation on the real samples awaits the shard 0 re-run on the strengthened engine; until then these entries stay open on the record.
+
+## Status addendum 2026-11-25 (shard 0 run 7, engine 130f2a4)
+
+- Run 7 produced no verdicts: all 250 downloads failed (247 HTTP 429, 3 HTTP 502; per-IP quota on shared egress, exhausted before the run began). Entries 007 and 008 were not re-judged and remain OPEN. Fix wave 4's real-sample confirmation is still outstanding and rides the next run after the quota window resets.
