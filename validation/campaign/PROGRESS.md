@@ -228,3 +228,9 @@ invocation caps); suite 224 passed, verified by the operator.
 Both waves are recorded in validation/FIX-LOG-2026-11-24-WAVE2.md
 and validation/FIX-LOG-2026-11-24-WAVE3.md. Next: push, then
 re-run shard 0 on the strengthened engine.
+
+## Shard 0 run 6 (run 45541655584, strengthened engine cd2b0c8, completed 1h41m7s)
+- Downloads: 250/250, zero errors.
+- Verdicts: YES 248 (reason classes not split in the shard output), NO ACCOUNTED 2.
+- Miss ledger samples: 003 FormBook YES, 004 njRAT YES, 005 RaccoonStealer YES, 006 Gozi .url YES. Four of six now capped on the real samples.
+- 007 (5441.pdf.cmd) and 008 (azienda_08.hta) returned NO ACCOUNTED again on the real samples. Fix wave 2 capped their synthetic shapes; the real files use shapes the wave 2 token set does not see (vendor reports: 007 is an evasive batch dropper, 008 fetches via BitsAdmin and modifies the certificate store, payload URL protware.com). Entries 007 and 008 stay OPEN. The campaign runner preserves original filenames (analyze_shard.py extractall), so name stripping is excluded as the cause. Fix wave 4 is scoped from the vendor-reported behaviours, not from imagined shapes.

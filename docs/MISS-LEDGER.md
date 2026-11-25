@@ -103,3 +103,11 @@ The ledger held no entries before 2026-11-23. An empty ledger is a statement abo
   invocation), suite 224 passed. Confirmation on the real
   samples awaits the shard 0 re-run on the strengthened
   engine; until then these entries stay open on the record.
+
+## Status addendum 2026-11-24 (shard 0 run 6, engine cd2b0c8)
+- 006 re-judged on the real sample: YES. Defect closed on real evidence.
+- 007 and 008 re-judged on the real samples: NO ACCOUNTED again. Fix wave 2 closed synthetic fixtures of their shapes, not the shapes the real files use. Both entries remain OPEN; fix wave 4 scoped from the vendor sandbox behaviours of record.
+
+## Status addendum 2026-11-24 (fix wave 4)
+
+- EZ-BYPASS-2026-007, 008: re-judged by the wave 2 and 3 engine in campaign smoke run 6 (run 45541655584); both returned NO ACCOUNTED again on the real samples. Fix wave 4 (validation/FIX-LOG-2026-11-24-WAVE4.md) closes the shape classes the vendor behaviours of record and the batch, VBScript and JScript dialects define: resolved-source analysis (variable substitution, fragment and growth assembly, Chr() character construction, dialect-faithful decoding that never silently empties), HTA script-body references under R1, the fetch-object plus staged-executable composition rule, content-keyed classification for extensionless files, and written-stage accounting for echo-written second stages. Fourteen synthetic shapes that returned NO ACCOUNTED on the wave 3 engine now cap, each with its mechanism named, and the benign twins keep NO. Suite: 331 passed, operator-verified. Confirmation on the real samples awaits the shard 0 re-run on the strengthened engine; until then these entries stay open on the record.
