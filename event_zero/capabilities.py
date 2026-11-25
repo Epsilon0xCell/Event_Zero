@@ -89,5 +89,5 @@ def match_capabilities(imports, strings, mnemonics, script_text=""):
         for n in mn_need:
             if n and n in mn: ev.append(f"instruction: {n}")
         if ev:
-            out.append({"id":rid,"name":name,"attack_id":aid,"tactic":tactic,"technique":technique,"evidence":sorted(set(ev)),"explanation":explain})
+            out.append({"id":rid,"name":name,"attack_id":aid,"tactic":tactic,"technique":technique,"evidence":sorted(set(ev)),"explanation":explain,"source":"event-zero"})
     return out

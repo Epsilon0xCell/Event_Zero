@@ -2531,6 +2531,7 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                 continue
             rec["format"] = (rep.get("format") or {}).get("format")
             rec["capabilities"] = [c["id"] for c in rep.get("capabilities", [])]
+            rec["capa"] = rep.get("capa")
             rec["analysis_verdict"] = rep.get("risk", {}).get("verdict")
             rec["behaviour_effects"] = predicted_effects(rep)
             # ---- document and firmware analysis feeds the verdict ----

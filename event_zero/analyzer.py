@@ -320,6 +320,22 @@ def analyze(path, use_llm=False, llm_client=None, sandbox_report=None, enrich=Fa
         for c in extra:
             if c["id"] not in seen: caps.append(c); seen.add(c["id"])
         cap_ids={c["id"] for c in caps}
+    # ---- capa-backed capability evidence (coverage wave 9) ----
+    # A second, independent capability source behind the same
+    # interface: capa entries carry ids under the capa: prefix
+    # that cannot collide with the authored ids the risk score
+    # weights and every verdict chain are keyed on, and they are
+    # merged after scoring, so capa evidence can neither convict
+    # nor acquit here; it is evidence for the accounting. Any
+    # capa failure degrades to the own-matcher evidence with the
+    # failure named in the report's capa field.
+    capa_info={"status":"skipped","note":"capa evidence applies to PE and ELF inputs only."}
+    if fmt.get("format") in ("PE","ELF"):
+        from .capa_evidence import capa_capabilities, merge_capabilities
+        capa_entries, capa_info = capa_capabilities(path, fmt.get("format"), data)
+        if capa_entries:
+            caps=merge_capabilities(caps, capa_entries)
+            cap_ids={c["id"] for c in caps}
     adv_score=0; adv_reasons=[]
     if evasion_r["findings"]: adv_score+=10*len(evasion_r["findings"]); adv_reasons.append(f"Evasion findings: {len(evasion_r['findings'])}")
     if rootkit_r["is_kernel_driver"]: adv_score+=25; adv_reasons.append("Kernel driver (rootkit surface)")
@@ -365,6 +381,7 @@ def analyze(path, use_llm=False, llm_client=None, sandbox_report=None, enrich=Fa
       "strings":{"count":len(all_strings),"ascii_count":len(sx["ascii"]),"utf16_count":len(sx["utf16"]),"all":all_strings,"base64_decoded":sx["base64_decoded"],"xor_decoded":sx["xor_decoded"]},
       "disassembly":{"available":dis["available"],"note":dis["note"],"instruction_count":len(dis["instructions"]),"instructions":dis["instructions"][:500],"call_sites":dis.get("call_sites",[])},
       "capabilities":caps,
+      "capa":capa_info,
       "script_analysis":({k:v for k,v in script.items() if k!='source'} if script else None),
       "script_source_excerpt":(script["source"][:4000] if script else None),
       "script_source_full":(script["source"] if script else None),

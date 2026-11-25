@@ -1,0 +1,12 @@
+# Event Zero runtime dependencies, verified set.
+# Core (pyproject dependencies):
+lief==1.0.0
+capstone==5.0.9
+pefile==2024.8.26
+pyelftools==0.33
+# Optional runtime (pyproject "full" extra):
+unicorn==2.1.4
+cryptography==50.0.2
+google-genai
+# Campaign tooling (validation/campaign, installed by campaign.yml):
+pyzipper

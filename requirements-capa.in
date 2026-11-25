@@ -1,0 +1,4 @@
+# Optional capability-evidence source (coverage wave 9).
+# Pinned to the spec floor in the frontier report, item 9:
+# capa v9.4.0, rules corpus capa-rules v9.4.0.
+flare-capa==9.4.0
