@@ -55,6 +55,7 @@ from .containers import EXTRA_CONTAINER_KINDS, detect_extra_kind, extract_to as 
 from .bytecode import bytecode_report, split_macho_fat, is_jar_signature_member
 from .coverage3 import byte_ownership, dual_parser, polyglot_identities, image_identity_accounted, driver_capabilities
 from .coverage5 import member_semantics
+from .coverage6 import SYSTEM_DLLS, autoexec_units, pe_imports
 
 HEADLINE_YES = "YES: MALWARE FOUND"
 HEADLINE_NO = "NO: NO MALWARE"
@@ -2428,6 +2429,7 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                 enumeration_aids.append({"file": e["rel"], "kind": manifest_kind(bn), "note": "A bundled manifest is an enumeration aid and a self-consistency check only: matching it proves the files match what the release itself claims, never that they are genuine."})
         text_blobs = []
         release_manifests = []
+        autoexec_all = []
         connection_ledger = []
         ledger_seq = [0]
         def ledger_add(dest, source_rel, provenance, note=""):
@@ -3267,6 +3269,106 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                                    "Next step: rebuild the container with the member under a name and form whose extraction matches its listing, or extract it with a tool that reports the divergence and run the verdict on the extracted folder.")
                             if _tb not in file_blockers:
                                 file_blockers.append(_tb)
+            # ---- auto-execution inventory (coverage wave 6,
+            # 2026-11-24): every surface that runs code
+            # automatically on a named trigger (package install
+            # hooks, prepare and native-build steps, interpreter
+            # startup files, folder-open and session-start
+            # surfaces, workspace and agent configuration) is
+            # inventoried as a first-class unit with its trigger
+            # named, and judged under the same closure rules as
+            # any script: a unit that names remote content, an
+            # unaccounted local file, or a fetch-and-execute
+            # composition caps; a trigger class the inventory
+            # does not recognise caps rather than passing
+            # silently. The exemptions mirror waves 1 to 3: byte
+            # identity does not depend on the inventory, and a
+            # failed container is already capped as a unit.
+            if rec["format"] == "PE":
+                try:
+                    _pi = pe_imports(data)
+                except Exception:
+                    _pi = None
+                if _pi is not None:
+                    rec["pe_imports"] = _pi
+            if not failed_container and rec["reference"] not in ("hash-match", "manifest-match"):
+                try:
+                    _units = autoexec_units(rel, data, entry_basenames)
+                except Exception:
+                    _units = None
+                if _units is None:
+                    _tb = (f"{rel}: auto-execution inventory: the inventory could not be built for this file, so any surface in it that runs code automatically is unaccounted. "
+                           "Next step: run the verdict again; if the failure persists, treat the file as unaccounted and inspect it manually.")
+                    if _tb not in file_blockers:
+                        file_blockers.append(_tb)
+                elif _units:
+                    rec["autoexec"] = _units
+                    for _u in _units:
+                        _trig = _u["trigger"]
+                        _capped = False
+                        if _u["parse_error"]:
+                            _tb = (f"{rel}: auto-execution inventory: this file claims an auto-execution surface ({_u['kind']}) but it could not be inventoried ({_u['parse_error']}). {_u['detail']}. "
+                                   "A trigger surface that cannot be inventoried is unaccounted and blocks any NO. "
+                                   "Next step: read the file manually and account for every command it runs automatically, or repair it into the standard form of its format and run the verdict again.")
+                            if _tb not in file_blockers:
+                                file_blockers.append(_tb)
+                            _capped = True
+                        if not _u["recognised"]:
+                            _tb = (f"{rel}: auto-execution inventory: unrecognised trigger ({_trig}) on the {_u['kind']} surface. {_u['detail']}. "
+                                   "The trigger catalogue is a maintained list, not a finished one; an unlisted trigger is behaviour nobody accounted, so it blocks any NO. "
+                                   "Next step: account for what runs on this trigger manually, and treat the catalogue entry as a coverage item for the next wave.")
+                            if _tb not in file_blockers:
+                                file_blockers.append(_tb)
+                            _capped = True
+                        for _rt in _u["remote_targets"]:
+                            _tb = (f"{rel}: auto-execution unit (trigger: {_trig}): this unit runs remote content that is not in this submission ({_rt}). {_u['detail']}. "
+                                   "What runs is decided by content fetched at trigger time, so the unit is unaccounted and blocks any NO. This is a reference finding, not a conviction: the remote content was never examined. "
+                                   "Next step: vendor the content into the submission so it is examined in the same run, or remove the remote reference.")
+                            if _tb not in file_blockers:
+                                file_blockers.append(_tb)
+                            _capped = True
+                        for _lt in _u["local_targets"]:
+                            if _lt["resolved"]:
+                                continue
+                            _tb = (f"{rel}: auto-execution unit (trigger: {_trig}): this unit runs a local file that is not part of this submission and was not examined: {_lt['target']}. {_u['detail']}. "
+                                   "A configuration whose command is absent cannot be accounted from the configuration alone, so the unit is unaccounted and blocks any NO. This is a reference finding, not a conviction. "
+                                   "Next step: include the named file in the submission so it is examined in the same run.")
+                            if _tb not in file_blockers:
+                                file_blockers.append(_tb)
+                            _capped = True
+                        for _cmd in _u["commands"]:
+                            _synth = f"{os.path.basename(rel)}.{'py' if _u['dialect'] == 'python' else 'sh'}"
+                            _cdata = _cmd.encode("utf-8", "replace")
+                            for _f in script_class_findings(_synth, _cdata):
+                                _tb = (f"{rel}: auto-execution unit (trigger: {_trig}): {_f['kind']} in a command that runs automatically ({'; '.join(_f['evidence'])}). "
+                                       "What this unit does is decided by content that is not in this submission, and the command runs on its trigger with no further user action, so the unit is unaccounted and blocks any NO. "
+                                       "Next step: remove the automatic command, or replace the remote stage with content included in this submission so it can be examined.")
+                                if _tb not in file_blockers:
+                                    file_blockers.append(_tb)
+                                _capped = True
+                            for _pf in proxy_invocation_findings(_synth, _cdata, entry_basenames):
+                                _tb = (f"{rel}: auto-execution unit (trigger: {_trig}): interpreter proxy invocation in a command that runs automatically ({'; '.join(_pf['evidence'])}). "
+                                       "What runs is decided by content outside this submission, so the unit is unaccounted and blocks any NO. "
+                                       "Next step: include the named script in the submission, or remove the automatic command.")
+                                if _tb not in file_blockers:
+                                    file_blockers.append(_tb)
+                                _capped = True
+                            _urefs, _ucomplete, _unote = external_references(_synth, _cdata)
+                            for _ref in _urefs:
+                                _dstate, _dbasis = _reference_disposition(_ref, entry_basenames)
+                                if _dstate == "unresolved":
+                                    _tb = (f"{rel}: auto-execution unit (trigger: {_trig}): external reference not accounted for: the command names {_ref['target']} ({_ref['kind']}): {_dbasis}. "
+                                           "The command runs automatically on its trigger, so the unit is unaccounted and blocks any NO. This is a reference finding, not a conviction: the referenced content was never examined. "
+                                           "Next step: include the referenced content in the submission, or remove the reference from the automatic command.")
+                                    if _tb not in file_blockers:
+                                        file_blockers.append(_tb)
+                                    _capped = True
+                        _u["accounted"] = not _capped
+                        autoexec_all.append(
+                            {"file": rel, "kind": _u["kind"],
+                             "trigger": _trig,
+                             "recognised": _u["recognised"],
+                             "accounted": not _capped})
             # ---- truncation markers: analysis caps that cut material
             # a NO would depend on are explicit unaccounted markers.
             # A file accounted by byte identity (hash match against a
@@ -3449,6 +3551,65 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
             m["verdict"] = "YES: MALWARE (PROVEN)"
             m["chains"] = list(m.get("chains", [])) + ["dll-sideload-triad"]
             m["why"].append("DLL sideload triad proven at folder level: signed executable plus unsigned replacement DLL plus encrypted sidecar.")
+
+    # ---- sideload composites (coverage wave 6, 2026-11-24):
+    # the general import-resolution case of the triad above.
+    # Where a signed host executable resolves an import (or a
+    # delay import) to a file in the same folder, the pair is
+    # judged as a composite: the loaded unit is judged alone on
+    # its own record, the host's signature covers the host only,
+    # and an unaccounted loaded unit caps the pair with the
+    # loading relationship named. This is the shape of the
+    # signed-host cases in the field (a genuine signed host
+    # beside a planted library the host loads by name): judged
+    # per file, the host is genuinely clean and the library is
+    # somebody else's problem; judged as a composite, the pair
+    # is the unit that runs. An import that resolves to no file
+    # in the folder and is not a known system library is
+    # recorded on the host's record as an unresolved import: it
+    # resolves outside this submission, and the host alone is
+    # not capped for it.
+    for _folder, _members in folders.items():
+        _by_base = {m["name"].lower(): m for m in _members}
+        for host in _members:
+            _pi = host.get("pe_imports")
+            if not _pi or not host.get("signed"):
+                continue
+            if host["name"].lower().endswith((".dll", ".sys")):
+                continue
+            _comp = {"pairs": [], "unresolved_imports": []}
+            for _kind, _names in (("import", _pi["imports"]),
+                                  ("delay-import", _pi["delay_imports"])):
+                for _dll in _names:
+                    _tgt = _by_base.get(_dll.lower())
+                    if _tgt is None:
+                        if _dll.lower() not in SYSTEM_DLLS and not _dll.lower().startswith(("api-ms-", "ext-ms-")):
+                            _comp["unresolved_imports"].append(
+                                {"library": _dll, "kind": _kind})
+                        continue
+                    if _tgt is host:
+                        continue
+                    _status = "accounted" if _tgt["verdict"].startswith("NO") else "unaccounted"
+                    _comp["pairs"].append(
+                        {"library": _dll, "kind": _kind,
+                         "loaded": _tgt["path_in_release"],
+                         "status": _status})
+                    if _status == "unaccounted":
+                        _tb = (f"{host['path_in_release']}: sideload composite: this signed executable {_kind}s {_dll}, which resolves to the same-folder file {_tgt['path_in_release']}; that file is not accounted (its verdict: {_tgt['verdict']}), and this host's signature covers this host only, never the unit it loads. "
+                               "The pair is judged as a composite: the loaded unit is judged on its own record, and because it is unaccounted, the pair is unaccounted and blocks any NO. This is a composition finding, not a conviction about either file alone. "
+                               "Next step: account for the loaded unit (supply the genuine original so it can be matched, or a signature for it that verifies), or remove it from the folder.")
+                        if host["verdict"].startswith("NO"):
+                            host["verdict"] = "YES: UNACCOUNTED"
+                        host["why"].append(_tb)
+                        blockers.append(_tb)
+            if _comp["unresolved_imports"]:
+                _names = ", ".join(
+                    f"{u['library']} ({u['kind']})"
+                    for u in _comp["unresolved_imports"])
+                host["why"].append(
+                    f"Sideload record: this signed executable imports {_names}, which are not in this folder and are not known system libraries: they resolve outside this submission (an installed library or a system copy under a name this build does not catalogue), recorded here because what the host loads is part of its accounting. The host is not capped for an absent import alone.")
+            if _comp["pairs"] or _comp["unresolved_imports"]:
+                host["sideload"] = _comp
 
     # Provenance: scene groups have no websites, so a group-site claim
     # makes the claimed provenance impossible and the release
@@ -3673,6 +3834,7 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                      "format": "JSON Lines: header, per-entry records with container parent chain and per-stream hashes, footer with tree hash. Produced by build_manifest_jsonl or the CLI --manifest option.",
                      "inheritance": "Exact: any PROVEN entry makes the release YES-PROVEN, else any UNACCOUNTED entry makes it YES-UNACCOUNTED, else NO."},
         "connection_ledger": connection_ledger,
+        "autoexec_inventory": autoexec_all,
         "behaviour_ledger": behaviour_ledger,
         "behaviour_baseline_diff": behaviour_diff,
         "enumeration_aids": enumeration_aids,
