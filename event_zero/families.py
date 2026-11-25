@@ -239,13 +239,24 @@ BOOT_TAMPER_ATOMS = ["nointegritychecks", "testsigning", "disable hvci", "hyperv
                      "disable secureboot", "secureboot disabled", "secure boot disabled", "integrity checks", "unsigned driver"]
 
 
-def _rootkit_bootkit(report, filename, signature_valid, caps, low, blockers):
+def _rootkit_bootkit(report, filename, signature_valid, caps, low, blockers,
+                     reference_accounted=False):
     rk = report.get("rootkit") or {}
     name = (filename or "").lower()
     is_sys = name.endswith(".sys") or rk.get("is_kernel_driver")
-    if is_sys and not rk.get("hiding_indicators") and signature_valid is not True:
+    # Coverage wave 8 provenance exclusion: this blocker used to be
+    # suppressed when the driver's signature verified. A signature is
+    # provenance, not accounting: it vouches for who signed the bytes,
+    # never for what an unexplained driver beside a crack is for, and
+    # the 2025 to 2026 record (Azure Trusted Signing enrolled by a
+    # crimeware operator, intercepted DigiCert token activation) is
+    # that signing identities themselves are obtainable by attackers.
+    # The blocker is now suppressed only by accounting: byte identity
+    # against the genuine reference (reference_accounted), the same
+    # basis on which every other stage exempts a hash-matched file.
+    if is_sys and not rk.get("hiding_indicators") and not reference_accounted:
         blockers.append(
-            f"{filename}: an unexplained kernel driver (.sys) sits in or beside a crack. A crack needs no kernel driver at all, so this driver is at minimum UNACCOUNTED. The FP twin, a named vendor-signed anti-cheat or hardware driver that hides nothing, accounts itself by signature and documentation; this one does neither here. Next step: supply the genuine reference or a verifying signature for the driver, or prove its function.")
+            f"{filename}: an unexplained kernel driver (.sys) sits in or beside a crack. A crack needs no kernel driver at all, so this driver is at minimum UNACCOUNTED. The FP twin, a named vendor anti-cheat or hardware driver that hides nothing, accounts itself by byte identity against the genuine reference or by proven function; a signature on this driver is recorded in the report as provenance and does not account for it. Next step: supply the genuine reference so the driver can be matched byte for byte, or prove its function.")
     esp = _hits(low, ESP_ATOMS)
     tamper = _hits(low, BOOT_TAMPER_ATOMS)
     if esp and tamper:
@@ -648,7 +659,15 @@ def _sideload_file(report, filename, caps, low):
 
 
 # ---------------------------------------------------------------- main
-def family_findings(report, filename="", data=None, signature_valid=None):
+def family_findings(report, filename="", data=None, signature_valid=None,
+                    reference_accounted=False):
+    # signature_valid is accepted for call compatibility and is
+    # deliberately not consumed toward any finding (coverage wave 8
+    # provenance exclusion: signature state is report context, never
+    # character evidence). reference_accounted is the accounting fact
+    # that may suppress the unexplained-driver blocker: the file is
+    # byte-identical to the genuine reference (hash match or a strong
+    # manifest hash), so its bytes are accounted by identity.
     report = report or {}
     caps = _caps(report)
     blob = _blob(report)
@@ -662,7 +681,8 @@ def family_findings(report, filename="", data=None, signature_valid=None):
                _miner(caps, blob, low, notes),
                _loader(caps, blob, low, ev_ids, family_unaccounted),
                _botnet(caps, blob, low),
-               _rootkit_bootkit(report, filename, signature_valid, caps, low, blockers),
+               _rootkit_bootkit(report, filename, signature_valid, caps, low, blockers,
+                                reference_accounted=reference_accounted),
                _keylogger(caps, blob, low),
                _banking(caps, blob, low, filename, notes),
                _proxy(caps, blob, low, notes),
@@ -685,6 +705,8 @@ def family_findings(report, filename="", data=None, signature_valid=None):
             "script_ledger": ledger, "beacon_config": beacon_cfg}
 
 
-def family_chains(report, filename="", data=None, signature_valid=None):
+def family_chains(report, filename="", data=None, signature_valid=None,
+                  reference_accounted=False):
     """Chain-only view, used by verdict.malicious_chains."""
-    return family_findings(report, filename, data, signature_valid)["chains"]
+    return family_findings(report, filename, data, signature_valid,
+                           reference_accounted=reference_accounted)["chains"]

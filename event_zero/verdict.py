@@ -2780,9 +2780,19 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                                         "name": f"Scope test failed: {sh['behaviour']}. {sh['why']}",
                                         "evidence": sh["evidence"]})
             # ---- per-family findings that need the raw bytes or the
-            # signature state (beacon config parsing, unexplained .sys
-            # accounting, fileless blobs, script line ledger) ----
-            ff = family_findings(rep, base, data, sig_valid)
+            # accounting state (beacon config parsing, unexplained .sys
+            # accounting, fileless blobs, script line ledger). The
+            # accounting state is computed here from the reference map
+            # because the reference section below assigns it to the
+            # record only later in this loop; the manifest states are
+            # already on the record. Coverage wave 8: the families
+            # layer receives the accounting fact, not the signature
+            # state, as the thing that can suppress a finding. ----
+            _ref_rec = None
+            if ref_map:
+                _ref_rec = ref_map.get(rel) or ref_map.get("base:" + base) or ref_map.get("sha:" + h["sha256"])
+            _reference_accounted = bool(_ref_rec and _ref_rec.get("sha256") == h["sha256"]) or rec["reference"] in ("hash-match", "manifest-match")
+            ff = family_findings(rep, base, data, sig_valid, reference_accounted=_reference_accounted)
             rec["family_chains"] = [c["chain"] for c in ff["chains"]]
             rec["family_notes"] = ff["notes"] + ff["family_unaccounted"]
             if ff["beacon_config"]:
@@ -3561,8 +3571,33 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                     rec["verdict"] = "NO: ACCOUNTED"
                     rec["why"].append("Accounted: every differing region against the genuine reference is classified expected-crack or benign-repack in the diff ledger, and no malicious capability chain exists.")
                 elif sig_valid:
+                    # Coverage wave 8 provenance rule, formalised.
+                    # Provenance (signature state, publisher identity,
+                    # attestations, reputation lookups) is report
+                    # context and is consumed toward a verdict only as
+                    # byte identity for the very file it signs: a
+                    # verifying Authenticode signature proves these
+                    # bytes are byte-identical to the bytes whose
+                    # digest the signature carries, which is an
+                    # accounting fact about identity, not character
+                    # evidence about the signer. This branch is
+                    # reachable only when the file carries no proven
+                    # chain and no blocker, so a signature can never
+                    # outweigh, soften or skip any finding: chains are
+                    # decided first, blockers second, and every
+                    # accounting gate (byte ownership, dual parser,
+                    # BYOVD capabilities, certificate-table content,
+                    # member semantics, sideload composites) speaks as
+                    # a blocker on this same file before this branch is
+                    # reached. Signer identity is consumed nowhere:
+                    # pe_signature returns no publisher name, and the
+                    # sideload pass reads signature state only to add
+                    # scrutiny (a composite pairing), never to remove
+                    # it. The named, bounded exception this retention
+                    # carries is recorded in
+                    # validation/COVERAGE-WAVE-8-LOG.md.
                     rec["verdict"] = "NO: ACCOUNTED"
-                    rec["why"].append("Accounted as genuine: the publisher signature verifies, and no malicious capability chain exists.")
+                    rec["why"].append("Accounted by byte identity: this file's digest matches the digest carried in its embedded signature and the signature verifies, and no behaviour finding, blocker or capability chain exists for this file. The signature is identity evidence for this file's bytes only: it outweighs no finding, softens no cap, and covers no other file.")
                 elif kg and not kg_bad:
                     rec["verdict"] = "NO: ACCOUNTED"
                     rec["why"].append("Accounted as expected crack: a keygen or patcher that only generates keys. No network, no persistence, no injection, no dropper behaviour. The key algorithm is circumvention, not malware.")
