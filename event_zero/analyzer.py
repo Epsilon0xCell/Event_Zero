@@ -86,8 +86,35 @@ def detect_format(data):
     if data[:2]==b'MZ':
         try: return parse_pe(data)
         except Exception: return {"format":"PE","architecture":"unknown"}
+    # Coverage wave 2: a Java class file shares its first four bytes
+    # (CAFEBABE) with the fat Mach-O magic, so the class check must
+    # run first: a class file is identified by a plausible class-file
+    # major version in bytes 6..8, which a fat header's slice count
+    # never carries in practice (45..99 against a slice count that
+    # would have to be 0x002d0000 or more).
+    if data[:4]==b'\xca\xfe\xba\xbe' and len(data)>=8 and 45<=struct.unpack('>H',data[6:8])[0]<=99: return {"format":"Java class","architecture":"JVM","sections":[],"imports":[],"symbols":[]}
+    if data[:4]==b'dex\n': return {"format":"DEX","architecture":"Dalvik/ART","sections":[],"imports":[],"symbols":[]}
+    if len(data)>=8 and data[:2]==b'\x03\x00' and data[2:4]==b'\x08\x00' and 8<=struct.unpack('<I',data[4:8])[0]<=len(data): return {"format":"Android binary XML","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
     if data[:4] in (b'\xcf\xfa\xed\xfe',b'\xfe\xed\xfa\xcf',b'\xce\xfa\xed\xfe',b'\xfe\xed\xfa\xce',b'\xca\xfe\xba\xbe',b'\xbe\xba\xfe\xca'): return parse_macho(data)
     if data[:4]==b'PK\x03\x04': return {"format":"ZIP archive","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
+    # Coverage wave 1 container kinds get their own labels, for the
+    # same reason tar does (2026-11-24 accuracy audit, defect 9): a
+    # container recognised by the verdict must not fall through to
+    # the text heuristic and be judged as script content from its
+    # raw bytes.
+    _container_stub = {"architecture":"n/a","sections":[],"imports":[],"symbols":[]}
+    if len(data)>32774 and data[32769:32774]==b'CD001': return {"format":"ISO 9660 disk image",**_container_stub}
+    if data[:4]==b'QFI\xfb': return {"format":"QCOW2 virtual disk",**_container_stub}
+    if data[:8]==b'vhdxfile': return {"format":"VHDX virtual disk",**_container_stub}
+    if len(data)>=512 and data[-512:-504]==b'conectix': return {"format":"VHD virtual disk",**_container_stub}
+    if len(data)>=512 and data[-512:-508]==b'koly': return {"format":"DMG disk image",**_container_stub}
+    if data[:4]==b'hsqs': return {"format":"SquashFS filesystem",**_container_stub}
+    if data[:4]==b'\x45\x3d\xcd\x28': return {"format":"CRAMFS filesystem",**_container_stub}
+    if data[:8]==b'!<arch>\n' and b'debian-binary' in data[:4096]: return {"format":"Debian package",**_container_stub}
+    if data[:4]==b'\xed\xab\xee\xdb': return {"format":"RPM package",**_container_stub}
+    if len(data)>520 and data[512:520]==b'EFI PART': return {"format":"raw disk image",**_container_stub}
+    if len(data)>=1082 and data[1080:1082]==b'\x53\xef': return {"format":"raw disk image",**_container_stub}
+    if len(data)>512 and (data[54:59] in (b'FAT12',b'FAT16') or data[82:87]==b'FAT32'): return {"format":"raw disk image",**_container_stub}
     if len(data)>262 and data[257:262]==b'ustar': return {"format":"TAR archive","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
     if data[:5]==b'%PDF-': return {"format":"PDF","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
     if data[:6] in (b'#!/bin',) or data[:3]==b'#!/': return {"format":"script","architecture":"n/a","sections":[],"imports":[],"symbols":[]}

@@ -51,6 +51,9 @@ from .stringsx import extract_all
 from .virt import analyze_virtualization, trace_entry_stub
 from .capabilities import match_capabilities
 from .families import family_findings, miner_disclosed
+from .containers import EXTRA_CONTAINER_KINDS, detect_extra_kind, extract_to as _extract_extra_to, firmware_regions, carve_pe_images
+from .bytecode import bytecode_report, split_macho_fat, is_jar_signature_member
+from .coverage3 import byte_ownership, dual_parser, polyglot_identities, image_identity_accounted, driver_capabilities
 
 HEADLINE_YES = "YES: MALWARE FOUND"
 HEADLINE_NO = "NO: NO MALWARE"
@@ -490,16 +493,50 @@ def script_class_findings(name, data):
                                          "the target is a remote executable payload" if upath.endswith(EXEC_PAYLOAD_EXTS)
                                          else "the target is a payload path on a bare IP host, with no page extension"]})
         return out
+    text = _decode_script_bytes(data)
     if ext not in SCRIPT_CLASS_EXTS:
-        return out
-    text = data.decode("utf-8", "replace")
+        # Wave 4: the class is keyed on content where the name
+        # carries no class at all. Identical dropper bytes under a
+        # bare hash name (the form in which samples and renamed
+        # deliveries circulate) were judged as plain text, because
+        # every script treatment in the engine keyed on the
+        # extension. A strong dialect signature in the content
+        # assigns the class the name failed to.
+        sniffed = _sniff_script_ext(text) if ext == "" else None
+        if not sniffed:
+            return out
+        ext = sniffed
     if "\x00" in text[:2000]:
         return out
+    # The scan runs over the raw source and over the resolved
+    # source (wave 4: variable substitution, character-code
+    # decoding, literal de-concatenation), and takes the union:
+    # these dialects execute the resolved text, so a literal-only
+    # scan judges a text the host never runs.
+    seen = set()
+    for cand in (text, _resolved_script_text(ext, text)):
+        for f in _script_text_findings(ext, cand):
+            key = (f["kind"], tuple(f["evidence"]))
+            if key not in seen:
+                seen.add(key)
+                out.append(f)
+    return out
+
+def _script_text_findings(ext, text):
+    """The wave 2 chain scan over one version of a script-class
+    file's source (raw or resolved), plus the wave 4 composition
+    rule: a network-fetch object composed with an executable staged
+    to disk is a fetch-and-execute chain even when no single line
+    holds both halves, which is the object model's normal shape
+    (the fetch object is created on one line, opened on another,
+    and its response body written out by a stream object on a
+    third)."""
+    out = []
     low = text.lower()
     fetch = [label for label, pat in FETCH_PATTERNS if re.search(pat, low)]
-    if not fetch:
-        return out
     execs = [label for label, pat in EXEC_PATTERNS if re.search(pat, low)]
+    if _BARE_EXEC_RE.search(text):
+        execs.append("downloaded file invoked by name")
     payload = _download_line_payload(low)
     intrinsic = [f for f in fetch if f in ("mshta remote content", "rundll32 remote content", "remote script include")]
     # An HTA is executed by mshta the moment it opens, so a remote
@@ -512,7 +549,354 @@ def script_class_findings(name, data):
         if ext == ".hta" and fetch and not execs and not payload:
             ev.append("the HTA itself is the executor: mshta runs its script on open")
         out.append({"kind": "remote-fetch-and-execute", "evidence": ev})
+        return out
+    netobj = [label for label, pat in NETOBJ_PATTERNS if re.search(pat, low)]
+    staged = _staged_executable(low)
+    if netobj and staged:
+        # The staged executable is the unaccounted content, the
+        # same basis on which wave 3 caps a download-only proxy
+        # aimed at an executable: what the file does next is
+        # decided by bytes that are not in this file.
+        ev = [f"fetch object: {n}" for n in netobj]
+        ev.append(f"executable payload staged: {staged}")
+        ev += [f"execution: {e}" for e in execs]
+        if ext == ".hta" and not execs:
+            ev.append("the HTA itself is the executor: mshta runs its script on open")
+        out.append({"kind": "remote-fetch-and-execute", "evidence": ev})
     return out
+
+# ------------------------------------------------------------------
+# Resolved script source (accuracy fix wave 4, 2026-11-24). Waves 2
+# and 3 read the raw text of script-class files, but the dialects
+# these delivery files use execute a resolved text: batch expands
+# %VAR% and !VAR! from set assignments, VBScript and JScript pass
+# URLs and paths through variables, strings are assembled from
+# fragments and concatenations, and a URL can be built from Chr()
+# character codes with no literal form anywhere. None of that is
+# obfuscation; it is the ordinary mechanics of the dialect, and an
+# idiomatically written lure file is invisible to a literal scan.
+# The helpers below produce, at the same static limit as wave 3's
+# de-concatenation, the source the host would execute: decoding
+# that never silently empties, character-code construction
+# decoded, literal concatenation collapsed, and simple
+# literal-valued variables substituted. Consumers run their
+# existing checks over the raw text and the resolved text and
+# take the union, so nothing the raw scan caught is lost.
+NETOBJ_PATTERNS = [
+    ("XMLHTTP or WinHttp object", r"(?:createobject|activexobject)\s*\(\s*[\"'](?:msxml2\.xmlhttp|microsoft\.xmlhttp|msxml2\.serverxmlhttp|winhttp\.winhttprequest)"),
+    ("WebClient download object", r"net\.webclient|webclient\s*\("),
+]
+STAGE_WRITE_PATTERNS = [
+    r"savetofile\s+([^,\n]+)",
+    r"createtextfile\s*\(\s*([^,\n]+)",
+]
+_BARE_EXEC_RE = re.compile(r"^\s*(?:call\s+)?[\"']?[^\s\"']+\.(?:exe|com|scr|bat|cmd|msi)[\"']?\s*$", re.I | re.M)
+_CHR_RUN_RE = re.compile(r"(?:ChrW?\(\s*\d+\s*\)\s*[&+]\s*)+ChrW?\(\s*\d+\s*\)|ChrW?\(\s*\d+\s*\)", re.I)
+_CHR_ONE_RE = re.compile(r"ChrW?\(\s*(\d+)\s*\)", re.I)
+_FROMCHARCODE_RE = re.compile(r"String\.fromCharCode\(([\d\s,]+)\)", re.I)
+_BATCH_DIALECT_EXTS = {".bat", ".cmd"}
+_WORD_DIALECT_EXTS = {".vbs", ".vbe", ".js", ".jse", ".wsf", ".wsh", ".hta"}
+_PS_DIALECT_EXTS = {".ps1"}
+_SHELL_DIALECT_EXTS = {".sh", ".bash"}
+
+def _decode_script_bytes(data):
+    """Decode script-class bytes the way the host reads them:
+    BOM-marked UTF-16 and UTF-8, BOM-less UTF-16 (NUL-interleaved),
+    strict UTF-8, and a cp1252 fallback for the legacy code page
+    these lure files are written in. Never returns an empty string
+    for non-empty input. Wave 3's reference extractor decoded
+    strict UTF-8 and returned "" on any error, while the format
+    heuristic reads only the first 4,096 bytes: one cp1252 byte
+    past that window in an 8 KB Italian lure batch file silently
+    emptied the file's entire external-reference list."""
+    if not data:
+        return ""
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return data.decode("utf-16", "replace")
+    if data[:3] == b"\xef\xbb\xbf":
+        return data.decode("utf-8-sig", "replace")
+    head = data[:512]
+    if len(head) >= 8:
+        pairs = max(1, len(head) // 2)
+        nul_at_odd = sum(1 for i in range(1, len(head), 2) if head[i] == 0)
+        nul_at_even = sum(1 for i in range(0, len(head), 2) if head[i] == 0)
+        if nul_at_odd > pairs * 0.6:
+            return data.decode("utf-16-le", "replace")
+        if nul_at_even > pairs * 0.6:
+            return data.decode("utf-16-be", "replace")
+    try:
+        return data.decode("utf-8")
+    except Exception:
+        return data.decode("cp1252", "replace")
+
+def _decode_chr_constructions(text):
+    """Decode Chr()/ChrW() character construction and JScript
+    String.fromCharCode into the characters they build, as a
+    quoted literal the de-concatenation pass can then join with
+    its neighbours. A URL assembled from character codes has no
+    literal form anywhere in the raw text; after this pass it is
+    an ordinary string the existing scans can read. Replacement
+    happens in the analysis copy only."""
+    def _run(m):
+        try:
+            chars = [int(n) for n in _CHR_ONE_RE.findall(m.group(0))]
+            if not chars or not all(0 < c < 0x110000 for c in chars):
+                return m.group(0)
+            return '"' + "".join(chr(c) for c in chars).replace('"', "'") + '"'
+        except Exception:
+            return m.group(0)
+    t = _CHR_RUN_RE.sub(_run, text)
+    def _fcc(m):
+        try:
+            return '"' + "".join(chr(int(n)) for n in m.group(1).split(",")).replace('"', "'") + '"'
+        except Exception:
+            return m.group(0)
+    return _FROMCHARCODE_RE.sub(_fcc, t)
+
+def _sniff_script_ext(text):
+    """Content-keyed script class for a file whose name carries no
+    extension. Every script treatment in the engine keys on the
+    extension, so identical dropper bytes under a bare hash name
+    were judged as plain text and acquitted. The signatures are
+    the dialects' own structural markers, not keywords: an
+    HTA:APPLICATION element, a script element naming VBScript or
+    JScript together with an ActiveX object, a batch file's @echo
+    opening with set and expansion structure, a VBScript object
+    script outside markup. Returns the sniffed extension or
+    None."""
+    low = text.lower()
+    if "<hta:application" in low:
+        return ".hta"
+    if "<script" in low and ("vbscript" in low or "jscript" in low) \
+            and ("createobject" in low or "activexobject" in low):
+        return ".hta"
+    head = "\n".join(text.splitlines()[:60]).lower()
+    batch_marks = sum([
+        "@echo" in head,
+        bool(re.search(r"(?m)^\s*set\s+[a-z_]\w*=", head)),
+        bool(re.search(r"(?m)^\s*(?:goto|call)\s+[:\w]", head)),
+        bool(re.search(r"%\w+%\\", head)),
+    ])
+    if batch_marks >= 3:
+        return ".cmd"
+    if "createobject(" in low and re.search(r"(?m)^\s*set\s+\w+\s*=", low) \
+            and re.search(r"(?m)^\s*dim\s+\w+", low):
+        return ".vbs"
+    return None
+
+def _batch_expand(s, env):
+    for _ in range(6):
+        n = re.sub(r"%([A-Za-z_]\w*)%", lambda m: env.get(m.group(1).lower(), m.group(0)), s, flags=re.I)
+        n = re.sub(r"!([A-Za-z_]\w*)!", lambda m: env.get(m.group(1).lower(), m.group(0)), n, flags=re.I)
+        # a batch-set variable is part of the environment a child
+        # PowerShell process inherits, read there as $env:NAME
+        n = re.sub(r"\$env:([A-Za-z_]\w*)", lambda m: env.get(m.group(1).lower(), m.group(0)), n, flags=re.I)
+        if n == s:
+            break
+        s = n
+    return s
+
+def _batch_resolve(lines):
+    env = {}
+    for ln in lines:
+        m = re.match(r"\s*set\s+(.+)$", ln, re.I)
+        if not m or _is_comment_line(ln):
+            continue
+        rest = m.group(1).strip()
+        if rest.startswith("/") or "=" not in rest:
+            continue
+        if rest.startswith('"') and rest.endswith('"'):
+            rest = rest[1:-1]
+        k, v = rest.split("=", 1)
+        k = k.strip()
+        if re.fullmatch(r"[A-Za-z_]\w*", k):
+            env[k.lower()] = _batch_expand(v.strip(), env)
+    # Assignment lines are emitted as written: their values built
+    # the environment, and re-expanding a self-referential
+    # assignment (set u=%u%.exe) against the final environment
+    # would double-apply it. Every other line is expanded with
+    # the final environment, which is the text the host runs.
+    return [ln if (_is_comment_line(ln) or re.match(r"\s*set\s+", ln, re.I))
+            else _batch_expand(ln, env) for ln in lines]
+
+_LIT_ASSIGN_RE = re.compile(r"(?<![\w$.])([A-Za-z_]\w*)\s*=\s*(\"([^\"]*)\"|'([^']*)')")
+
+def _word_env(lines):
+    env = {}
+    for ln in lines:
+        if _is_comment_line(ln):
+            continue
+        for m in _LIT_ASSIGN_RE.finditer(ln):
+            if m.start() > 0 and ln[m.start() - 1] == "=":
+                continue
+            env[m.group(1).lower()] = m.group(3) if m.group(3) is not None else m.group(4)
+    return env
+
+def _substitute_outside_quotes(line, subs, quote_chars):
+    parts = re.split("(" + "|".join(re.escape(q) + "[^" + re.escape(q) + "]*" + re.escape(q) for q in quote_chars) + ")", line)
+    for i in range(0, len(parts), 2):
+        seg = parts[i]
+        for pat, val in subs:
+            seg = pat.sub(lambda _m, v=val: v, seg)
+        parts[i] = seg
+    return "".join(parts)
+
+def _word_resolve(lines, ext):
+    env = _word_env(lines)
+    if not env:
+        return lines
+    subs = []
+    for k, v in env.items():
+        pat = re.compile(r"(?<![\w$.])" + re.escape(k) + r"(?![\w])", re.I)
+        subs.append((pat, '"' + v.replace('"', "'") + '"'))
+    quotes = ('"',) if ext in (".vbs", ".vbe", ".wsf", ".wsh") else ('"', "'")
+    return [ln if _is_comment_line(ln) else _substitute_outside_quotes(ln, subs, quotes)
+            for ln in lines]
+
+def _ps_resolve(lines):
+    env = {}
+    for ln in lines:
+        if _is_comment_line(ln):
+            continue
+        for m in re.finditer(r"\$([A-Za-z_]\w*)\s*=\s*(\"([^\"]*)\"|'([^']*)')", ln):
+            env[m.group(1).lower()] = m.group(3) if m.group(3) is not None else m.group(4)
+    if not env:
+        return lines
+    out = []
+    for ln in lines:
+        if _is_comment_line(ln):
+            out.append(ln)
+            continue
+        for k, v in env.items():
+            ln = re.sub(r"\$" + re.escape(k) + r"(?![\w:])", lambda _m, v=v: '"' + v.replace('"', "'") + '"', ln, flags=re.I)
+        out.append(ln)
+    return out
+
+def _shell_resolve(lines):
+    env = {}
+    for ln in lines:
+        m = re.match(r"\s*(?:export\s+)?([A-Za-z_]\w*)=(\"([^\"]*)\"|'([^']*)'|([^\s]+))", ln)
+        if m and not _is_comment_line(ln):
+            env[m.group(1)] = next(g for g in m.groups()[1:] if g is not None)
+    if not env:
+        return lines
+    out = []
+    for ln in lines:
+        if _is_comment_line(ln):
+            out.append(ln)
+            continue
+        for k, v in env.items():
+            ln = ln.replace("${" + k + "}", v)
+            ln = re.sub(r"\$" + re.escape(k) + r"(?![\w])", lambda _m, v=v: v, ln)
+        out.append(ln)
+    return out
+
+def _resolved_script_text(ext, text):
+    """The source the host would execute, resolved at the static
+    limit: character-code construction decoded, adjacent literal
+    concatenation collapsed, and simple literal-valued variables
+    substituted in the dialect's own syntax (batch %VAR% and
+    !VAR! from set assignments, VBScript and JScript identifiers,
+    PowerShell $VAR, shell $VAR). Substitution runs on
+    non-comment lines only, so a mention in a comment stays a
+    mention (the wave 2 comment control). Anything the static
+    limit cannot resolve (function results, registry or
+    environment reads, substring arithmetic on non-literals)
+    stays visibly unresolved in the output rather than being
+    guessed."""
+    t = _deconcatenate(_decode_chr_constructions(text))
+    lines = t.splitlines()
+    if ext in _BATCH_DIALECT_EXTS:
+        lines = _batch_resolve(lines)
+    elif ext in _WORD_DIALECT_EXTS:
+        lines = _word_resolve(lines, ext)
+    elif ext in _PS_DIALECT_EXTS:
+        lines = _ps_resolve(lines)
+    elif ext in _SHELL_DIALECT_EXTS:
+        lines = _shell_resolve(lines)
+    return "\n".join(lines)
+
+def _staged_executable(low):
+    """An executable-class path handed to a stream write in the
+    (lowercased) source: the staged payload of the object model,
+    where the download line of the command model is an Open call
+    and a SaveToFile three lines apart."""
+    for pat in STAGE_WRITE_PATTERNS:
+        for m in re.finditer(pat, low):
+            tgt = m.group(1).strip().strip("\"'").rstrip(")\"' ")
+            if tgt.endswith(EXEC_PAYLOAD_EXTS):
+                return tgt
+    return None
+
+_ECHO_STAGE_RE = re.compile(r"^\s*@?echo\s+(.*?)\s*(>>?)\s*(\S+)\s*$", re.I)
+
+def _echo_stages(text):
+    """Files a batch file writes with echo redirection, as
+    {target token: reconstructed content}. A single > starts the
+    file over; >> appends. The reconstruction is exact for the
+    lines the writer carries: echo is a literal transcription in
+    this dialect."""
+    stages = {}
+    for ln in text.splitlines():
+        if _is_comment_line(ln):
+            continue
+        m = _ECHO_STAGE_RE.match(ln)
+        if not m:
+            continue
+        content, op, target = m.group(1), m.group(2), m.group(3).strip("\"'")
+        if op == ">":
+            stages[target] = [content]
+        else:
+            stages.setdefault(target, []).append(content)
+    return {t: "\r\n".join(ls) for t, ls in stages.items()}
+
+def written_stage_findings(name, data, local_basenames=()):
+    """Wave 4, written-stage accounting. A batch file that writes
+    a second script with echo redirection and runs it moves its
+    behaviour into a file that is not in the submission: the
+    stage exists only when the writer runs. The stage's content
+    is nevertheless fully determined by the writer's own lines,
+    so it is reconstructed here and judged with the same
+    functions as a submitted file. A stage that fails its own
+    accounting makes the writer unaccounted; a stage that is
+    reconstructed and judged is returned in the judged set, so
+    an invocation of it by name is an invocation of examined
+    content, not of an absent file. Returns (findings,
+    judged_basenames)."""
+    base = os.path.basename(str(name).split("!")[-1]).lower()
+    ext = os.path.splitext(base)[1]
+    text = _decode_script_bytes(data)
+    if ext == "":
+        ext = _sniff_script_ext(text) or ext
+    if ext not in _BATCH_DIALECT_EXTS:
+        return [], set()
+    stages = _echo_stages(_resolved_script_text(ext, text))
+    findings, judged = [], set()
+    for target, content in stages.items():
+        tbase = os.path.basename(target.replace("\\", "/")).lower()
+        text_ext = os.path.splitext(tbase)[1]
+        stage_ext = text_ext if text_ext in SCRIPT_CLASS_EXTS else _sniff_script_ext(content)
+        if stage_ext not in SCRIPT_CLASS_EXTS:
+            continue
+        judged.add(tbase)
+        locals_ = set(local_basenames) | judged
+        cdata = content.encode()
+        inner = []
+        for f in script_class_findings(tbase, cdata):
+            inner.append(f["kind"])
+        for f in proxy_invocation_findings(tbase, cdata, locals_):
+            inner.append(f["kind"])
+        refs, _complete, _note = external_references(tbase, cdata)
+        for r in refs:
+            d, _why = _reference_disposition(r, locals_)
+            if d == "unresolved":
+                inner.append("external-reference-unresolved")
+        if inner:
+            findings.append({"kind": "written-stage-unaccounted",
+                             "evidence": [f"stage written by this file at runtime: {target}",
+                                          "the stage's own accounting fails on: " + ", ".join(sorted(set(inner))),
+                                          "the stage is not part of this submission; it exists only when this file runs, so its content was reconstructed from this file's write lines and judged as written"]})
+    return findings, judged
 
 # ------------------------------------------------------------------
 # External references, interpreter proxies (accuracy fix wave 3,
@@ -663,11 +1047,21 @@ def external_references(name, data):
     _cache = [None]
     def _text():
         if _cache[0] is None:
-            try:
-                _cache[0] = data.decode("utf-8")
-            except Exception:
-                _cache[0] = ""
+            # Wave 4: dialect-faithful decoding. The strict
+            # UTF-8 decode this replaces returned "" on any
+            # error, silently emptying the reference list of
+            # any file with a byte outside UTF-8 (a cp1252
+            # Italian lure line past the format heuristic's
+            # 4 KB window was enough).
+            _cache[0] = _decode_script_bytes(data)
         return _cache[0]
+    if ext == "":
+        # Wave 4: an extensionless file is routed by its
+        # content's dialect signature, like every other
+        # script treatment (see _sniff_script_ext).
+        _sniffed = _sniff_script_ext(_text())
+        if _sniffed:
+            ext = _sniffed
     if ext == ".url":
         refs = []
         for line in _text().splitlines():
@@ -713,24 +1107,55 @@ def external_references(name, data):
                  for u in re.findall(r"http-equiv\s*=\s*[\"']?refresh[\"']?[^>]*url\s*=\s*([^\s\"'>]+)", t, re.I)]
         refs += [{"kind": "protocol-uri", "target": u, "source": "protocol handler URI in markup"}
                  for u in sorted(set(_REF_PROTO_RE.findall(t)))]
+        if ext == ".hta":
+            # Wave 4: an HTA's script body is script source in
+            # every sense the closure rule cares about (mshta
+            # executes it on open), but this branch returned
+            # before the script branch below, so URLs in the
+            # body were never extracted as references at all:
+            # the .hta was the one script class whose own URLs
+            # were invisible to R1. They are extracted now, raw
+            # and resolved, with the ordinary dispositions.
+            seen = {r["target"] for r in refs}
+            for cand in (t, _resolved_script_text(ext, t)):
+                body = "\n".join(ln for ln in cand.splitlines()
+                                 if not _is_comment_line(ln))
+                for u in _REF_URL_RE.findall(body):
+                    u = u.rstrip(".,;:")
+                    if u not in seen:
+                        seen.add(u)
+                        refs.append({"kind": "script-url", "target": u,
+                                     "source": "HTA script body"})
+            return refs, True, "HTML resource references and HTA script body references"
         return refs, True, "HTML resource references"
     if ext in SCRIPT_CLASS_EXTS:
-        body = "\n".join(ln for ln in _deconcatenate(_text()).splitlines()
-                         if not _is_comment_line(ln))
+        # Wave 4: references are extracted from the raw source
+        # and from the resolved source (variables substituted,
+        # character codes decoded), because the dialect executes
+        # the resolved text: a URL held in a variable, assembled
+        # from fragments, or grown by a second assignment is a
+        # reference the file makes, in the only form that matters.
         refs = []
         seen = set()
-        for u in _REF_URL_RE.findall(body):
-            u = u.rstrip(".,;:")
-            if u not in seen:
-                seen.add(u)
-                refs.append({"kind": "script-url", "target": u, "source": "script source"})
-        refs += [{"kind": "script-unc", "target": u, "source": "script source"}
-                 for u in sorted(set(_REF_UNC_RE.findall(body)))]
-        refs += [{"kind": "protocol-uri", "target": u, "source": "script source"}
-                 for u in sorted(set(_REF_PROTO_RE.findall(body)))]
+        for cand in (_deconcatenate(_text()), _resolved_script_text(ext, _text())):
+            body = "\n".join(ln for ln in cand.splitlines()
+                             if not _is_comment_line(ln))
+            for u in _REF_URL_RE.findall(body):
+                u = u.rstrip(".,;:")
+                if u not in seen:
+                    seen.add(u)
+                    refs.append({"kind": "script-url", "target": u, "source": "script source"})
+            for u in sorted(set(_REF_UNC_RE.findall(body))):
+                if ("script-unc", u) not in seen:
+                    seen.add(("script-unc", u))
+                    refs.append({"kind": "script-unc", "target": u, "source": "script source"})
+            for u in sorted(set(_REF_PROTO_RE.findall(body))):
+                if ("protocol-uri", u) not in seen:
+                    seen.add(("protocol-uri", u))
+                    refs.append({"kind": "protocol-uri", "target": u, "source": "script source"})
         return (refs, True,
                 "script source references, after static de-concatenation of "
-                "split string literals")
+                "split string literals and resolution of literal-valued variables")
     if ext in (".eml", ".txt", ".md", ".nfo"):
         refs = [{"kind": "protocol-uri", "target": u, "source": "protocol handler URI in text"}
                 for u in sorted(set(_REF_PROTO_RE.findall(_text())))]
@@ -921,14 +1346,26 @@ def proxy_invocation_findings(name, data, local_basenames=()):
     ext = os.path.splitext(base)[1]
     if ext == ".lnk":
         lines = [" ".join(parse_lnk(data)["strings"])]
-    elif ext in SCRIPT_CLASS_EXTS:
-        text = data.decode("utf-8", "replace")
+    elif ext in SCRIPT_CLASS_EXTS or ext == "":
+        text = _decode_script_bytes(data)
         if "\x00" in text[:2000]:
             return []
+        if ext == "":
+            ext = _sniff_script_ext(text)
+            if ext not in SCRIPT_CLASS_EXTS:
+                return []
+        # Wave 4: the invocation is scanned in the raw lines and
+        # in the resolved lines (variable substitution applied),
+        # because the proxy is aimed by the resolved text: a
+        # wscript invocation of a variable-held path names its
+        # target only after substitution.
         lines = [ln for ln in text.splitlines() if not _is_comment_line(ln)]
+        lines += [ln for ln in _resolved_script_text(ext, text).splitlines()
+                  if not _is_comment_line(ln)]
     else:
         return []
     out = []
+    seen_ev = set()
     for line in lines:
         low = line.lower()
         proxies = [p for p in PROXY_BINARIES
@@ -969,7 +1406,10 @@ def proxy_invocation_findings(name, data, local_basenames=()):
                       f"submission and was not examined: {tok}")
             break
         if ev:
-            out.append({"kind": "interpreter-proxy-invocation", "evidence": ev})
+            key = tuple(ev)
+            if key not in seen_ev:
+                seen_ev.add(key)
+                out.append({"kind": "interpreter-proxy-invocation", "evidence": ev})
     return out
 
 def parse_lnk(data):
@@ -1229,6 +1669,14 @@ def container_kind(path, data):
         return "zip"
     if data[:4] in (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"):
         return "zip"
+    # Coverage wave 1 kinds are detected before tar on purpose:
+    # tarfile.is_tarfile answers True for any file whose first block
+    # is zeros (an ISO 9660 image opens with sixteen zero sectors),
+    # so a disk image would otherwise be claimed as an empty tar
+    # and its interior never enumerated.
+    extra = detect_extra_kind(path, data)
+    if extra:
+        return extra
     try:
         if tarfile.is_tarfile(path):
             return "tar"
@@ -1431,13 +1879,137 @@ def enumerate_subject(path, workdir):
             if depth < 3:
                 expand(target, arel, "archive", depth + 1)
 
+    def _register_members(dest, rel, origin, depth, before_mark=None):
+        """Shared tail of every container expansion: record the
+        extracted members as entries, note them in the installer
+        contents ledger, and recurse into nested containers."""
+        expanded_containers.append(rel)
+        installer["is_installer_or_archive"] = True
+        installer["extracted"] = True
+        before = len(entries)
+        add_tree(dest, "archive", prefix=rel + "!")
+        for e in list(entries[before:]):
+            installer["contents"].append(e["rel"])
+            installer["drop_list"].append(e["rel"])
+        if depth < 3:
+            for e in list(entries[before:]):
+                expand(e["abspath"], e["rel"], "archive", depth + 1)
+        else:
+            for e in list(entries[before:]):
+                try:
+                    with open(e["abspath"], "rb") as fh:
+                        edata = fh.read()
+                    if container_kind(e["abspath"], edata) is not None:
+                        unexpanded.append(e["rel"])
+                except Exception:
+                    pass
+        return True
+
+    def expand_extra(ap, rel, origin, depth, data, kind):
+        """Coverage wave 1 containers (disk images, virtual disks,
+        firmware filesystems standing alone, OS packages): the same
+        contract as zip and tar. Full enumeration registers the
+        members as verdict units; any failure is a failed container,
+        unaccounted by construction, never judged from raw bytes."""
+        installer["is_installer_or_archive"] = True
+        installer["kind"] = installer["kind"] or f"{kind} container"
+        dest = os.path.join(workdir, f"extract_{depth}_{hashlib.sha256(rel.encode('utf-8')).hexdigest()[:16]}")
+        os.makedirs(dest, exist_ok=True)
+        try:
+            _extract_extra_to(data, kind, dest)
+        except Exception as e:
+            blockers.append(f"Container {rel} ({kind}) could not be fully enumerated: {e}. Its contents are unaccounted, so no NO verdict can cover them.")
+            failed_containers.append(rel)
+            return True
+        return _register_members(dest, rel, origin, depth)
+
+    def expand_firmware(ap, rel, data, depth):
+        """Firmware images: filesystem regions (SquashFS, CRAMFS,
+        JFFS2, UBI) are extracted as members and carved PE images
+        (DXE, PEI and SMM drivers) are re-submitted as entries with
+        verdicts of their own. A region this build cannot extract
+        is named on the firmware unit's own record as a failed
+        container: unaccounted, never silently inert."""
+        regions = firmware_regions(data)
+        has_fv = b"_FVH" in data
+        if not regions and not has_fv:
+            return False
+        dest = os.path.join(workdir, f"extract_fw_{hashlib.sha256(rel.encode('utf-8')).hexdigest()[:16]}")
+        os.makedirs(dest, exist_ok=True)
+        wrote = False
+        failures = []
+        if has_fv:
+            for off, blob in carve_pe_images(data):
+                target = os.path.join(dest, f"dxe_{off}.efi")
+                with open(target, "wb") as out:
+                    out.write(blob)
+                wrote = True
+        ordered = sorted(regions, key=lambda r: r["offset"])
+        for idx, r in enumerate(ordered):
+            start = r["offset"]
+            if r["length"]:
+                end = start + r["length"]
+            elif idx + 1 < len(ordered):
+                end = ordered[idx + 1]["offset"]
+            else:
+                end = len(data)
+            blob = data[start:end]
+            sub = os.path.join(dest, f"fs{idx}_{r['kind']}")
+            os.makedirs(sub, exist_ok=True)
+            try:
+                _extract_extra_to(blob, r["kind"], sub)
+                wrote = True
+            except Exception as e:
+                failures.append(f"{rel}: the {r['label']} at offset {start} could not be extracted: {e}. That filesystem interior is unenumerated and unaccounted, and it blocks any NO for this firmware image. Next step: extract that filesystem region with a firmware tool (unsquashfs, unblob, or a UBIFS reader) and run the verdict on the extracted folder.")
+        if failures:
+            for f in failures:
+                entry_blockers.setdefault(rel, []).append(f)
+            failed_containers.append(rel)
+            if wrote:
+                before = len(entries)
+                add_tree(dest, "archive", prefix=rel + "!")
+                if depth < 3:
+                    for e in list(entries[before:]):
+                        expand(e["abspath"], e["rel"], "archive", depth + 1)
+            return True
+        if wrote:
+            return _register_members(dest, rel, "archive", depth)
+        return False
+
+    def expand_macho_fat(ap, rel, origin, depth, data):
+        """Fat Mach-O binaries (coverage wave 2): each architecture
+        slice is cut out and registered as an entry of its own, so
+        every slice is analysed and verdicted as its own unit, the
+        same contract the firmware expander gives carved PE images.
+        A slice that cannot be cut (declared out of bounds or
+        truncated) fails the bundle by name: the bundle is a failed
+        container and no slice accounting can cover it."""
+        slices, err = split_macho_fat(data)
+        if slices is None and err is None:
+            return False
+        if err:
+            blockers.append(f"Container {rel} (fat Mach-O) could not be fully enumerated: {err}. Its slices are unaccounted, so no NO verdict can cover them.")
+            failed_containers.append(rel)
+            return True
+        dest = os.path.join(workdir, f"extract_fat_{hashlib.sha256(rel.encode('utf-8')).hexdigest()[:16]}")
+        os.makedirs(dest, exist_ok=True)
+        for s in slices:
+            target = os.path.join(dest, f"slice_{s['arch']}")
+            with open(target, "wb") as out:
+                out.write(s["data"])
+        return _register_members(dest, rel, "archive", depth)
+
     def expand(ap, rel, origin, depth):
         with open(ap, "rb") as f:
             data = f.read()
         kind = container_kind(ap, data)
         if kind is None:
             expand_email(ap, rel, origin, depth)
-            return False
+            if expand_macho_fat(ap, rel, origin, depth, data):
+                return True
+            return expand_firmware(ap, rel, data, depth)
+        if kind in EXTRA_CONTAINER_KINDS:
+            return expand_extra(ap, rel, origin, depth, data, kind)
         installer["is_installer_or_archive"] = True
         installer["kind"] = installer["kind"] or f"{kind} archive"
         if kind in UNSUPPORTED_CONTAINER_KINDS:
@@ -1817,6 +2389,34 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
         # files is resolved, because the target was judged here
         # (wave 3, R1 and R5).
         entry_basenames = {os.path.basename(e["rel"].split("!")[-1]).lower() for e in entries}
+        # Coverage wave 2: the Java and DEX classes defined anywhere
+        # in this submission, collected before the per-file loop, so
+        # a class file's dynamic load of a sibling class (or a DEX
+        # file's load of a class defined in a second DEX) resolves
+        # against the submission itself instead of capping.
+        known_class_names = set()
+        known_dex_class_names = set()
+        from .bytecode import parse_class_file as _parse_class_file, parse_dex as _parse_dex, is_java_class as _is_java_class, is_dex as _is_dex
+        for e in entries:
+            try:
+                with open(e["abspath"], "rb") as _kf:
+                    _kdata = _kf.read()
+            except Exception:
+                continue
+            if _is_java_class(_kdata):
+                try:
+                    _kr = _parse_class_file(_kdata)
+                    if _kr.get("this_class"):
+                        known_class_names.add(_kr["this_class"])
+                except Exception:
+                    pass
+            elif _is_dex(_kdata):
+                try:
+                    _kr = _parse_dex(_kdata)
+                    for _kc in _kr.get("classes") or []:
+                        known_dex_class_names.add(_kc["name"])
+                except Exception:
+                    pass
         blockers.extend(enum_blockers)
         enumeration_aids = []
         for e in entries:
@@ -1992,6 +2592,14 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
             # self-extracting PE, say): that file is judged as code in
             # its own right as well as enumerated.
             container_entry = rel in expanded_container_set and rec["format"] not in EXECUTABLE_FORMATS
+            # Coverage wave 2: a fat Mach-O that was fully expanded
+            # into slices is an enumeration unit by the same rule,
+            # even though its format label (Mach-O) sits in
+            # EXECUTABLE_FORMATS: the slices are the judged content,
+            # each verdicted as its own unit, and the bundle's own
+            # bytes are the slices' bytes read a second time.
+            if rel in expanded_container_set and data[:4] in (b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca"):
+                container_entry = True
             # A container that FAILED enumeration gets the same
             # judgement exemption, for the opposite reason: its
             # contents could not be enumerated at all, so nothing in
@@ -2321,12 +2929,15 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                     rec["why"].append("A gated trigger (logic bomb pattern) is present, but every differing region against the genuine reference is classified expected-crack or benign-repack, so the trigger is accounted as the genuine program's own logic or the explained crack.")
                 elif cb not in file_blockers:
                     file_blockers.append(cb)
-            if rec["format"] == "unknown binary data" and not container_entry:
+            if rec["format"] == "unknown binary data" and not container_entry and not is_jar_signature_member(rel):
                 # A fully enumerated container whose own container
                 # format has no dedicated label (a tar.gz, say) is an
                 # enumeration unit: its members are the judged
                 # content, so the container's own format label is not
-                # unaccounted content.
+                # unaccounted content. A JAR signature member is
+                # likewise an identified format (DER or digest data),
+                # inventoried by the coverage wave 2 JAR accounting
+                # on the JAR's own record, not unaccounted content.
                 file_blockers.append(f"{rel}: the file format was not recognised, so the file could not be fully decoded. Its bytes are unaccounted.")
             if rep.get("unpack", {}).get("high_entropy_regions") and virt_detected and not virt_is_patch_area:
                 file_blockers.append(f"{rel}: high entropy regions sit inside the virtualized protector and cannot be decoded statically. Those bytes are unaccounted.")
@@ -2437,8 +3048,21 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                                "Next step: fetch the referenced content inside a disposable sandbox and run the verdict on it as well, or account for this file by byte identity against a genuine reference.")
                         if _tb not in file_blockers:
                             file_blockers.append(_tb)
+                # ---- written stages (accuracy fix wave 4,
+                # 2026-11-24): a batch file that writes a second
+                # script with echo redirection moves its behaviour
+                # into a file that is not in the submission. The
+                # stage's content is fully determined by the
+                # writer's own lines, so it is reconstructed and
+                # judged here; a judged stage counts as examined
+                # content for the proxy check below, and a stage
+                # that fails its own accounting blocks the writer.
+                _stage_findings, _stage_locals = [], set()
                 if not judgement_exempt:
-                    _pf = proxy_invocation_findings(base, data, entry_basenames)
+                    _stage_findings, _stage_locals = written_stage_findings(
+                        base, data, entry_basenames)
+                if not judgement_exempt:
+                    _pf = proxy_invocation_findings(base, data, entry_basenames | _stage_locals)
                     if _pf:
                         rec["proxy_invocation_findings"] = _pf
                         for _f in _pf:
@@ -2448,6 +3072,161 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                                    "Next step: include the invoked file in the submission so it is examined in the same run, fetch the remote content inside a disposable sandbox and judge it too, or account for this file by byte identity against a genuine reference.")
                             if _tb not in file_blockers:
                                 file_blockers.append(_tb)
+                    if _stage_findings:
+                        rec["written_stage_findings"] = _stage_findings
+                        for _f in _stage_findings:
+                            _ev = "; ".join(_f["evidence"])
+                            _tb = (f"{rel}: written-stage-unaccounted: this batch file writes a script file at runtime whose content cannot be accounted ({_ev}). "
+                                   "The written file is not in this submission; it exists only when this file runs, so what this file does is decided in part by that content, and the content fails its own accounting, which blocks any NO. "
+                                   "Next step: include the written script in the submission so it is examined as a file in the same run, or account for this file by byte identity against a genuine reference.")
+                            if _tb not in file_blockers:
+                                file_blockers.append(_tb)
+            # ---- bytecode accounting (coverage wave 2, 2026-11-24):
+            # Java class files and JARs, .NET assemblies (IL decoded
+            # at method level), DEX files and binary Android
+            # manifests, and Mach-O code signature and entitlement
+            # extraction. The parsers live in event_zero.bytecode and
+            # state their own depth in the wave log; this section
+            # wires their findings into the same accounting rules as
+            # every other unit: a proven chain is a yes reason, an
+            # unresolvable unit is a named blocker on the file's own
+            # record, an unresolved external reference caps by the
+            # wave 3 R1 rule, and a fully accounted unit earns the
+            # bytecode branch of the final decision below. Exemptions
+            # mirror waves 2 and 3: byte identity (hash match or a
+            # strong manifest hash) does not depend on this reading,
+            # and a failed container is already capped as a unit. A
+            # fully enumerated container is NOT exempt: a JAR is
+            # exactly a container whose manifest, signer and class
+            # path accounting belongs to the JAR's own record, and a
+            # fat Mach-O bundle's signature accounting belongs to the
+            # bundle and its slices.
+            if not failed_container and rec["reference"] not in ("hash-match", "manifest-match"):
+                try:
+                    _bc = bytecode_report(rel, data, known_files=entry_basenames,
+                                          known_classes=known_class_names,
+                                          known_dex_classes=known_dex_class_names)
+                except Exception as _bcex:
+                    _bc = {"kind": "bytecode", "accounted": False, "references": [],
+                           "chains": [], "notes": [], "rec": {},
+                           "blockers": [f"bytecode accounting: the bytecode parser failed on this file ({_bcex}), so its bytecode is unaccounted"]}
+                if _bc is not None:
+                    rec["bytecode"] = _bc["rec"]
+                    rec["bytecode_kind"] = _bc["kind"]
+                    rec["bytecode_accounted"] = bool(_bc.get("accounted"))
+                    for _note in _bc.get("notes") or []:
+                        rec["why"].append(_note)
+                    if not judgement_exempt:
+                        for _ch in _bc.get("chains") or []:
+                            yes_reasons.append({"file": rel, "chain": _ch["chain"],
+                                                "name": _ch["name"], "evidence": _ch["evidence"]})
+                            if _ch["chain"] not in rec["chains"]:
+                                rec["chains"] = rec["chains"] + [_ch["chain"]]
+                    for _b in _bc.get("blockers") or []:
+                        _tb = f"{rel}: {_b}"
+                        if _tb not in file_blockers:
+                            file_blockers.append(_tb)
+                    for _r in _bc.get("references") or []:
+                        _d, _why = _reference_disposition(_r, entry_basenames)
+                        if _d == "unresolved":
+                            _tb = (f"{rel}: external-reference-unresolved: this file's bytecode points at content outside itself that was not examined in this run ({_r['kind']}: {_r['target']}). "
+                                   "What the file does is decided in part by that content, so its behaviour cannot be accounted from the file alone, and the reference caps any NO. "
+                                   "Next step: include the referenced content in the submission so it is examined in the same run, or account for this file by byte identity against a genuine reference.")
+                            if _tb not in file_blockers:
+                                file_blockers.append(_tb)
+            # ---- byte ownership, the dual-parser gate, polyglot
+            # accounting and the BYOVD carve-out (coverage wave 3,
+            # 2026-11-24). A NO now certifies two further things:
+            # that every material byte range has an accounted owner,
+            # and that independent parsers agree on the file's
+            # structure. The ownership and dual-parser readings carry
+            # the usual exemptions (byte identity does not depend on
+            # them; a failed container is already capped as a unit).
+            # The BYOVD carve-out carries NO provenance exemption: a
+            # genuine signed driver with a dangerous capability set
+            # is the exploit primitive, so it applies even to a
+            # hash-matched or signature-verified driver. Polyglot
+            # accounting requires every identity the bytes satisfy
+            # to be accounted: an enumerated archive identity, an
+            # image identity that is complete under its own format,
+            # a carved and analysed appended binary, or the primary
+            # identity judged in this loop.
+            _drv = driver_capabilities(
+                base, data,
+                [i.get("name", "") for i in rep.get("imports") or []],
+                rep.get("strings", {}).get("all", []),
+                bool((rep.get("rootkit") or {}).get("is_kernel_driver")))
+            if _drv["is_driver"]:
+                rec["driver_capabilities"] = _drv
+                if _drv["capabilities"] and not failed_container:
+                    _ev = "; ".join(f"{c['category']}: {', '.join(c['evidence'])}"
+                                    for c in _drv["capabilities"])
+                    _tb = (f"{rel}: BYOVD carve-out: this Windows kernel driver carries a dangerous capability set ({_ev}). "
+                           "A driver with these primitives is a bring-your-own-vulnerable-driver exploit primitive once a loader issues its IOCTLs, and that is true of the genuine signed original exactly as much as of a copy: provenance and byte identity vouch for where the driver came from, never for what it can be made to do. "
+                           "The capability set is therefore refused clean on capability grounds, regardless of signature or hash match, and the capabilities are enumerated here as the reason. "
+                           "Next step: judge the driver's deployment context with it (the loader that drives it must be accounted in the same submission), or remove the driver from the release.")
+                    if _tb not in file_blockers:
+                        file_blockers.append(_tb)
+            if not failed_container and rec["reference"] not in ("hash-match", "manifest-match"):
+                try:
+                    _own = byte_ownership(base, data, expanded=rel in expanded_container_set)
+                except Exception:
+                    _own = None
+                if _own is not None:
+                    rec["byte_ownership"] = _own
+                    for _u in _own["material_unowned"]:
+                        _tb = (f"{rel}: byte-ownership: the range at offset {_u['offset_hex']} ({_u['size']} bytes, entropy {_u['entropy']}) has no accounted owner: {_u['reason']}. "
+                               "A verdict of NO certifies that every byte was accounted for; bytes no analysis owns are unaccounted and cap the verdict. "
+                               "Next step: account for that range (extract it and run the verdict on it as its own unit, or supply the genuine reference so it can be classified), or remove it.")
+                        if _tb not in file_blockers:
+                            file_blockers.append(_tb)
+                if rec["format"] in ("PE", "ELF"):
+                    try:
+                        _dual = dual_parser(data, e["abspath"])
+                    except Exception as _dex:
+                        _dual = {"available": False, "parsers": [],
+                                 "compared": [], "disagreements": [],
+                                 "kind": rec["format"],
+                                 "reason": f"the dual-parser gate itself failed ({_dex})"}
+                    rec["dual_parser"] = _dual
+                    if not _dual["available"]:
+                        _tb = (f"{rel}: dual-parser gate unavailable: {_dual.get('reason') or 'fewer than two parsers produced a view'}. "
+                               "A verdict of NO must not rest on one parser's reading of a binary's structure, so this caps the verdict. "
+                               "Next step: account for this file by byte identity against a genuine reference, or repair the file so independent parsers can read it.")
+                        if _tb not in file_blockers:
+                            file_blockers.append(_tb)
+                    else:
+                        for _d in _dual["disagreements"]:
+                            _tb = (f"{rel}: dual-parser differential ({_d['field']}): {_d['detail']}. "
+                                   "Independent parsers reading the same bytes differently is exactly how a payload hides from one of them (Nisi et al., RAID 2021), so the disagreement is unaccounted and caps any NO. "
+                                   "Next step: account for this file by byte identity against a genuine reference, or repair the malformed structure and re-run.")
+                            if _tb not in file_blockers:
+                                file_blockers.append(_tb)
+                _ids = polyglot_identities(data)
+                if len(_ids) >= 2:
+                    rec["polyglot"] = _ids
+                    _zip_ids = [i for i in _ids if i["format"] == "ZIP archive"]
+                    _zip_accounted = bool(_zip_ids) and rel in expanded_container_set
+                    _carved_offsets = {c["offset"] for c in carved}
+                    for _i in _ids:
+                        _tb = None
+                        if _i["format"] in ("GIF image", "PNG image", "JPEG image") and _i["offset"] == 0:
+                            _end = _zip_ids[0]["offset"] if _zip_ids else len(data)
+                            if not (_zip_accounted and image_identity_accounted(data[:_end])):
+                                _tb = (f"{rel}: polyglot: this file is a {_i['format']} and a ZIP archive at once, and the image identity is not accounted as a complete image under its own format. "
+                                       "A file that satisfies two formats must be accounted under both; the unaccounted identity caps any NO. "
+                                       "Next step: split the file into its two identities and run the verdict on each.")
+                        elif _i["format"] in ("PE", "ELF") and _i["offset"] > 0:
+                            if _i["offset"] not in _carved_offsets:
+                                _tb = (f"{rel}: polyglot: an appended {_i['format']} begins at offset {hex(_i['offset'])}, past this file's first identity, and it was not carved and analysed under either identity. "
+                                       "Content accounted under neither identity is unaccounted and caps any NO. "
+                                       "Next step: extract the appended binary at that offset and run the verdict on it as its own unit.")
+                        elif _i["format"] == "TAR archive" and _i["offset"] > 0:
+                            _tb = (f"{rel}: polyglot: a TAR archive begins at offset {hex(_i['offset'])} inside this file and was never enumerated as members. "
+                                   "A second identity whose interior was never listed is unaccounted and caps any NO. "
+                                   "Next step: extract the archive at that offset and run the verdict on its members.")
+                        if _tb and _tb not in file_blockers:
+                            file_blockers.append(_tb)
             # ---- truncation markers: analysis caps that cut material
             # a NO would depend on are explicit unaccounted markers.
             # A file accounted by byte identity (hash match against a
@@ -2464,6 +3243,16 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
             if file_yes:
                 rec["verdict"] = "YES: MALWARE (PROVEN)"
                 rec["why"].append("Malicious behaviour proven: " + "; ".join(y["name"] for y in file_yes))
+                # A proven chain does not erase the file's named
+                # blockers: an unresolved target on the same file
+                # (a dynamically loaded class, an assembly loaded
+                # from a remote string) is part of the evidence for
+                # this file and must stay on its record and in the
+                # report's blocker list, not be dropped because the
+                # chain already decided the headline.
+                if file_blockers:
+                    rec["why"].extend(file_blockers)
+                    blockers.extend(file_blockers)
             elif file_blockers:
                 rec["verdict"] = "YES: UNACCOUNTED"
                 rec["why"].extend(file_blockers)
@@ -2486,12 +3275,25 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                 elif kg and not kg_bad:
                     rec["verdict"] = "NO: ACCOUNTED"
                     rec["why"].append("Accounted as expected crack: a keygen or patcher that only generates keys. No network, no persistence, no injection, no dropper behaviour. The key algorithm is circumvention, not malware.")
+                elif rec.get("bytecode_accounted"):
+                    rec["verdict"] = "NO: ACCOUNTED"
+                    rec["why"].append(f"Accounted: this file's bytecode was parsed and accounted at method level by the coverage wave 2 bytecode accounting ({rec.get('bytecode_kind')}): every method body was decoded, and every reference, dynamic load and embedded unit in it is resolved or enumerated in this report, with no malicious chain.")
                 elif fmt_name in ("script", "text / script"):
                     rec["verdict"] = "NO: ACCOUNTED"
                     rec["why"].append("Accounted: this is a script or text file, so it was fully reverse-engineered by reading all of its source. Every behaviour in it is enumerated in this report and classified expected-crack or benign, with no malicious chain.")
                 elif fmt_name not in ("PE", "ELF", "Mach-O"):
                     rec["verdict"] = "NO: ACCOUNTED"
                     rec["why"].append("Accounted as data: the file was fully read, it is not executable code, and it carries no malicious capability.")
+                elif container_entry:
+                    # A fully enumerated container whose own format is
+                    # an executable format (a fat Mach-O bundle): the
+                    # members or slices are the judged units, each
+                    # verdicted on its own record above, so the
+                    # bundle is accounted when every unit inside it
+                    # is. The compiled-binary rule below judges
+                    # content, and this file's content is its slices.
+                    rec["verdict"] = "NO: ACCOUNTED"
+                    rec["why"].append("Accounted as a fully enumerated container: every slice or member inside it was extracted and verdicted as its own unit in this report, and no unit inside it is unaccounted.")
                 else:
                     # A compiled binary with no reference and no
                     # verifying signature is unaccounted, period.
@@ -2515,6 +3317,69 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                     rec["why"].append(msg)
                     blockers.append(msg)
             files_out.append(rec)
+
+    # ---- bytecode reconciliation (coverage wave 2): facts that only
+    # exist across units of one package. A JAR's declared Main-Class
+    # must be one of the enumerated class members, or the entry point
+    # the JAR declares was never examined. An APK manifest's declared
+    # components must be declared in the DEX files of the same
+    # package, or the component the manifest promises has no examined
+    # code behind it. A mismatch is recorded on the JAR's or the
+    # manifest's own record with the same force as a per-file
+    # blocker, in the same style as the DLL triad pass below.
+    _bc_groups = {}
+    for f in files_out:
+        _rel = f["path_in_release"]
+        _key = _rel.split("!")[0] if "!" in _rel else os.path.dirname(_rel)
+        _bc_groups.setdefault(_key, []).append(f)
+    for _key, _members in _bc_groups.items():
+        _dex_classes = set()
+        for f in _members:
+            if f.get("bytecode_kind") == "dex":
+                for _cn in (f.get("bytecode") or {}).get("classes") or []:
+                    _dex_classes.add(_cn)
+        for f in _members:
+            _bc = f.get("bytecode") or {}
+            if f.get("bytecode_kind") == "jar" and _bc.get("main_class"):
+                _mc = _bc["main_class"]
+                # Presence is by member resource path inside this
+                # JAR: the launcher resolves Main-Class to the
+                # resource com/example/Hello.class, so a class file
+                # stored under any other member name does not
+                # satisfy the declaration, whatever class its bytes
+                # define. (The JAR's own record groups under its
+                # directory while its members group under the JAR
+                # path, so the members are gathered by path prefix
+                # from the whole release, not from _members.)
+                _jar_rel = f["path_in_release"]
+                _present = any(m["path_in_release"].split("!", 1)[1] in
+                               (_mc.replace(".", "/") + ".class", _mc + ".class")
+                               for m in files_out
+                               if m["path_in_release"].startswith(_jar_rel + "!"))
+                if not _present:
+                    _msg = (f"{f['path_in_release']}: bytecode accounting (jar): the manifest declares Main-Class {_mc}, "
+                            "but no class file for it is among the enumerated members, so the JAR's declared entry point was never examined and is unaccounted.")
+                    if f["verdict"].startswith("NO"):
+                        f["verdict"] = "YES: UNACCOUNTED"
+                    f["why"].append(_msg)
+                    if _msg not in blockers:
+                        blockers.append(_msg)
+            if f.get("bytecode_kind") == "axml" and _dex_classes:
+                _pkg = _bc.get("package")
+                for _comp in _bc.get("components") or []:
+                    _full = _comp["name"]
+                    if _full.startswith("."):
+                        _full = (_pkg or "") + _full
+                    elif "." not in _full:
+                        _full = ((_pkg + ".") if _pkg else "") + _full
+                    if _full not in _dex_classes:
+                        _msg = (f"{f['path_in_release']}: bytecode accounting (apk): the manifest declares component {_comp['kind']} {_full}, "
+                                "but no DEX file in this package declares that class, so the component's code was never examined and is unaccounted.")
+                        if f["verdict"].startswith("NO"):
+                            f["verdict"] = "YES: UNACCOUNTED"
+                        f["why"].append(_msg)
+                        if _msg not in blockers:
+                            blockers.append(_msg)
 
     # ---- DLL sideload triad, judged at folder level: a signed EXE, an
     # unsigned same-folder DLL that is not the genuine file, and an
