@@ -54,6 +54,7 @@ from .families import family_findings, miner_disclosed
 from .containers import EXTRA_CONTAINER_KINDS, detect_extra_kind, extract_to as _extract_extra_to, firmware_regions, carve_pe_images
 from .bytecode import bytecode_report, split_macho_fat, is_jar_signature_member
 from .coverage3 import byte_ownership, dual_parser, polyglot_identities, image_identity_accounted, driver_capabilities
+from .coverage5 import member_semantics
 
 HEADLINE_YES = "YES: MALWARE FOUND"
 HEADLINE_NO = "NO: NO MALWARE"
@@ -3227,6 +3228,45 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                                    "Next step: extract the archive at that offset and run the verdict on its members.")
                         if _tb and _tb not in file_blockers:
                             file_blockers.append(_tb)
+            # ---- archive member semantics (coverage wave 5,
+            # 2026-11-24). A fully enumerated container is
+            # accounted by its member list, but an extractor
+            # writes what each member's extraction semantics
+            # say: a member whose written form diverges from its
+            # listing (an escaping link target, a stream-qualified
+            # or backslash name, a duplicate name shadowing an
+            # earlier member, a local header that disagrees with
+            # the central directory) is an unaccounted member,
+            # and the container caps with the member and the
+            # divergence named. The gate judges semantics, not
+            # intent, and carries the wave 3 exemptions (byte
+            # identity does not depend on it; a failed container
+            # is already capped as a unit).
+            if not failed_container and rel in expanded_container_set \
+                    and rec["reference"] not in ("hash-match", "manifest-match"):
+                try:
+                    _mkind = container_kind(e["abspath"], data)
+                except Exception:
+                    _mkind = None
+                if _mkind in ("zip", "tar", "deb", "rpm", "apk"):
+                    try:
+                        _divs = member_semantics(data, _mkind)
+                    except Exception as _mex:
+                        _divs = None
+                        _tb = (f"{rel}: archive member semantics: the member-semantics gate could not read this {_mkind} container's member list ({_mex}), so how its members would be written by an extractor is unaccounted. "
+                               "A verdict of NO certifies the members as listed; members whose extraction semantics were never checked are unaccounted and cap the verdict. "
+                               "Next step: extract the container with a tool that lists its members and their link targets, and run the verdict on the extracted folder.")
+                        if _tb not in file_blockers:
+                            file_blockers.append(_tb)
+                    if _divs is not None:
+                        rec["member_semantics"] = {"kind": _mkind,
+                                                   "divergences": _divs}
+                        for _dv in _divs:
+                            _tb = (f"{rel}: archive member semantics: member {_dv['member']!r} diverges from its listing ({_dv['kind']}): {_dv['detail']}. "
+                                   "The container is accounted by its member list, but an extractor writes the member's extraction semantics, not the listing; a member whose written form differs from its listed form is unaccounted, so this container caps at unaccounted. This is a semantics finding, not a conviction. "
+                                   "Next step: rebuild the container with the member under a name and form whose extraction matches its listing, or extract it with a tool that reports the divergence and run the verdict on the extracted folder.")
+                            if _tb not in file_blockers:
+                                file_blockers.append(_tb)
             # ---- truncation markers: analysis caps that cut material
             # a NO would depend on are explicit unaccounted markers.
             # A file accounted by byte identity (hash match against a

@@ -16,7 +16,15 @@ driver capability extraction the BYOVD carve-out judges:
   trailing data past a container's end). Verified-zero ranges are
   owned as padding; a small named tolerance covers alignment
   residue. Any other unowned range is material and is returned
-  for the verdict to cap on, with its offset and size.
+  for the verdict to cap on, with its offset and size. The PE
+  certificate table is owned by content, not only as a record
+  (coverage wave 5): the WIN_CERTIFICATE chain is walked entry
+  by entry, each X.509 or PKCS#7 entry is sized by its DER
+  structure, and any bytes inside the table past the accounted
+  certificate content (an inflated entry length, a malformed
+  chain, nonzero padding, content past the chain) are unowned
+  with the offset named, because the table of a signed file is
+  a documented payload staging place.
 - dual_parser: PE and ELF files are parsed by the engine's own
   structural parser, by pefile, and by LIEF, and the three views
   are compared on the security-relevant fields (entry point,
@@ -232,6 +240,201 @@ def parse_pe_detailed(data):
         return out
 
 
+def _der_total_length(data, pos, end):
+    """Total byte length of the DER object starting at pos (a
+    SEQUENCE whose declared length bounds the whole object), or
+    None when the bytes at pos are not a well-formed definite
+    length DER object inside [pos, end)."""
+    if pos + 2 > end or data[pos] != 0x30:
+        return None
+    b = data[pos + 1]
+    if b < 0x80:
+        total = 2 + b
+    elif b == 0x80:
+        return None  # indefinite length is BER, not DER
+    else:
+        n = b & 0x7F
+        if n == 0 or n > 4 or pos + 2 + n > end:
+            return None
+        total = 2 + n + int.from_bytes(data[pos + 2:pos + 2 + n], "big")
+    if pos + total > end:
+        return None
+    return total
+
+
+def _cert_shape_clause(blob):
+    """A content classification clause for unowned bytes inside
+    a certificate table, or an empty string: executable-shaped
+    content and high-entropy content are named, because the
+    documented abuse of this region is an encrypted payload
+    staged where a signature-respecting review does not look."""
+    if blob[:2] == b"MZ" or b"\xca\xfe\xba\xbe" in blob \
+            or b"PE\x00\x00" in blob:
+        return ("; the content is executable-shaped (it carries "
+                "an executable marker)")
+    if len(blob) >= 64 and _entropy(blob) >= 7.0:
+        return (f"; the content is high-entropy "
+                f"({_entropy(blob)} bits per byte), consistent "
+                f"with an encrypted payload staged in the table")
+    return ""
+
+
+def _cert_unowned_reason(blob, where):
+    """Reason text for unowned bytes inside a certificate table,
+    with the content classified by _cert_shape_clause."""
+    return (f"bytes {where} are not part of any declared "
+            f"certificate blob: the certificate table of a signed "
+            f"file is a documented payload staging place, and "
+            f"content there is owned by no analysis"
+            + _cert_shape_clause(blob))
+
+
+def certificate_table_accounting(data, offset, size):
+    """Account the contents of a PE certificate table (coverage
+    wave 5, extending the wave 3 ledger, which owned the table
+    as a record sized by its first entry only).
+
+    Walks the WIN_CERTIFICATE chain: each entry is 8-byte
+    aligned from the table start, declares its own length, and
+    for the two DER certificate types (X.509, PKCS#7 signed
+    data) the entry's certificate content is sized by its DER
+    structure. Returns {"entries": [...], "owned": [...],
+    "unowned": [...], "notes": [...]} in the shapes
+    _finish_ownership consumes: owned (start, end, owner) ranges
+    and unowned (start, end, reason) ranges. Everything inside
+    the table that is not accounted certificate content or
+    verified zero padding is unowned: bytes past an entry's DER
+    content inside an inflated entry length, an entry whose
+    content is not a readable DER structure, an entry of a type
+    this build cannot account, nonzero padding between or after
+    entries, bytes past the end of the chain, and the remainder
+    of the table after a malformed chain link."""
+    table_start = offset
+    table_end = min(offset + size, len(data))
+    owned, unowned, notes, entries = [], [], [], []
+
+    def push_unowned(s, e, reason):
+        if e <= s:
+            return
+        if unowned and unowned[-1][1] == s:
+            ps, _pe, pr = unowned[-1]
+            unowned[-1] = (ps, e, pr + "; " + reason)
+        else:
+            unowned.append((s, e, reason))
+
+    if offset + size > len(data):
+        notes.append("the certificate table declares bytes past the "
+                     "end of the file; only the bytes present are "
+                     "accounted")
+    pos = table_start
+    idx = 0
+    chain_broken = False
+    while pos + 8 <= table_end:
+        dw_length, _rev, ctype = struct.unpack_from("<IHH", data, pos)
+        if dw_length < 8 or pos + dw_length > table_end:
+            push_unowned(pos, table_end,
+                         f"the certificate chain is malformed at "
+                         f"entry {idx} (declared length {dw_length} "
+                         f"does not fit the table), so this entry "
+                         f"and the rest of the certificate table "
+                         f"are unaccounted"
+                         + _cert_shape_clause(data[pos:table_end]))
+            entries.append({"index": idx, "offset": pos,
+                            "declared_length": dw_length,
+                            "type": ctype, "accounted": False})
+            chain_broken = True
+            break
+        entry_end = pos + dw_length
+        content_start = pos + 8
+        if ctype in (0x0001, 0x0002):
+            der = _der_total_length(data, content_start, entry_end)
+            if der is None:
+                push_unowned(pos, entry_end,
+                             f"certificate entry {idx} (type "
+                             f"{ctype:#06x}) does not hold a readable "
+                             f"DER certificate structure at its start, "
+                             f"so the entry is unaccounted: bytes "
+                             f"inside a certificate table that are not "
+                             f"part of the certificate itself are a "
+                             f"staging place")
+                entries.append({"index": idx, "offset": pos,
+                                "declared_length": dw_length,
+                                "type": ctype, "accounted": False})
+            else:
+                der_end = content_start + der
+                owned.append((pos, der_end,
+                              f"certificate table entry {idx}: "
+                              f"WIN_CERTIFICATE header and its "
+                              f"{der} bytes of DER certificate "
+                              f"content, structure parsed"))
+                if der_end < entry_end:
+                    tail = data[der_end:entry_end]
+                    if any(tail):
+                        push_unowned(der_end, entry_end,
+                                     _cert_unowned_reason(
+                                         tail,
+                                         f"inside certificate entry "
+                                         f"{idx}, past the end of its "
+                                         f"DER certificate content"))
+                    else:
+                        owned.append((der_end, entry_end,
+                                      "verified zero padding inside "
+                                      "the certificate entry, past "
+                                      "its DER content"))
+                entries.append({"index": idx, "offset": pos,
+                                "declared_length": dw_length,
+                                "type": ctype, "accounted": True,
+                                "der_length": der})
+        else:
+            push_unowned(pos, entry_end,
+                         f"certificate entry {idx} has type "
+                         f"{ctype:#06x}, which is not a certificate "
+                         f"structure this build can account (only "
+                         f"X.509 and PKCS#7 signed data entries are "
+                         f"DER-accounted), so the entry is "
+                         f"unaccounted")
+            entries.append({"index": idx, "offset": pos,
+                            "declared_length": dw_length,
+                            "type": ctype, "accounted": False})
+        rel_end = entry_end - table_start
+        next_pos = table_start + ((rel_end + 7) // 8) * 8
+        if next_pos > entry_end:
+            pad_end = min(next_pos, table_end)
+            pad = data[entry_end:pad_end]
+            if any(pad):
+                push_unowned(entry_end, pad_end,
+                             "nonzero padding between certificate "
+                             "entries: the Authenticode layout "
+                             "leaves only zero bytes in the "
+                             "alignment padding between chained "
+                             "entries, so nonzero bytes here are "
+                             "part of no certificate")
+            elif pad:
+                owned.append((entry_end, pad_end,
+                              "verified zero alignment padding "
+                              "between certificate entries"))
+        if next_pos <= pos or next_pos >= table_end:
+            pos = next_pos
+            break
+        pos = next_pos
+        idx += 1
+    if not chain_broken and pos < table_end:
+        rest = data[pos:table_end]
+        if any(rest):
+            push_unowned(pos, table_end,
+                         _cert_unowned_reason(
+                             rest,
+                             "inside the certificate table, past "
+                             "the end of the declared certificate "
+                             "chain"))
+        elif rest:
+            owned.append((pos, table_end,
+                          "verified zero padding at the end of "
+                          "the certificate table"))
+    return {"entries": entries, "owned": owned,
+            "unowned": unowned, "notes": notes}
+
+
 def _pe_ownership(data, expanded=False):
     det = parse_pe_detailed(data)
     if not det["parsed"]:
@@ -261,18 +464,19 @@ def _pe_ownership(data, expanded=False):
                             "maps from this section, owned by no analysis"))
         sec_end = max(sec_end, end)
     cert_end = 0
+    cert_acct = None
     cert = det.get("certificate")
     if cert and cert["offset"]:
         coff_, csize = cert["offset"], cert["size"]
-        rec = cert["record_length"] or csize
-        owned.append((coff_, min(coff_ + rec, len(data)),
-                      "Authenticode certificate table: signature record, "
-                      "structure parsed"))
-        if rec < csize:
-            reasons.append((coff_ + rec, coff_ + csize,
-                            "certificate table bytes past the certificate "
-                            "record: not part of the signature, owned by no "
-                            "analysis"))
+        # Coverage wave 5: the table is owned by content. The
+        # WIN_CERTIFICATE chain is walked and each entry sized
+        # by its DER structure; anything inside the table that
+        # is not accounted certificate content or verified zero
+        # padding is an unowned range with its reason.
+        cert_acct = certificate_table_accounting(data, coff_, csize)
+        owned.extend(cert_acct["owned"])
+        reasons.extend(cert_acct["unowned"])
+        notes.extend(cert_acct["notes"])
         cert_end = coff_ + csize
     accounted_end = max(sec_end, cert_end)
     if accounted_end < len(data):
@@ -302,10 +506,17 @@ def _pe_ownership(data, expanded=False):
                             "overlay past the last section and the "
                             "certificate table: appended data owned by "
                             "no analysis"))
-    return _finish_ownership(
+    result = _finish_ownership(
         data, "PE", "structural parse: headers, section content and "
         "slack, data directories, certificate table, overlay", owned,
         notes, reasons)
+    if cert_acct is not None:
+        result["certificate_table"] = {
+            "offset": cert["offset"], "size": cert["size"],
+            "entries": cert_acct["entries"],
+            "accounted_entries":
+                sum(1 for e in cert_acct["entries"] if e["accounted"])}
+    return result
 
 
 # ======================================================================
