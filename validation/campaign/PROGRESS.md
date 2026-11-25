@@ -148,3 +148,83 @@ state instead of burning hours. Locally proven with a scripted
 download stub: 429 twice then success (attempts 3, ZIP saved),
 file_not_found terminal (attempts 1), persistent 429 recorded
 as error after 4 attempts, exit 0 with full accounting.
+
+## 2026-11-24: adjudication of the three smoke run 3 verdicts
+
+The three samples smoke run 3 analysed and returned NO ACCOUNTED
+have been adjudicated against their MalwareBazaar sample pages
+(read 2026-11-24). All three are confirmed misses, entered in
+docs/MISS-LEDGER.md as EZ-BYPASS-2026-003 (FormBook, JavaScript
+dropper, 15 vendor detections), EZ-BYPASS-2026-004 (njRAT
+executable, 16 vendor detections), and EZ-BYPASS-2026-005
+(RaccoonStealer executable, 13 vendor detections). None of the
+three is a benign listing. The verdicts were issued by the build
+at commit d47fd05, before the accuracy fix wave (349e6a9); root
+cause per sample is not established because per-sample evidence
+stays inside the runner by design. Whether the fixed engine
+catches them is determined by the shard 0 rerun on the fixed
+build, and each case becomes a regression fixture once its path
+is reproduced.
+
+## 2026-11-24: smoke run 4, the retry build, completes
+
+Run 45502122642 (commit fde150c, the retry build, pre-fix engine)
+completed successfully in 2h53m43s. Downloads: 241 of 250
+fetched, 9 recorded errors, every one HTTP 429 after 4 attempts;
+239 files succeeded on the first attempt, one needed 2 attempts
+and one needed 3, so the retry path both absorbed the hostile
+early stretch and stepped aside once the quota refilled.
+Verdicts on the 241 analysed: YES 206 (115 PROVEN, 91
+UNACCOUNTED), NO ACCOUNTED 35, with the 9 download errors
+carrying no verdict. Of the three adjudicated misses: njRAT and
+RaccoonStealer were downloaded and again returned NO ACCOUNTED
+by the pre-fix engine, as expected; the FormBook sample was one
+of the 9 quota errors and was not re-judged. The 35 NO verdicts
+are adjudication candidates under CAMPAIGN.md. The decisive
+re-test is run 5 on the fixed engine (commit 349e6a9),
+dispatched 2026-11-25 00:02 UTC.
+
+## 2026-11-24: smoke run 5, the fixed engine, completes
+
+Run 45514931922 (commit 349e6a9, the accuracy fix wave)
+completed successfully. Downloads: 250 of 250 fetched, zero
+errors; 247 files on the first attempt and 3 on the second, on
+a fresh UTC day quota. Verdicts: YES 247 (123 PROVEN, 124
+UNACCOUNTED), NO ACCOUNTED 3, down from 35 NO on the pre-fix
+engine over the same shard. All three adjudicated misses from
+smoke run 3 (FormBook 000a219e, njRAT 003e626a, RaccoonStealer
+06068e70) now return YES UNACCOUNTED: the fixed engine declines
+to acquit them, which is the fail-closed behaviour the fix wave
+was built to produce. The 3 remaining NO verdicts (00a11f7f,
+03e548ca, 04b57840) went to adjudication against their bazaar
+sample pages.
+
+Adjudication of the 3 remaining NO verdicts completed
+2026-11-24 from the public bazaar sample pages: all three are
+CONFIRMED MISSES, entered in the miss ledger as
+EZ-BYPASS-2026-006, 007, and 008. All three are Gozi / Ursnif
+delivery artifacts from one Italian tax-agency lure set
+(reporter JAMESWT_WT): a 198-byte .URL shortcut (4 vendor
+detections), a double-extension batch dropper 5441.pdf.cmd
+(4 detections, Joe Sandbox malicious), and an HTA downloader
+azienda_08.hta (6 detections, Triage malicious with BitsAdmin
+download behaviour). The pattern across the three is small
+script-class delivery files; the per-sample root cause is not
+established, because per-sample evidence stays inside the
+runner by design. Shard 0 smoke stage closes with: old engine
+35 NO of 241 analysed with at least 5 confirmed misses among
+them (3 adjudicated of 3 sampled, plus 2 of the run 5 set
+re-judged), fixed engine 3 NO of 250, all 3 confirmed misses.
+
+## 2026-11-24: fix waves 2 and 3 land locally
+
+Wave 2 closes the three run 5 miss shapes with named verdict
+blockers (remote-fetch-and-execute, url-shortcut-remote-payload,
+disguised-double-extension), proven on synthetic fixtures;
+suite 203 passed. Wave 3 implements the closure rules from the
+remote-payload research (external-reference closure, engine
+incompleteness as a verdict-layer cap, interpreter-proxy
+invocation caps); suite 224 passed, verified by the operator.
+Both waves are recorded in validation/FIX-LOG-2026-11-24-WAVE2.md
+and validation/FIX-LOG-2026-11-24-WAVE3.md. Next: push, then
+re-run shard 0 on the strengthened engine.
