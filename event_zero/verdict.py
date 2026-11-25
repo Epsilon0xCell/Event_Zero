@@ -388,6 +388,590 @@ def parse_url_file(data):
             out.append(line.strip()[4:])
     return out
 
+# ------------------------------------------------------------------
+# Script-class and shortcut-class shapes (accuracy fix wave 2,
+# 2026-11-24). The classes below reach the verdict as plain text:
+# detect_format has no branch for them, and script_analysis does not
+# claim their extensions (.cmd, .hta and .url are absent from
+# SCRIPT_EXTS in analyzer.py), so no script source is recorded, the
+# per-line ledger never runs on them, and the text NO branch could
+# acquit them on a full read that never happened in ledger terms.
+# These findings close that path fail-closed, in the verdict, the
+# same place wave 1 wired the document and firmware findings in.
+# A finding here is a blocker, never a proof chain: it makes NO
+# unreachable for the shape, it does not convict the file.
+SCRIPT_CLASS_EXTS = {".bat", ".cmd", ".ps1", ".vbs", ".vbe", ".js", ".jse",
+                     ".wsf", ".wsh", ".hta", ".sh", ".bash", ".py", ".pl", ".rb"}
+EXEC_PAYLOAD_EXTS = (".exe", ".dll", ".scr", ".com", ".bat", ".cmd", ".ps1",
+                     ".vbs", ".vbe", ".js", ".jse", ".wsf", ".wsh", ".hta",
+                     ".msi", ".jar", ".cpl")
+FETCH_PATTERNS = [
+    ("bitsadmin transfer", r"bitsadmin[^\n]{0,240}?(/transfer|https?://)"),
+    ("certutil URL cache download", r"certutil[^\n]{0,160}?-urlcache|-urlcache[^\n]{0,160}?certutil"),
+    ("Start-BitsTransfer", r"start-bitstransfer"),
+    ("curl or wget fetch", r"\b(?:curl|wget)\b[^\n]{0,240}?(?:https?://|ftp://|\d{1,3}(?:\.\d{1,3}){3})"),
+    ("PowerShell web download", r"(?:downloadstring|downloadfile|invoke-webrequest|invoke-restmethod)[^\n]{0,240}?(?:https?://|\d{1,3}(?:\.\d{1,3}){3})"),
+    ("Python web fetch", r"(?:urlopen|requests\.(?:get|post)|urllib\.request)[^\n]{0,200}?https?://"),
+    ("remote script include", r"<script[^>]+src\s*=\s*[\"']?https?://"),
+    ("XMLHTTP or WinHttp fetch", r"(?:xmlhttp|winhttp)[^\n]{0,240}?https?://"),
+    ("mshta remote content", r"mshta(?:\.exe)?\s+[\"']?https?://"),
+    ("rundll32 remote content", r"rundll32[^\n]{0,200}?https?://"),
+]
+EXEC_PATTERNS = [
+    ("pipe to a shell", r"\|\s*(?:sh|bash|powershell|cmd)\b"),
+    ("Invoke-Expression", r"invoke-expression|\biex\s*\("),
+    ("Start-Process", r"start-process"),
+    ("batch start command", r"(?m)^\s*start\s+(?:\"[^\"]*\"\s+)?\S"),
+    ("script host Run call", r"\.run\s*\("),
+    ("ShellExecute", r"shellexecute"),
+    ("shell command execution", r"os\.system|subprocess\.|popen\s*\("),
+]
+DOWNLOAD_LINE_WORDS = ("bitsadmin", "certutil", "start-bitstransfer", "curl ", "wget ",
+                       "invoke-webrequest", "downloadfile", "downloadstring")
+DOUBLE_EXT_DOC = ("pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "rtf",
+                  "txt", "jpg", "jpeg", "png", "gif", "zip")
+DOUBLE_EXT_EXEC = ("exe", "scr", "com", "bat", "cmd", "ps1", "vbs", "vbe",
+                   "js", "jse", "wsf", "wsh", "hta", "msi", "jar")
+
+def _download_line_payload(low):
+    """An executable-extension file named on a download line, as the
+    fetched URL or as the local destination: the staged payload. A
+    URL token is judged on its path only, never on its host: the
+    .com in a domain name is a top-level domain, not the DOS
+    executable extension, and matching it would convict every
+    download from a .com host."""
+    for line in low.splitlines():
+        if not any(w in line for w in DOWNLOAD_LINE_WORDS):
+            continue
+        for tok in re.findall(r"[^\s\"'<>]+", line):
+            t = tok.rstrip(".,;:")
+            if "://" in t:
+                rest = t.split("://", 1)[1]
+                upath = rest.split("/", 1)[1] if "/" in rest else ""
+                upath = upath.split("?")[0].split("#")[0]
+                if upath.endswith(EXEC_PAYLOAD_EXTS):
+                    return t
+            elif t.endswith(EXEC_PAYLOAD_EXTS):
+                return t
+    return None
+
+def script_class_findings(name, data):
+    """Findings for script-class and shortcut-class files: a remote
+    fetch-and-execute chain, a .url shortcut whose target is a remote
+    executable payload, and a disguised double extension. Returns a
+    list of {kind, evidence}. The principle is accounting, not
+    suspicion: what a fetch-and-execute file does is decided by
+    content that is not in the file, so no reading of the file alone
+    can account for its behaviour, and a NO built on that reading
+    would be false. A fetch with no execution side and no executable
+    payload (downloading data, a URL mentioned in a comment) is not a
+    finding: the chain, not the atom, is what blocks."""
+    base = os.path.basename(str(name).split("!")[-1]).lower()
+    ext = os.path.splitext(base)[1]
+    out = []
+    m = re.match(r".*\.(" + "|".join(DOUBLE_EXT_DOC) + r")\.(" + "|".join(DOUBLE_EXT_EXEC) + r")$", base)
+    if m:
+        out.append({"kind": "disguised-double-extension",
+                    "evidence": [f"file name: {base}",
+                                 f"document extension presented first: .{m.group(1)}",
+                                 f"executable extension that actually governs: .{m.group(2)}"]})
+    if ext == ".url":
+        for u in parse_url_file(data):
+            mu = re.match(r"(?:https?|ftp)://([^/:\s]+)(?::\d+)?(/[^\s]*)?", u)
+            if not mu:
+                continue
+            host = mu.group(1).lower()
+            upath = (mu.group(2) or "/").split("?")[0].split("#")[0].lower()
+            is_ip = bool(re.fullmatch(r"(?:\d{1,3}\.){3}\d{1,3}", host))
+            page = upath in ("", "/") or upath.endswith((".htm", ".html", ".php", ".asp", ".aspx", ".jsp", ".cfm"))
+            if upath.endswith(EXEC_PAYLOAD_EXTS) or (is_ip and not page):
+                out.append({"kind": "url-shortcut-remote-payload",
+                            "evidence": [f"shortcut target: {u}",
+                                         "the target is a remote executable payload" if upath.endswith(EXEC_PAYLOAD_EXTS)
+                                         else "the target is a payload path on a bare IP host, with no page extension"]})
+        return out
+    if ext not in SCRIPT_CLASS_EXTS:
+        return out
+    text = data.decode("utf-8", "replace")
+    if "\x00" in text[:2000]:
+        return out
+    low = text.lower()
+    fetch = [label for label, pat in FETCH_PATTERNS if re.search(pat, low)]
+    if not fetch:
+        return out
+    execs = [label for label, pat in EXEC_PATTERNS if re.search(pat, low)]
+    payload = _download_line_payload(low)
+    intrinsic = [f for f in fetch if f in ("mshta remote content", "rundll32 remote content", "remote script include")]
+    # An HTA is executed by mshta the moment it opens, so a remote
+    # fetch inside one is a fetch-and-execute chain by construction:
+    # the file itself is the executor.
+    if intrinsic or (ext == ".hta" and fetch) or (fetch and (execs or payload)):
+        ev = [f"fetch: {f}" for f in fetch] + [f"execution: {e}" for e in execs]
+        if payload:
+            ev.append(f"executable payload staged: {payload}")
+        if ext == ".hta" and fetch and not execs and not payload:
+            ev.append("the HTA itself is the executor: mshta runs its script on open")
+        out.append({"kind": "remote-fetch-and-execute", "evidence": ev})
+    return out
+
+# ------------------------------------------------------------------
+# External references, interpreter proxies (accuracy fix wave 3,
+# 2026-11-24). The closure rule from the deep research report
+# event-zero-no-clean-for-remote-payload-20261124: a file may
+# receive NO only if its behaviour set is closed under the evidence
+# examined, meaning every reference the file makes to content
+# outside itself resolves to content examined in this run or to a
+# provably inert target. Wave 2 closed three named shapes; this
+# wave implements the general rules behind them: R1 (the
+# external-reference list itself, produced and resolved before any
+# NO), R3 (engine incompleteness as a verdict-layer invariant,
+# wired in the per-file loop below and in enumerate_subject), and
+# R5 (interpreter-proxy invocation: a signed system binary's
+# signature vouches for the binary, never for the data file that
+# aims it at remote, encoded or unexamined content).
+REF_ACTIVE_EXTS = EXEC_PAYLOAD_EXTS + (".zip", ".7z", ".rar", ".tar", ".gz", ".tgz",
+                                       ".dot", ".dotm", ".xltm", ".potm", ".inf",
+                                       ".reg", ".sct", ".application", ".appref-ms")
+REF_PAGE_EXTS = (".htm", ".html", ".php", ".asp", ".aspx", ".jsp", ".cfm")
+REF_DATA_EXTS = (".json", ".txt", ".xml", ".csv", ".md", ".log", ".ini", ".yaml", ".yml")
+REF_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp", ".ico", ".tif", ".tiff")
+PROTOCOL_URI_SCHEMES = ("search-ms", "ms-msdt")
+_REF_URL_RE = re.compile(r"(?:https?|ftp)://[^\s\"'<>\)\]]+")
+_REF_UNC_RE = re.compile(r"\\\\[A-Za-z0-9._\-]+\\[^\s\"'<>|]+")
+_REF_PROTO_RE = re.compile(r"\b(?:search-ms|ms-msdt):[^\s\"'<>]+", re.I)
+_CONCAT_RE = re.compile(r"""(["'])((?:(?!\1).)*)\1\s*[+&]\s*(["'])((?:(?!\3).)*)\3""")
+
+def _is_comment_line(line):
+    """A comment line in the script classes the verdict reads:
+    batch rem and ::, shell, PowerShell and Python #, VBScript '.
+    Mentions on comment lines are documentation, not invocation;
+    wave 2's comment control established that boundary and wave 3
+    keeps it for reference extraction and proxy invocation alike."""
+    s = line.strip().lower()
+    return (s == "rem" or s.startswith(("rem ", "rem\t", "::", "#", "'"))
+            or s.startswith("<!--"))
+
+def _deconcatenate(text):
+    """Static-limit deobfuscation for reference extraction: remove
+    PowerShell backtick escapes and collapse adjacent string
+    literals joined by + or & ("http" + "://host/x.exe",
+    "http" & "://host/x.exe") until no more collapse. This recovers
+    references that split-string construction hides from literal
+    scanning. It is deliberately narrow: it runs only over
+    script-class carriers and only feeds reference extraction,
+    never the accounting itself."""
+    t = text.replace("`", "")
+    for _ in range(8):
+        n = _CONCAT_RE.sub(lambda m: m.group(1) + m.group(2) + m.group(4) + m.group(1), t)
+        if n == t:
+            break
+        t = n
+    return t
+
+def _ref_url_parts(target):
+    m = re.match(r"(?:https?|ftp)://([^/:\s]+)(?::\d+)?(/[^\s]*)?", target)
+    if not m:
+        return None, ""
+    return m.group(1).lower(), (m.group(2) or "/").split("?")[0].split("#")[0].lower()
+
+def _classify_ref_target(target):
+    """Classify an external reference target by what a host program
+    would do with it: protocol (a handler URI that fetches remote
+    content by design), unc (a network path), local-file (a file:
+    URI), local (a plain machine path), or for http(s)/ftp targets
+    active (executable, script, template, package or configuration
+    content), image, page, data, or other."""
+    t = str(target).strip()
+    low = t.lower()
+    for scheme in PROTOCOL_URI_SCHEMES:
+        if low.startswith(scheme + ":"):
+            return "protocol"
+    if t.startswith("\\\\"):
+        return "unc"
+    if low.startswith("file:"):
+        return "local-file"
+    host, path = _ref_url_parts(t)
+    if host is not None:
+        if path.endswith(REF_ACTIVE_EXTS):
+            return "active"
+        if path.endswith(REF_IMAGE_EXTS):
+            return "image"
+        if path.endswith(REF_PAGE_EXTS) or path in ("", "/"):
+            return "page"
+        if path.endswith(REF_DATA_EXTS):
+            return "data"
+        if "." not in path.rsplit("/", 1)[-1]:
+            # an extensionless path is a page or an endpoint a
+            # browser or client renders or reads as data; it names
+            # no executable content by itself
+            return "page"
+        return "other"
+    return "local"
+
+_REL_TAG_RE = re.compile(r"<Relationship\b[^>]*>", re.I)
+
+def _rels_references(xml_text, source):
+    out = []
+    for tag in _REL_TAG_RE.findall(xml_text):
+        low = tag.lower()
+        if "targetmode" not in low or "external" not in low:
+            continue
+        tm = re.search(r'Target\s*=\s*"([^"]+)"', tag) or re.search(r"Target\s*=\s*'([^']+)'", tag)
+        ym = re.search(r'Type\s*=\s*"([^"]+)"', tag) or re.search(r"Type\s*=\s*'([^']+)'", tag)
+        if tm:
+            out.append({"kind": "ooxml-external-relationship", "target": tm.group(1),
+                        "rel_type": (ym.group(1).rsplit("/", 1)[-1] if ym else ""),
+                        "source": source})
+    return out
+
+def external_references(name, data):
+    """The external-reference list for one file: every reference
+    the file makes to content outside itself, taken from the
+    structures this build already parses (OOXML relationship
+    parts, shortcut fields, shortcut string carving, ClickOnce
+    manifests, HTML resource references, script source). Returns
+    (references, complete, note). Where a format's references
+    cannot be enumerated by the current analyzers, complete is
+    False and the note names the gap, rather than a new parser
+    being built for it; the verdict records that as the cap
+    reason where the file is not already capped on other grounds.
+    Ordinary links in prose are not operative references and are
+    not extracted, except protocol handler URIs, which are
+    operative wherever they appear because a host program acts
+    on them by design."""
+    base = os.path.basename(str(name).split("!")[-1]).lower()
+    ext = os.path.splitext(base)[1]
+    if data[:4] == b"PK\x03\x04" and zipfile.is_zipfile(io.BytesIO(data)):
+        refs = []
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as z:
+                for n in z.namelist():
+                    if n.lower().endswith(".rels"):
+                        refs.extend(_rels_references(z.read(n).decode("utf-8", "replace"),
+                                                      f"relationship part {n}"))
+        except Exception:
+            pass
+        if refs or ext in (".docx", ".xlsx", ".pptx", ".docm", ".xlsm", ".pptm", ".dotx", ".dotm"):
+            return refs, True, "OOXML relationship parts enumerated from the package"
+    if base.endswith(".rels"):
+        return (_rels_references(data.decode("utf-8", "replace"), "relationship part"),
+                True, "OOXML relationship part")
+    if ext == ".msi" or data[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1":
+        return ([], False,
+                "MSI table and custom-action targets are not enumerated by this build; "
+                "the installer accounting caps this file on that basis")
+    _cache = [None]
+    def _text():
+        if _cache[0] is None:
+            try:
+                _cache[0] = data.decode("utf-8")
+            except Exception:
+                _cache[0] = ""
+        return _cache[0]
+    if ext == ".url":
+        refs = []
+        for line in _text().splitlines():
+            s = line.strip()
+            if s.lower().startswith("url="):
+                refs.append({"kind": "shortcut-target", "target": s[4:].strip(),
+                             "source": ".url URL field"})
+            elif s.lower().startswith("iconfile="):
+                refs.append({"kind": "shortcut-icon", "target": s[9:].strip(),
+                             "source": ".url IconFile field"})
+        return refs, True, "Internet Shortcut fields"
+    if ext == ".scf":
+        refs = []
+        for line in _text().splitlines():
+            s = line.strip()
+            if s.lower().startswith("iconfile="):
+                refs.append({"kind": "scf-icon", "target": s[9:].strip(),
+                             "source": ".scf IconFile field"})
+        return refs, True, "Shell Command File fields"
+    if ext == ".lnk":
+        lnk = parse_lnk(data)
+        refs = [{"kind": "lnk-target", "target": u, "source": "shortcut strings"}
+                for u in lnk["urls"]]
+        for u in sorted(set(_REF_UNC_RE.findall(lnk["blob"]))):
+            refs.append({"kind": "lnk-target", "target": u, "source": "shortcut strings"})
+        return (refs, True,
+                "shortcut reference fields recovered by string carving (the format "
+                "stores its target, arguments and icon location as strings)")
+    if ext in (".application", ".appref-ms"):
+        refs = [{"kind": "clickonce-codebase", "target": t,
+                 "source": "ClickOnce manifest codebase"}
+                for t in re.findall(r'codebase\s*=\s*"([^"]+)"', _text(), re.I)]
+        if ext == ".appref-ms":
+            for u in _REF_URL_RE.findall(_text()):
+                refs.append({"kind": "clickonce-codebase", "target": u,
+                             "source": "ClickOnce shortcut target"})
+        return refs, True, "ClickOnce manifest"
+    if ext in (".htm", ".html", ".hta"):
+        t = _text()
+        refs = [{"kind": "html-resource", "target": u, "source": "script element source"}
+                for u in re.findall(r"<script[^>]+src\s*=\s*[\"']?([^\s\"'>]+)", t, re.I)]
+        refs += [{"kind": "html-resource", "target": u, "source": "meta refresh target"}
+                 for u in re.findall(r"http-equiv\s*=\s*[\"']?refresh[\"']?[^>]*url\s*=\s*([^\s\"'>]+)", t, re.I)]
+        refs += [{"kind": "protocol-uri", "target": u, "source": "protocol handler URI in markup"}
+                 for u in sorted(set(_REF_PROTO_RE.findall(t)))]
+        return refs, True, "HTML resource references"
+    if ext in SCRIPT_CLASS_EXTS:
+        body = "\n".join(ln for ln in _deconcatenate(_text()).splitlines()
+                         if not _is_comment_line(ln))
+        refs = []
+        seen = set()
+        for u in _REF_URL_RE.findall(body):
+            u = u.rstrip(".,;:")
+            if u not in seen:
+                seen.add(u)
+                refs.append({"kind": "script-url", "target": u, "source": "script source"})
+        refs += [{"kind": "script-unc", "target": u, "source": "script source"}
+                 for u in sorted(set(_REF_UNC_RE.findall(body)))]
+        refs += [{"kind": "protocol-uri", "target": u, "source": "script source"}
+                 for u in sorted(set(_REF_PROTO_RE.findall(body)))]
+        return (refs, True,
+                "script source references, after static de-concatenation of "
+                "split string literals")
+    if ext in (".eml", ".txt", ".md", ".nfo"):
+        refs = [{"kind": "protocol-uri", "target": u, "source": "protocol handler URI in text"}
+                for u in sorted(set(_REF_PROTO_RE.findall(_text())))]
+        return refs, True, "protocol handler URIs in text"
+    return [], True, ""
+
+def _reference_disposition(ref, entry_basenames):
+    """Decide whether one external reference is resolved. Resolved
+    means: examined (the referenced file is part of this submission
+    and was judged in this run), inert (a target whose nature makes
+    the reference itself the whole behaviour: a hyperlink to a page,
+    a display-only image relationship, a local icon path), or
+    remote-data (recorded, not capping: a reference no host fetches
+    and executes automatically and whose target class could not be
+    confirmed executable). Anything else is unresolved, and an
+    unresolved reference to executable or active content caps the
+    verdict under R1. Returns (disposition, basis)."""
+    kind = ref["kind"]
+    target = ref["target"]
+    cls = _classify_ref_target(target)
+    if kind == "ooxml-external-relationship":
+        rt = (ref.get("rel_type") or "").lower()
+        if rt == "attachedtemplate":
+            return ("unresolved",
+                    "a remote template is fetched and loaded by the host program when "
+                    "the document opens; the template's content was not examined")
+        if rt in ("oleobject", "package"):
+            return ("unresolved",
+                    "an external OLE object or package is fetched and acted on by the "
+                    "host program; its content was not examined")
+        if rt == "image":
+            if cls == "image":
+                return ("inert",
+                        "an external image relationship over http(s): display-only "
+                        "content the host renders as data; it cannot carry code or "
+                        "credentials, so the fetch itself is the whole behaviour")
+            return ("unresolved",
+                    "an external image relationship to a non-http target can carry "
+                    "forced authentication or local file access")
+        if rt == "hyperlink":
+            if cls in ("page", "image", "data"):
+                return ("inert",
+                        "a hyperlink to a page, image or data target: no host program "
+                        "fetches and executes it automatically")
+            return ("unresolved",
+                    "a hyperlink to executable, package or handler content is not a "
+                    "provably inert reference")
+        if cls in ("active", "protocol", "unc"):
+            return ("unresolved",
+                    "the relationship target is executable, package or remote content "
+                    "that was not examined")
+        if cls in ("page", "image", "data"):
+            return ("inert",
+                    "the relationship target is a page, image or data target that no "
+                    "host program executes automatically")
+        return ("unresolved",
+                "the relationship target's nature could not be classified as inert")
+    if kind in ("shortcut-icon", "scf-icon"):
+        if cls in ("unc", "protocol"):
+            return ("unresolved",
+                    "a remote icon reference makes the host contact a remote server, "
+                    "and authenticate to it, when the file is merely displayed; the "
+                    "remote content was not examined")
+        if _ref_url_parts(target)[0] is not None:
+            return ("unresolved",
+                    "an icon loaded from a remote host is content fetched from "
+                    "outside this file and was not examined")
+        return ("inert",
+                "a local icon path: the host loads a file already on the machine, "
+                "which is outside this file's own behaviour")
+    if kind == "clickonce-codebase":
+        return ("unresolved",
+                "a ClickOnce manifest is a subscription to code the runtime "
+                "downloads at install time and on every update check; the current "
+                "bytes at the target were not examined and can change under the "
+                "same signed manifest")
+    if kind == "protocol-uri":
+        return ("unresolved",
+                "a protocol handler URI makes a host program fetch remote content "
+                "by design; that content was not examined")
+    if kind == "office-remote-template":
+        return ("unresolved",
+                "the Office analyzer found a remote template reference; the "
+                "template's content was not examined")
+    if kind == "html-resource" and ref.get("source") == "script element source":
+        if _ref_url_parts(target)[0] is not None or cls in ("unc", "protocol"):
+            return ("unresolved",
+                    "a remote script element is code the host fetches and runs; "
+                    "it was not examined")
+        # a local script element falls through to the generic
+        # local-target resolution below
+    elif kind == "html-resource":
+        if cls in ("active", "protocol", "unc"):
+            return ("unresolved",
+                    "the refresh target is executable, package or remote content "
+                    "that was not examined")
+        return ("inert", "a refresh to a page target is a navigation, not an execution")
+    if cls == "protocol":
+        return ("unresolved",
+                "a protocol handler URI makes a host program fetch remote content "
+                "by design; that content was not examined")
+    if cls == "active":
+        return ("unresolved",
+                "the target is executable, script, template, package or "
+                "configuration content that was not examined in this run")
+    if cls == "unc":
+        if target.lower().rstrip("/\\").endswith(REF_ACTIVE_EXTS):
+            return ("unresolved",
+                    "the target is executable or package content on a network "
+                    "path; it was not examined in this run")
+        return ("remote-data",
+                "a network path to data content: recorded as a reference; the "
+                "content is not executed by the reference itself")
+    if cls in ("local-file", "local"):
+        bn = os.path.basename(str(target).replace("\\", "/")).lower()
+        if bn and bn in entry_basenames:
+            return ("resolved",
+                    "the referenced file is part of this submission and was "
+                    "examined in this run")
+        if cls == "local":
+            return ("remote-data",
+                    "a path on the user's own machine: recorded as a reference; "
+                    "machine-local content is outside the submission boundary")
+        return ("unresolved",
+                "the reference names a file outside this submission that was "
+                "not examined")
+    if cls in ("page", "image", "data"):
+        return ("inert",
+                "the target is a page, image or data target that no host program "
+                "fetches and executes automatically")
+    return ("remote-data",
+            "the target's class could not be confirmed as executable or as "
+            "inert; recorded as a reference without capping")
+
+def _pdf_uri_targets(data):
+    """Literal /URI action targets in a PDF, from the raw bytes the
+    analyzer already decodes as latin-1. Targets inside compressed
+    object streams are not enumerated by this build; that limit is
+    recorded on the file's reference list, and the PDF features
+    that execute (JavaScript, OpenAction, Launch, embedded files)
+    are already verdict blockers in their own right."""
+    txt = data.decode("latin1", "ignore")
+    out = [m.group(1).strip() for m in re.finditer(r"/URI\s*\(([^)]{1,300})\)", txt)]
+    for m in re.finditer(r"/URI\s*<([0-9A-Fa-f\s]{16,})>", txt):
+        try:
+            out.append(bytes.fromhex(re.sub(r"\s+", "", m.group(1))).decode("utf-8", "replace"))
+        except Exception:
+            pass
+    return out
+
+PROXY_BINARIES = ("mshta", "rundll32", "regsvr32", "msiexec", "wscript", "cscript",
+                  "powershell", "pwsh", "msbuild", "bitsadmin", "certutil")
+PROXY_EXECUTOR_BINARIES = {"mshta", "rundll32", "regsvr32", "msiexec", "wscript",
+                           "cscript", "powershell", "pwsh", "msbuild"}
+PROXY_TARGET_EXTS = (".ps1", ".vbs", ".vbe", ".js", ".jse", ".wsf", ".wsh", ".sct",
+                     ".msi", ".hta", ".bat", ".cmd", ".inf", ".dll")
+# Scripts that ship with the platform itself: slmgr.vbs is part of
+# the Windows image (System32) and ospp.vbs ships with Microsoft
+# Office. Invoking one by bare name aims the interpreter at content
+# the platform image accounts for, the same basis on which system
+# DLLs on system paths are exempt below, and it is the documented
+# activation path the KMS baseline exists for: the engine's own
+# false-positive twin (a KMS helper running cscript ospp.vbs) must
+# keep its NO. The set is named and closed, never a pattern.
+PLATFORM_SCRIPTS = {"slmgr.vbs", "ospp.vbs"}
+_B64_TOKEN_RE = re.compile(r"[A-Za-z0-9+/]{40,}={0,2}")
+
+def proxy_invocation_findings(name, data, local_basenames=()):
+    """R5, interpreter-proxy invocation: a file that aims a signed
+    system proxy or interpreter (mshta, rundll32, regsvr32, msiexec,
+    wscript, cscript, powershell, msbuild, bitsadmin, certutil) at
+    content that is remote, encoded, or not itself accounted in
+    this run. The proxy's own signature is never entered as
+    accounting for the invoking file: it vouches for the proxy's
+    publisher, not for the data file's instructions. Scope is
+    invocation evidence only: a proxy named on a non-comment line
+    together with its operative argument. A mere mention (a
+    comment, a sentence in an echo) carries no argument of the
+    capped classes and does not fire. Download-only proxies
+    (bitsadmin, certutil) fire on remote content only when the
+    fetched target is itself executable-class, because their
+    download shape is wave 2's fetch atom: the chain there needs
+    an execution side, while here the staged executable is the
+    unaccounted content. System library DLLs on system paths are
+    the proxy's normal library surface and do not fire; a DLL in a
+    user-writable or relative location does."""
+    base = os.path.basename(str(name).split("!")[-1]).lower()
+    ext = os.path.splitext(base)[1]
+    if ext == ".lnk":
+        lines = [" ".join(parse_lnk(data)["strings"])]
+    elif ext in SCRIPT_CLASS_EXTS:
+        text = data.decode("utf-8", "replace")
+        if "\x00" in text[:2000]:
+            return []
+        lines = [ln for ln in text.splitlines() if not _is_comment_line(ln)]
+    else:
+        return []
+    out = []
+    for line in lines:
+        low = line.lower()
+        proxies = [p for p in PROXY_BINARIES
+                   if re.search(r"\b" + p + r"(?:\.exe)?\b", low)]
+        if not proxies:
+            continue
+        ev = []
+        m = _REF_URL_RE.search(line) or _REF_UNC_RE.search(line)
+        remote_target = m.group(0) if m else ("file://" if "file://" in low else None)
+        if remote_target:
+            cls = _classify_ref_target(remote_target)
+            for p in proxies:
+                if p in PROXY_EXECUTOR_BINARIES or cls == "active":
+                    ev.append(f"{p} invoked on remote content: {remote_target}")
+                    break
+        if (re.search(r"-enc\b|encodedcommand|frombase64string", low)
+                or "javascript:" in low or "vbscript:" in low):
+            ev.append(f"{proxies[0]} invoked on encoded or script-URI content: "
+                      "the invoked content is not in this file in readable form "
+                      "and was not accounted")
+        else:
+            bm = _B64_TOKEN_RE.search(line)
+            if bm and any(p in PROXY_EXECUTOR_BINARIES for p in proxies):
+                ev.append(f"{proxies[0]} invoked with a long base64 argument "
+                          f"({len(bm.group(0))} characters): the invoked content "
+                          "is encoded and was not decoded or accounted in this run")
+        for tok in re.findall(r"[^\s\"'<>]+", line):
+            t = tok.rstrip(".,;:").lower()
+            if not t.endswith(PROXY_TARGET_EXTS):
+                continue
+            bn = os.path.basename(t.replace("\\", "/"))
+            if bn in local_basenames or bn in PLATFORM_SCRIPTS:
+                continue
+            if t.endswith(".dll") and ("system32" in t or "syswow64" in t
+                                       or "\\windows\\" in t):
+                continue
+            ev.append(f"{proxies[0]} invoked on a file that is not part of this "
+                      f"submission and was not examined: {tok}")
+            break
+        if ev:
+            out.append({"kind": "interpreter-proxy-invocation", "evidence": ev})
+    return out
+
 def parse_lnk(data):
     """Parse a Windows .lnk as pure bytes. Never via a shell, never
     executed. Returns {strings, target_guess, lolbin, cradle, urls}."""
@@ -814,13 +1398,25 @@ def enumerate_subject(path, workdir):
             from email.parser import BytesParser as _BytesParser
             msg = _BytesParser(policy=_email_policy.default).parsebytes(data)
             atts = []
+            skipped = []
             for part in msg.walk():
                 if part.get_content_disposition() == "attachment":
                     payload = part.get_payload(decode=True)
-                    if payload is not None:
+                    if payload is None:
+                        skipped.append(part.get_filename() or "attachment")
+                    else:
                         atts.append((part.get_filename() or "attachment", payload))
-        except Exception:
+        except Exception as ex:
+            # A message that looked like email but could not be
+            # parsed has attachments nobody enumerated: that is an
+            # engine-incompleteness cap (wave 3, R3), recorded on the
+            # message's own record, never a silent return.
+            entry_blockers.setdefault(rel, []).append(
+                f"{rel}: this email file could not be parsed ({ex}), so its attachments could not be enumerated. An email whose attachments were never listed is an unaccounted unit and blocks any NO. Next step: open the message with a mail parser and run the verdict on the extracted attachments.")
             return
+        for fn in skipped:
+            entry_blockers.setdefault(rel, []).append(
+                f"{rel}: email attachment {fn} could not be decoded, so it was not enumerated or judged. An unenumerated attachment is unaccounted and blocks any NO. Next step: extract the attachment with a mail tool and run the verdict on it.")
         if not atts:
             return
         dest = os.path.join(workdir, f"extract_email_{hashlib.sha256(rel.encode('utf-8')).hexdigest()[:16]}")
@@ -1216,6 +1812,11 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
         entries, installer, enum_blockers, unexpanded, failed_containers, expanded_containers, entry_blockers = enumerate_subject(path, td)
         failed_container_set = set(failed_containers)
         expanded_container_set = set(expanded_containers)
+        # Basenames of everything examined in this run: an external
+        # reference or a proxy invocation that names one of these
+        # files is resolved, because the target was judged here
+        # (wave 3, R1 and R5).
+        entry_basenames = {os.path.basename(e["rel"].split("!")[-1]).lower() for e in entries}
         blockers.extend(enum_blockers)
         enumeration_aids = []
         for e in entries:
@@ -1486,7 +2087,11 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                 try:
                     prep = analyze(ppath)
                 except Exception as ex:
-                    blockers.append(f"{rel}: embedded {c['type']} payload at offset {hex(start)} could not be analysed ({ex}), so it is unproven.")
+                    # The cap belongs to this file's own record
+                    # (wave 3, R3): a release-level-only blocker
+                    # would leave the unit itself reading ACCOUNTED
+                    # while the headline disagreed.
+                    file_blockers.append(f"{rel}: embedded {c['type']} payload at offset {hex(start)} could not be analysed ({ex}), so it is unproven.")
                     rec["embedded_payloads"].append({"type": c["type"], "offset": start, "offset_hex": hex(start), "analysed": False})
                     continue
                 pchains = malicious_chains(prep, payload, base)
@@ -1498,7 +2103,7 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                                         "name": f"Hidden embedded {c['type']} payload at offset {hex(start)} inside {base}: " + p["name"],
                                         "evidence": p["evidence"]})
                 if (prep.get("format") or {}).get("format") == "unknown binary data" and not pchains:
-                    blockers.append(f"{rel}: embedded {c['type']} payload at offset {hex(start)} could not be decoded to a known format, so what it does is unproven.")
+                    file_blockers.append(f"{rel}: embedded {c['type']} payload at offset {hex(start)} could not be decoded to a known format, so what it does is unproven.")
             # known-bad hash
             if h["sha256"] in known_bad:
                 yes_reasons.append({"file": rel, "chain": "known-bad-hash",
@@ -1725,6 +2330,124 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                 file_blockers.append(f"{rel}: the file format was not recognised, so the file could not be fully decoded. Its bytes are unaccounted.")
             if rep.get("unpack", {}).get("high_entropy_regions") and virt_detected and not virt_is_patch_area:
                 file_blockers.append(f"{rel}: high entropy regions sit inside the virtualized protector and cannot be decoded statically. Those bytes are unaccounted.")
+            # ---- script-class and shortcut-class shapes (accuracy
+            # fix wave 2, 2026-11-24): a remote fetch-and-execute
+            # chain, a .url shortcut to a remote executable payload,
+            # and a disguised double extension each block NO, because
+            # none of them can be accounted from the file alone. The
+            # exemption is the same one the truncation markers use: a
+            # file accounted by byte identity (hash match against a
+            # reference, or a strong manifest hash) does not depend
+            # on this reading, so it is not blocked by it. A fully
+            # enumerated or failed container is exempt for the usual
+            # reason: its content units are its members.
+            if not judgement_exempt and rec["reference"] not in ("hash-match", "manifest-match"):
+                _scf = script_class_findings(base, data)
+                if _scf:
+                    rec["script_class_findings"] = _scf
+                    for _sf in _scf:
+                        _ev = "; ".join(_sf["evidence"])
+                        if _sf["kind"] == "remote-fetch-and-execute":
+                            _tb = (f"{rel}: remote fetch-and-execute chain in a script-class file ({_ev}). "
+                                   "What this file does is decided by content fetched from a remote host, and that content is not in this file, "
+                                   "so the file's behaviour is unaccounted by construction and blocks any NO. "
+                                   "Next step: fetch the remote content inside a disposable sandbox and run the verdict on it as well, or account for this file by byte identity against a genuine reference.")
+                        elif _sf["kind"] == "url-shortcut-remote-payload":
+                            _tb = (f"{rel}: this Internet Shortcut (.url) points at a remote executable payload ({_ev}). "
+                                   "Opening the shortcut loads content that is not in this file, so the shortcut's effect cannot be accounted from the file alone and blocks any NO. "
+                                   "Next step: fetch the target inside a disposable sandbox and run the verdict on what it serves, or account for this file by byte identity against a genuine reference.")
+                        else:
+                            _tb = (f"{rel}: disguised double extension ({_ev}). "
+                                   "The name presents a document first and an executable second, the classic shape for making an executable look like a document. "
+                                   "A name is not behaviour, so this is not proof of malware, but a file that disguises what it is cannot be accounted as what it appears to be, and it blocks any NO. "
+                                   "Next step: rename the file to its true single extension and re-run the verdict, or account for it by byte identity against a genuine reference.")
+                        if _tb not in file_blockers:
+                            file_blockers.append(_tb)
+            # ---- external references, engine completeness and
+            # interpreter proxies (accuracy fix wave 3, 2026-11-24;
+            # research rules R1, R3 and R5). R3 generalises the
+            # wave 1 truncation markers into an invariant: any
+            # recorded cap, parse failure or unenumerated member in
+            # a unit's processing caps that unit. The truncation
+            # markers are wired just below; the enumeration failures
+            # are wired in enumerate_subject and at the top of this
+            # loop; the two signals that existed but never reached
+            # the verdict were the script parser's own parse error
+            # and the binary parser's failure to read a PE section
+            # table, and they are wired here. R1 produces the file's
+            # external-reference list and resolves every entry
+            # before any NO: examined in this run, provably inert,
+            # or unresolved, and an unresolved reference to
+            # executable or active content caps the verdict. R5 caps
+            # a file that aims a signed system proxy at remote,
+            # encoded or unexamined content; the proxy's signature
+            # is never accounting for the invoking file. Exemptions
+            # mirror waves 1 and 2: byte identity (hash match or a
+            # strong manifest hash) does not depend on these
+            # readings, and a failed container is already capped as
+            # a unit. A fully enumerated container is exempt from
+            # R5 and the R3 analysis signals (its members are the
+            # judged units) but NOT from R1: an OOXML package's
+            # relationship parts are the package's own references,
+            # and they are read from the package itself.
+            if not failed_container and rec["reference"] not in ("hash-match", "manifest-match"):
+                _sa = rep.get("script_analysis") or {}
+                _inc = []
+                if _sa.get("parse_error"):
+                    _inc.append(("script-parse-failure",
+                                 f"the {_sa.get('language') or 'script'} parser could not parse this source ({_sa['parse_error']}), so the file's structure was not fully examined and the source accounting rests on the line ledger alone"))
+                if rec["format"] == "PE" and "sections" not in (rep.get("format") or {}):
+                    _inc.append(("binary-parse-failure",
+                                 "the PE parser could not read this file's section table, so the binary was not fully decoded"))
+                if _inc and not container_entry:
+                    rec["incompleteness"] = [k for k, _d in _inc]
+                    for _kind, _detail in _inc:
+                        _tb = (f"{rel}: engine-incompleteness ({_kind}): {_detail}. "
+                               "A verdict of NO claims complete accounting; processing that did not complete cannot support it, so this caps the verdict. "
+                               "Next step: repair or convert the file so it parses fully, or account for it by byte identity against a genuine reference.")
+                        if _tb not in file_blockers:
+                            file_blockers.append(_tb)
+                _refs, _refs_complete, _refs_note = external_references(base, data)
+                for _tu in (rep.get("office") or {}).get("template_injection_urls") or []:
+                    _refs.append({"kind": "office-remote-template", "target": _tu,
+                                  "source": "Office analyzer template scan"})
+                if (rep.get("pdf") or {}).get("is_pdf"):
+                    for _u in _pdf_uri_targets(data):
+                        _refs.append({"kind": "pdf-uri", "target": _u,
+                                      "source": "PDF /URI action"})
+                    if (rep.get("pdf") or {}).get("object_streams"):
+                        _refs_note = ((_refs_note + "; ") if _refs_note else "") + \
+                            "literal /URI targets only: this PDF carries compressed object streams, whose references this build does not enumerate"
+                        _refs_complete = False
+                if _refs or _refs_note:
+                    _disp = []
+                    _unres = []
+                    for _r in _refs:
+                        _d, _why = _reference_disposition(_r, entry_basenames)
+                        _disp.append({**_r, "disposition": _d, "basis": _why})
+                        if _d == "unresolved":
+                            _unres.append(_r)
+                    rec["external_references"] = {"references": _disp,
+                                                  "complete": _refs_complete,
+                                                  "note": _refs_note}
+                    if _unres:
+                        _ev = "; ".join(f"{_r['kind']}: {_r['target']}" for _r in _unres[:4])
+                        _tb = (f"{rel}: external-reference-unresolved: this file points at content outside itself that was not examined in this run ({_ev}). "
+                               "What the file does is decided in part by that content, so its behaviour cannot be accounted from the file alone, and the reference caps any NO. "
+                               "Next step: fetch the referenced content inside a disposable sandbox and run the verdict on it as well, or account for this file by byte identity against a genuine reference.")
+                        if _tb not in file_blockers:
+                            file_blockers.append(_tb)
+                if not judgement_exempt:
+                    _pf = proxy_invocation_findings(base, data, entry_basenames)
+                    if _pf:
+                        rec["proxy_invocation_findings"] = _pf
+                        for _f in _pf:
+                            _ev = "; ".join(_f["evidence"])
+                            _tb = (f"{rel}: interpreter-proxy-invocation: this file aims a signed system binary at content that is remote, encoded, or not part of this submission ({_ev}). "
+                                   "The system binary's signature vouches for the binary, never for this file's instructions, so the invoked content is unaccounted and blocks any NO. "
+                                   "Next step: include the invoked file in the submission so it is examined in the same run, fetch the remote content inside a disposable sandbox and judge it too, or account for this file by byte identity against a genuine reference.")
+                            if _tb not in file_blockers:
+                                file_blockers.append(_tb)
             # ---- truncation markers: analysis caps that cut material
             # a NO would depend on are explicit unaccounted markers.
             # A file accounted by byte identity (hash match against a
