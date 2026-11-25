@@ -56,6 +56,7 @@ from .bytecode import bytecode_report, split_macho_fat, is_jar_signature_member
 from .coverage3 import byte_ownership, dual_parser, polyglot_identities, image_identity_accounted, driver_capabilities
 from .coverage5 import member_semantics
 from .coverage6 import SYSTEM_DLLS, autoexec_units, pe_imports
+from .coverage7 import analyze_pickle, safetensors_accounting, is_safetensors, onnx_accounting, keras_lambda_findings, clipboard_units, scan_embedded_pickles
 
 HEADLINE_YES = "YES: MALWARE FOUND"
 HEADLINE_NO = "NO: NO MALWARE"
@@ -2932,7 +2933,7 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                     rec["why"].append("A gated trigger (logic bomb pattern) is present, but every differing region against the genuine reference is classified expected-crack or benign-repack, so the trigger is accounted as the genuine program's own logic or the explained crack.")
                 elif cb not in file_blockers:
                     file_blockers.append(cb)
-            if rec["format"] == "unknown binary data" and not container_entry and not is_jar_signature_member(rel):
+            if rec["format"] == "unknown binary data" and not container_entry and not is_jar_signature_member(rel) and not rel.lower().endswith(".onnx"):
                 # A fully enumerated container whose own container
                 # format has no dedicated label (a tar.gz, say) is an
                 # enumeration unit: its members are the judged
@@ -3369,6 +3370,154 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                              "trigger": _trig,
                              "recognised": _u["recognised"],
                              "accounted": not _capped})
+            # ---- model files and clipboard units (coverage
+            # wave 7, 2026-11-24): a pickle stream is a program
+            # for a stack machine whose opcodes name callables,
+            # and it is walked as bytecode here (disassembly
+            # only; nothing in the engine ever unpickles). A
+            # safetensors header is checked against the file's
+            # actual extent. An ONNX model's operator domains
+            # and external tensors are external references under
+            # the closure rules. A Keras Lambda layer is code by
+            # design. A page's clipboard writes and paste-and-run
+            # instructions are script units judged under the
+            # script rules. The exemptions mirror waves 1 to 6:
+            # byte identity does not depend on any of it, and a
+            # failed container is already capped as a unit (a
+            # failed 7z gets a naming-only scan for stored
+            # pickles, below).
+            if failed_container and data[:6] == b"7z\xbc\xaf'\x1c":
+                try:
+                    _labels = scan_embedded_pickles(data)
+                except Exception:
+                    _labels = []
+                if _labels:
+                    _tb = (f"{rel}: this container could not be enumerated, and a raw scan of its stored bytes finds pickle stream(s) naming these callables: {', '.join(_labels)}. "
+                           "The container is unaccounted as a unit; the scan names what a stored payload would resolve, and changes nothing about the cap.")
+                    if _tb not in file_blockers:
+                        file_blockers.append(_tb)
+            if not failed_container and rec["reference"] not in ("hash-match", "manifest-match"):
+                _member = rel.split("!")[-1]
+                _mext = os.path.splitext(_member)[1].lower()
+                _st = None
+                try:
+                    _st = safetensors_accounting(data) if is_safetensors(data) else None
+                except Exception:
+                    _st = None
+                if _st is not None:
+                    rec["safetensors"] = {"tensors": _st["tensors"], "payload_bytes": _st["payload_bytes"], "accounted": _st["accounted"]}
+                    for _cap in _st["caps"]:
+                        _tb = (f"{rel}: safetensors accounting: {_cap}. "
+                               "A model file is accounted by its header: tensor extents the header cannot account for are unaccounted bytes, and a header that disagrees with the file cannot certify the file. "
+                               "Next step: rebuild the model with a header whose tensor extents match the payload, or supply the file's genuine reference.")
+                        if _tb not in file_blockers:
+                            file_blockers.append(_tb)
+                    if _st["accounted"]:
+                        rec["model_accounted"] = True
+                        rec["model_kind"] = "safetensors"
+                else:
+                    _claim = "none"
+                    if _mext in (".pkl", ".pickle", ".pck"):
+                        _claim = "strict"
+                    elif _mext in (".pt", ".pth"):
+                        _claim = "soft"
+                    _pk = None
+                    if _claim != "none" or (data[:1] and data[:1] in b"\x80c(VSNILF})P.\x8c\x8f\x88\x89"):
+                        try:
+                            _pk = analyze_pickle(data, claim=_claim)
+                        except Exception:
+                            _pk = None
+                    if _pk is not None:
+                        rec["pickle"] = {"callables": _pk["callables"], "complete": _pk["complete"], "persids": _pk["persids"], "trailing_bytes": _pk["trailing_bytes"], "accounted": _pk["accounted"]}
+                        if _pk["chain"]:
+                            _danger = [f"{c['module']}.{c['name']}" for c in _pk["callables"] if c["tier"] == "dangerous" and c["invoked"]]
+                            if not any(y["file"] == rel and y["chain"] == "pickle-code-execution" for y in yes_reasons):
+                                yes_reasons.append({"file": rel, "chain": "pickle-code-execution",
+                                                    "name": "pickle stream invokes a code-execution callable on load (" + ", ".join(_danger) + ")",
+                                                    "evidence": [f"callable {d} is invoked by a REDUCE, INST, OBJ or NEWOBJ opcode in the stream's disassembly walk" for d in _danger]})
+                        for _cap in _pk["caps"]:
+                            _tb = (f"{rel}: pickle accounting: {_cap}. "
+                                   "A pickle stream is a program: loading it runs the callables its opcodes name, so a stream whose callables cannot all be accounted is unaccounted code, never data. "
+                                   "Next step: re-export the model in a data-only format (safetensors), or supply the stream's genuine reference.")
+                            if _tb not in file_blockers:
+                                file_blockers.append(_tb)
+                        if _pk["accounted"]:
+                            rec["model_accounted"] = True
+                            rec["model_kind"] = "pickle"
+                if _mext == ".onnx":
+                    try:
+                        _ox = onnx_accounting(data, entry_basenames)
+                    except Exception:
+                        _ox = None
+                    if _ox is None:
+                        _tb = (f"{rel}: ONNX accounting: the file claims the ONNX format but no model graph could be read from its protobuf structure, so its content is unaccounted. "
+                               "Next step: re-export the model so its graph parses, or supply the file's genuine reference.")
+                        if _tb not in file_blockers:
+                            file_blockers.append(_tb)
+                    else:
+                        rec["onnx"] = {"nodes": _ox["nodes"], "external_refs": _ox["external_refs"], "accounted": _ox["accounted"]}
+                        for _cap in _ox["caps"]:
+                            _tb = (f"{rel}: ONNX accounting: {_cap}. "
+                                   "A model is accounted when every operator resolves inside the standard set and every tensor's data is present; an operator or tensor that resolves outside the submission is unaccounted. "
+                                   "Next step: vendor the named library or tensor file into the submission, or re-export with standard operators and embedded tensors.")
+                            if _tb not in file_blockers:
+                                file_blockers.append(_tb)
+                        if _ox["accounted"]:
+                            rec["model_accounted"] = True
+                            rec["model_kind"] = "onnx"
+                if _mext == ".json":
+                    try:
+                        _lambdas = keras_lambda_findings(data)
+                    except Exception:
+                        _lambdas = []
+                    for _lp in _lambdas:
+                        _tb = (f"{rel}: Keras Lambda layer at {_lp}: a Lambda layer carries a serialised Python function, which is code by design, and configuration accounting cannot account for code. "
+                               "The layer is unaccounted and blocks any NO. "
+                               "Next step: replace the Lambda layer with a standard layer, or extract the function and submit it as a script unit for judgement.")
+                        if _tb not in file_blockers:
+                            file_blockers.append(_tb)
+                _is_html = _mext in (".html", ".htm") or data[:1024].lower().find(b"<html") >= 0 or data[:1024].lower().find(b"<!doctype html") >= 0
+                if _is_html:
+                    try:
+                        _cb = clipboard_units(data.decode("utf-8", "replace"))
+                    except Exception:
+                        _cb = None
+                    if _cb is not None and (_cb["units"] or _cb["in_text_commands"]):
+                        rec["clipboard"] = {"units": [{"kind": u["kind"], "resolution": u["resolution"]} for u in _cb["units"]], "framing": _cb["framing"]}
+                        for _u in _cb["units"]:
+                            if _u["resolution"] == "remote":
+                                _tb = (f"{rel}: clipboard unit ({_u['kind']}): the content written to the reader's clipboard is fetched from a remote source at page time, so what the reader would paste is not in this submission and is unaccounted. "
+                                       "A clipboard payload assembled remotely is a script unit whose code was never examined. "
+                                       "Next step: inline the exact clipboard content in the page so it is examined in the same run, or remove the clipboard write.")
+                                if _tb not in file_blockers:
+                                    file_blockers.append(_tb)
+                            elif _u["resolution"] == "unresolvable":
+                                _tb = (f"{rel}: clipboard unit ({_u['kind']}): the content written to the reader's clipboard could not be resolved from the page's source, so what the reader would paste is unaccounted. "
+                                       "Next step: inline the exact clipboard content in the page so it is examined in the same run, or remove the clipboard write.")
+                                if _tb not in file_blockers:
+                                    file_blockers.append(_tb)
+                            elif _u.get("cradle"):
+                                if not any(y["file"] == rel and y["chain"] == "clickfix-paste-and-run" for y in yes_reasons):
+                                    yes_reasons.append({"file": rel, "chain": "clickfix-paste-and-run",
+                                                        "name": "page writes a fetch-and-execute command to the clipboard for the reader to paste and run",
+                                                        "evidence": ["clipboard content: " + (_u["content"] or "")[:200]]})
+                            elif _cb["framing"] == "strong" and _u.get("content") and re.search(r"\b(powershell|cmd|pwsh|mshta|rundll32|regsvr32|notepad|calc|wscript|cscript|bash|sh|curl|wget)\b|\.(exe|bat|cmd|ps1|vbs|js|sh)\b", _u["content"], re.IGNORECASE):
+                                _tb = (f"{rel}: clipboard unit ({_u['kind']}): the page pairs paste-and-run instruction framing with a clipboard command ({(_u['content'] or '')[:120]}). "
+                                       "The command itself is fully present and is not a fetch-and-execute cradle, so this is a framing finding, not a conviction: the unit is unaccounted until the instruction framing is removed or the command is accounted as a script. "
+                                       "Next step: remove the paste-and-run instructions, or submit the command as a standalone script unit.")
+                                if _tb not in file_blockers:
+                                    file_blockers.append(_tb)
+                        if _cb["framing"] == "strong" and _cb["in_text_cradle"]:
+                            if not any(y["file"] == rel and y["chain"] == "clickfix-paste-and-run" for y in yes_reasons):
+                                yes_reasons.append({"file": rel, "chain": "clickfix-paste-and-run",
+                                                    "name": "page instructs the reader to paste and run a fetch-and-execute command",
+                                                    "evidence": ["instruction text: " + _cb["in_text_commands"][0][:200] if _cb["in_text_commands"] else "paste-and-run framing with an in-text cradle"]})
+                        elif _cb["framing"] == "strong" and _cb["in_text_commands"] and not any(u["resolution"] == "literal" for u in _cb["units"]):
+                            _tb = (f"{rel}: instruction accounting: the page pairs paste-and-run instruction framing (fake verification or Run-dialog instructions) with a command in its visible text ({_cb['in_text_commands'][0][:120]}). "
+                                   "The command is fully present and is not a fetch-and-execute cradle, so this is a framing finding, not a conviction: the instruction unit is unaccounted until the framing is removed or the command is accounted as a script. "
+                                   "Next step: remove the paste-and-run instructions, or present the command as documentation without run instructions.")
+                            if _tb not in file_blockers:
+                                file_blockers.append(_tb)
             # ---- truncation markers: analysis caps that cut material
             # a NO would depend on are explicit unaccounted markers.
             # A file accounted by byte identity (hash match against a
@@ -3420,6 +3569,9 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                 elif rec.get("bytecode_accounted"):
                     rec["verdict"] = "NO: ACCOUNTED"
                     rec["why"].append(f"Accounted: this file's bytecode was parsed and accounted at method level by the coverage wave 2 bytecode accounting ({rec.get('bytecode_kind')}): every method body was decoded, and every reference, dynamic load and embedded unit in it is resolved or enumerated in this report, with no malicious chain.")
+                elif rec.get("model_accounted"):
+                    rec["verdict"] = "NO: ACCOUNTED"
+                    rec["why"].append(f"Accounted: this file's model content was accounted by the coverage wave 7 model accounting ({rec.get('model_kind')}): every callable the stream names, every tensor extent the header declares, and every operator and external reference in it is resolved or enumerated in this report, with no malicious chain.")
                 elif fmt_name in ("script", "text / script"):
                     rec["verdict"] = "NO: ACCOUNTED"
                     rec["why"].append("Accounted: this is a script or text file, so it was fully reverse-engineered by reading all of its source. Every behaviour in it is enumerated in this report and classified expected-crack or benign, with no malicious chain.")

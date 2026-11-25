@@ -118,6 +118,16 @@ def detect_format(data):
     if len(data)>262 and data[257:262]==b'ustar': return {"format":"TAR archive","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
     if data[:5]==b'%PDF-': return {"format":"PDF","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
     if data[:6] in (b'#!/bin',) or data[:3]==b'#!/': return {"format":"script","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
+    # Coverage wave 7 model labels, before the text heuristic:
+    # a binary pickle is ASCII-adjacent code for a stack machine
+    # and a safetensors header is JSON text, so both would fall
+    # into the text branch and be acquitted as readable content
+    # if the heuristic reached them first.
+    if len(data)>=2 and data[0]==0x80 and 2<=data[1]<=5: return {"format":"Python pickle","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
+    try:
+        from .coverage7 import is_safetensors as _is_st
+        if _is_st(data): return {"format":"safetensors model","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
+    except Exception: pass
     # text heuristic
     try:
         data[:4096].decode('utf-8'); return {"format":"text / script","architecture":"n/a","sections":[],"imports":[],"symbols":[]}
