@@ -255,6 +255,35 @@ def zip_bytes(members):
     return buf.getvalue()
 
 
+def raw_zip_bytes(members):
+    # Build a ZIP whose member names are stored byte for byte.
+    # zipfile sanitizes names at write time on Windows (the host
+    # separator is rewritten to "/"), so a fixture that needs an
+    # exact stored name cannot go through it. Stored method only.
+    import binascii
+    out = io.BytesIO()
+    central = []
+    for name, data in members:
+        crc = binascii.crc32(data) & 0xFFFFFFFF
+        offset = out.tell()
+        out.write(struct.pack("<IHHHHHIIIHH", 0x04034B50, 20, 0, 0,
+                              0, 0x21, crc, len(data), len(data),
+                              len(name), 0))
+        out.write(name)
+        out.write(data)
+        central.append((name, crc, len(data), offset))
+    cd_start = out.tell()
+    for name, crc, size, offset in central:
+        out.write(struct.pack("<IHHHHHHIIIHHHHHII", 0x02014B50, 20,
+                              20, 0, 0, 0, 0x21, crc, size, size,
+                              len(name), 0, 0, 0, 0, 0, offset))
+        out.write(name)
+    out.write(struct.pack("<IHHHHIIH", 0x06054B50, 0, 0,
+                          len(central), len(central),
+                          out.tell() - cd_start, cd_start, 0))
+    return out.getvalue()
+
+
 def symlink_info(name):
     zi = zipfile.ZipInfo(name)
     zi.create_system = 3
@@ -316,8 +345,8 @@ def test_zip_leading_colon_stream_member_caps(tmp_path):
 
 
 def test_zip_backslash_traversal_caps(tmp_path):
-    data = zip_bytes([("..\\..\\evil.txt", BENIGN),
-                      ("readme.txt", BENIGN)])
+    data = raw_zip_bytes([(b"..\\..\\evil.txt", BENIGN),
+                          (b"readme.txt", BENIGN)])
     divs = member_semantics(data, "zip")
     assert "path-traversal-backslash" in gate_kinds(divs)
     assert_caps(verdict(write(tmp_path, "bs.zip", data)))

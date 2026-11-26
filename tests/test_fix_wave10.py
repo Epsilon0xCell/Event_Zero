@@ -202,13 +202,43 @@ def _zip_bytes(members):
     return buf.getvalue()
 
 
+def raw_zip_bytes(members):
+    # Build a ZIP whose member names are stored byte for byte.
+    # zipfile sanitizes names at write time on Windows (the host
+    # separator is rewritten to "/"), so a fixture that needs an
+    # exact stored name cannot go through it. Stored method only.
+    import binascii
+    import struct
+    out = io.BytesIO()
+    central = []
+    for name, data in members:
+        crc = binascii.crc32(data) & 0xFFFFFFFF
+        offset = out.tell()
+        out.write(struct.pack("<IHHHHHIIIHH", 0x04034B50, 20, 0, 0,
+                              0, 0x21, crc, len(data), len(data),
+                              len(name), 0))
+        out.write(name)
+        out.write(data)
+        central.append((name, crc, len(data), offset))
+    cd_start = out.tell()
+    for name, crc, size, offset in central:
+        out.write(struct.pack("<IHHHHHHIIIHHHHHII", 0x02014B50, 20,
+                              20, 0, 0, 0, 0x21, crc, size, size,
+                              len(name), 0, 0, 0, 0, 0, offset))
+        out.write(name)
+    out.write(struct.pack("<IHHHHIIH", 0x06054B50, 0, 0,
+                          len(central), len(central),
+                          out.tell() - cd_start, cd_start, 0))
+    return out.getvalue()
+
+
 def test_gate_classifies_stored_names_not_listing_names():
     # On Windows, zipfile's ZipInfo listing rewrites backslashes
     # in member names to forward slashes. Simulate that listing
     # here: the gate must still classify the stored name, read
     # from the central directory bytes.
-    data = _zip_bytes([("..\\..\\evil.txt", b"hello\n"),
-                       ("readme.txt", b"hello\n")])
+    data = raw_zip_bytes([(b"..\\..\\evil.txt", b"hello\n"),
+                          (b"readme.txt", b"hello\n")])
     with zipfile.ZipFile(io.BytesIO(data)) as zf:
         for info in zf.infolist():
             info.filename = info.filename.replace("\\", "/")
