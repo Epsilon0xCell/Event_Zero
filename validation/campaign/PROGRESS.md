@@ -248,3 +248,8 @@ re-run shard 0 on the strengthened engine.
 - Verdicts: YES 248, NO ACCOUNTED 2. The flagged share matches run 6 exactly, on a materially stronger engine.
 - Miss ledger samples: 003, 004, 005, 006 all YES again. 007 (5441.pdf.cmd) and 008 (azienda_08.hta) returned NO ACCOUNTED again, on the real samples, on the engine carrying fix wave 4 and coverage waves 5 to 9.
 - Consequence, stated plainly: fix wave 4 is now confirmed NOT to close the real 007 and 008 samples. Its fourteen synthetic shapes cap and their benign twins hold, but the real files use shapes outside what the wave reconstructed from the vendor behaviours of record. Entries 007 and 008 stay OPEN. The next step is a diagnosis built from the samples' actual structure, obtained through the campaign runner (structural facts out, sample bytes never leave the runner), not another wave scoped from secondhand descriptions.
+
+## Diagnosis run for 007 and 008 (run 45755585312, engine ceb647e): quota refusal, no structural facts
+- The diagnosis route (validation/campaign/diagnose.py, .github/workflows/diagnose.yml) ran end to end as built: download stage with the campaign retry discipline, egress canary passed, artifact guard passed, diagnosis.json published.
+- Both downloads were refused: HTTP 429 on all four attempts for each sample. The run began roughly sixteen minutes after run 8 finished drawing 250 downloads in the same UTC day from the same shared egress pool; the per-IP quota wall was already up.
+- Outcome: no structural facts were obtained and the 007/008 diagnosis is still owed. The tooling is proven; the blocker is quota timing, not code. The diagnosis re-rides the next quota window (two downloads only) ahead of any further large draw.
