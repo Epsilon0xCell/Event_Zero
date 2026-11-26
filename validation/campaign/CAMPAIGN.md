@@ -107,3 +107,53 @@ enters docs/MISS-LEDGER.md under the existing EZ-BYPASS process and
 becomes a permanent regression fixture. A confirmed miss is fixed
 in the open, with the ledger entry naming it. Nothing is deleted
 from the record.
+
+## Structural diagnosis of a confirmed miss
+
+Adjudication names a miss; it does not explain one. The shard
+results carry verdicts, not structure, because per-sample
+analysis evidence stays inside the runner by design. When a fix
+wave built from outside reports fails on the real samples, the
+next wave has to be scoped from the samples' actual structure,
+and that structure has to cross the runner boundary without
+breaking the rule that sample bytes never leave it.
+
+That is what happened with EZ-BYPASS-2026-007 and
+EZ-BYPASS-2026-008. Shard run 8 (run 45745957476) re-judged
+both on the engine carrying fix wave 4 and coverage waves 5
+to 9, and both returned NO ACCOUNTED again: fix wave 4 closes
+the fourteen synthetic shapes reconstructed from vendor
+behaviour reports, not the shapes the real files use. The
+diagnosis route exists because of that result.
+
+The route (.github/workflows/diagnose.yml driving
+validation/campaign/diagnose.py, dispatched manually for named
+hashes, the 007 and 008 hashes by default) mirrors the shard
+flow's stage separation exactly: the samples are downloaded
+through run_shard.py's own code path as encrypted ZIPs, and
+the analysis runs in the campaign container with
+--network none, egress canary first, extraction through
+analyze_shard.py's own extraction, extracted bytes deleted
+after each sample. What leaves the runner is one file,
+diagnosis.json, guarded by a workflow step that fails the job
+if the artifact directory contains anything else.
+
+The boundary is a deliberate, bounded extension of this
+document's "hashes and verdicts only" rule, and it is stated
+here so the exception is part of the public record, not a
+quiet widening. diagnosis.json carries structural facts only:
+hashes, sizes, format classifications, finding and chain ids
+with the engine's recorded reason strings, capability ids
+with their sources, byte-ownership counts and ranges,
+decoded-layer kinds with the decoded content's size and hash,
+and the decision trace the engine's report supports. It never
+carries sample bytes, full file text, string dumps, script
+source, decoded-layer content, or script-ledger line text.
+External references are reduced to scheme, host, and a
+SHA-256 of the full URL; a full URL is recorded only when its
+host is already public in docs/MISS-LEDGER.md, and every
+engine reason string passes through the same reduction. The
+diagnosis also states its own limit on its face: the engine
+records blockers that fired, not candidates that were
+evaluated and did not fire, so no unfired-blocker trace is
+claimed.

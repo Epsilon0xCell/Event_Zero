@@ -1,0 +1,174 @@
+name: diagnose
+
+# Structural diagnosis of confirmed campaign misses
+# (validation/campaign/diagnose.py, documented in
+# validation/campaign/CAMPAIGN.md). Built for EZ-BYPASS-2026-007
+# and 008, which shard run 8 re-judged NO ACCOUNTED on the
+# current engine: the next fix wave is scoped from the samples'
+# actual structure, obtained here.
+#
+# Shape of a run, mirroring campaign.yml's stage separation:
+#   1. Download stage (network allowed, this stage only): the
+#      named samples are fetched from MalwareBazaar as their
+#      original password-protected AES ZIPs, through the
+#      campaign's own run_shard.py download path. Nothing is
+#      extracted here.
+#   2. Analysis stage: a container built from the repo runs
+#      with --network none. Inside it, an egress canary must
+#      prove the network is dead before any ZIP is opened; each
+#      sample is extracted to a scratch dir, the verdict and
+#      the per-unit analyzer run (static only, the sample is
+#      never executed), the diagnosis is shaped, and the
+#      extracted bytes are deleted.
+#   3. Only diagnosis.json leaves the runner: structural facts
+#      (hashes, sizes, format classifications, finding and
+#      chain ids with the engine's recorded reasons, capability
+#      ids and sources, byte-ownership counts and ranges,
+#      reduced external references, the decision trace). Never
+#      sample bytes, never full file text, never string dumps.
+#      A guard step fails the job if anything other than
+#      diagnosis.json tries to enter the artifact path.
+#
+# Acquisition counts against the campaign's self-imposed cap
+# of 2,000 get_file downloads per day in aggregate (see
+# CAMPAIGN.md); a diagnosis run downloads two samples.
+
+on:
+  workflow_dispatch:
+    inputs:
+      hash_007:
+        description: "First sample hash (default: EZ-BYPASS-2026-007, 5441.pdf.cmd)"
+        required: true
+        default: "03e548ca313467cc8716fa135199414f36ca37884cd95b6cdd1b9a37c3bee71a"
+      hash_008:
+        description: "Second sample hash (default: EZ-BYPASS-2026-008, azienda_08.hta)"
+        required: true
+        default: "04b5784000d66093995c13dddb0f346996aea2b7fc9ce0d420f5b596ad70fe72"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagnose
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      # Cloudflare WARP VPN: covers host stages only (dependency
+      # install, MalwareBazaar download stage, image build), so
+      # downloads egress through WARP instead of the raw GitHub
+      # runner IP, exactly as in campaign.yml. The analysis
+      # container still runs with --network none, so WARP never
+      # reaches the isolated stage and the egress canary still
+      # proves isolation.
+      - name: Setup Cloudflare WARP
+        uses: fscarmen/warp-on-actions@v1.3
+        with:
+          stack: dual
+          mode: client
+      - name: Verify WARP is on
+        run: |
+          sudo warp-cli --accept-tos status || true; curl -s --retry 3 https://one.one.one.one/cdn-cgi/trace || true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install download-stage dependencies
+        run: pip install --require-hashes -r requirements.txt
+
+      # Download stage: network is allowed here, and only here.
+      # Samples land as encrypted ZIPs under diag-out/zips and
+      # are never extracted, executed, committed, or uploaded.
+      - name: Download stage (fetch the named samples as encrypted ZIPs)
+        env:
+          ABUSECH_API_KEY: ${{ secrets.ABUSECH_API_KEY }}
+        run: |
+          python3 validation/campaign/diagnose.py \
+            --stage download --out diag-out \
+            "${{ inputs.hash_007 }}" "${{ inputs.hash_008 }}"
+
+      # The build uses --network host because WARP client mode
+      # breaks DNS inside default Docker bridge build containers;
+      # host networking keeps the build on the WARP path instead.
+      - name: Build the analysis image (setup stage, network allowed)
+        run: docker build --network host -f validation/campaign/Dockerfile.campaign -t event-zero-campaign .
+
+      # Analysis stage: the container runs with --network none.
+      # The downloaded ZIPs are mounted read-only, the scratch
+      # work dir is a tmpfs inside the container, and only the
+      # results directory is mounted writable.
+      - name: Analysis stage (network-disabled container, canary, diagnosis)
+        run: |
+          mkdir -p diag-results
+          docker run --network none --rm \
+            --tmpfs /work:rw,noexec,nosuid,size=2g \
+            -v "$GITHUB_WORKSPACE/diag-out/zips:/zips:ro" \
+            -v "$GITHUB_WORKSPACE/diag-out/downloads.jsonl:/input/downloads.jsonl:ro" \
+            -v "$GITHUB_WORKSPACE/diag-results:/results" \
+            event-zero-campaign \
+            python3 validation/campaign/diagnose.py \
+              --stage analyze \
+              --downloads /input/downloads.jsonl \
+              --zips /zips \
+              --work /work \
+              --out /results/diagnosis.json
+
+      # Hard guard: diagnosis.json is the only file that may be
+      # uploaded. Anything else in the artifact path (a sample,
+      # an archive, an extracted file, a stray log) fails the
+      # job before upload.
+      - name: Artifact guard (diagnosis.json only)
+        run: |
+          bad=$(find diag-results -type f ! -name 'diagnosis.json' | head -20)
+          if [ -n "$bad" ]; then
+            echo "Artifact guard failed, unexpected files in diag-results:"
+            echo "$bad"
+            exit 1
+          fi
+          if [ ! -f diag-results/diagnosis.json ]; then
+            echo "Artifact guard failed, diagnosis.json is missing."
+            exit 1
+          fi
+          echo "Artifact guard passed: diagnosis.json only."
+
+      - name: Publish diagnosis summary to the job summary
+        if: always()
+        run: |
+          {
+            echo "# Event Zero structural diagnosis"
+            echo ""
+            echo '```json'
+            python3 -c "
+          import json
+          try:
+              doc = json.load(open('diag-results/diagnosis.json'))
+              print(json.dumps([
+                  {'sha256': s.get('sample', {}).get('sha256') or s.get('sha256'),
+                   'verdict': s.get('verdict'),
+                   'reason_class': s.get('reason_class'),
+                   'analysis_status': s.get('analysis_status')}
+                  for s in doc.get('samples', [])], indent=2, sort_keys=True))
+          except FileNotFoundError:
+              print('diagnosis file missing (stage failed)')
+          " || echo "summary unavailable (stage failed)"
+            echo '```'
+            echo ""
+            echo "Retention: this artifact is a convenience copy (Actions artifacts expire after 90 days)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the downloaded ZIPs
+        if: always()
+        run: rm -rf diag-out/zips
+
+      - name: Upload diagnosis (structural facts only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: event-zero-diagnosis
+          path: diag-results/diagnosis.json
