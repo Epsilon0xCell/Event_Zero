@@ -329,8 +329,15 @@ def test_defect13_section_match_boundaries():
 @pytest.mark.skipif(not shutil.which("gcc"), reason="gcc not available")
 def test_defect13_gcc_elf_not_flagged_safengine(tmp_path):
     src = write(tmp_path, "hello.c", '#include <stdio.h>\nint main(){ printf("hello\\n"); return 0; }\n')
-    exe = str(tmp_path / "hello")
+    # The output is requested under the name the host toolchain
+    # actually produces: MinGW gcc on Windows appends .exe to an
+    # extensionless -o target, so the compiled binary lands at
+    # hello.exe there and the old fixed name "hello" did not
+    # exist (the Windows CI leg failed opening it).
+    exe = str(tmp_path / ("hello.exe" if os.name == "nt" else "hello"))
     assert subprocess.run(["gcc", "-O2", "-o", exe, src]).returncode == 0
+    if not os.path.exists(exe):
+        pytest.skip(f"gcc reported success but produced no output at {exe} on this host")
     raw = open(exe, "rb").read()
     rep = analyze(exe)
     virt = analyze_virtualization(raw, rep["strings"]["all"], rep["sections"], "hello")

@@ -30,7 +30,7 @@ family_findings returns:
   script_ledger: per-line accounting for scripts, or None
   beacon_config: a parsed Cobalt Strike style TLV config, or None
 """
-import base64, re, struct
+import ast, base64, builtins, re, struct
 
 NET_CAPS = {"net-socket", "net-connect", "net-send-recv", "net-http", "net-dns", "net-listen"}
 PERSIST_CAPS = {"persist-runkey", "persist-file", "persist-schtask", "persistence-service"}
@@ -558,12 +558,145 @@ PERSIST_LINE_RES = [re.compile(p, re.I) for p in (
 EXFIL_LINE_RES = [re.compile(p, re.I) for p in (
     r"\.connect\(\(", r"socket\.socket", r"sendall?\(", r"requests\.post", r"telegra\.ph|api\.telegram\.org",
 )]
+# The third pattern is the phrase-key declaration (a config or
+# data line whose key contains spaces, "app name = BandwidthShare"):
+# never valid code in any dialect the ledger serves, and its value
+# is constrained to data characters (no call, substitution or
+# second assignment), so the pattern cannot account a command.
 STRUCT_RES = [re.compile(p, re.I) for p in (
-    r"^\s*(import\s|from\s+\S+\s+import|#|//|rem\s|@echo|echo[\s\.]|set\s+\w+=|def\s|class\s|return\b|if\b|elif\b|else\b|for\b|while\b|try\b|except\b|finally\b|with\b|print\s*\()",
+    r"^\s*(import\s|from\s+\S+\s+import|#|//|rem\s|@echo|echo[\s\.]|set\s+\w+=|def\s|class\s|return\b|if\b|elif\b|else\b|for\b|while\b|try\b|except\b|finally\b|with\b|print\s*\(|pass\b|break\b|continue\b|raise\b|assert\b|del\b|global\b|nonlocal\b|yield\b|await\b|async\b)",
     r"^\s*[\w\.\[\]\"']+\s*=[^=]",
+    r"^\s*[A-Za-z][\w\-]*(?:[ \t]+[\w\-]+)+[ \t]*=[^=()$`]*$",
     r"^\s*[\)\]\}]+[;:,]?\s*$",
     r"^\s*(end|fi|done|esac)\s*$",
 )]
+
+# Statement keywords that open a compound statement: a line led by
+# one of these is code structure, never a data line, and a parse
+# failure on such a line is unexamined structure.
+COMPOUND_LEADS = {"def", "class", "if", "elif", "else", "for",
+                  "while", "try", "except", "finally", "with",
+                  "async", "match", "case"}
+_EXPR_CHARS = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                  "0123456789_.,()[]{}:+-*/%<>=!&|^~ \t")
+_DATA_TOKEN_RE = re.compile(
+    r"^(?:[A-Za-z0-9_][\w\.\-\+:/\\@%~,]*|-{1,2}[A-Za-z][\w\-]*)$")
+_DATA_FORBIDDEN = set("()[]{}\"'`$&|;<>=#*?!")
+
+
+def _strip_literals(line):
+    """Remove string literals from one line, returning the
+    remaining text, or None when a literal is unterminated on
+    this line (its shape cannot be read from one line alone)."""
+    out = []
+    i, n = 0, len(line)
+    while i < n:
+        c = line[i]
+        if c in ("'", '"'):
+            if line.startswith(c * 3, i):
+                j = line.find(c * 3, i + 3)
+                if j < 0:
+                    return None
+                i = j + 3
+            else:
+                j = i + 1
+                closed = False
+                while j < n:
+                    if line[j] == "\\":
+                        j += 2
+                        continue
+                    if line[j] == c:
+                        closed = True
+                        break
+                    j += 1
+                if not closed:
+                    return None
+                i = j + 1
+            out.append(" ")
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
+# Builtins whose effective callee is chosen by data rather than
+# fixed by the name on the line: a call to one of these executes
+# or reaches code the line does not show, so it can never be
+# accounted from the line.
+_DYNAMIC_BUILTINS = {"eval", "exec", "compile", "__import__",
+                     "getattr", "setattr", "delattr"}
+_SAFE_BUILTINS = set(dir(builtins)) - _DYNAMIC_BUILTINS
+
+
+def _expression_statement(line, known_names):
+    """True when the line is a single expression statement the
+    ledger can fully read: with string literals removed, the
+    remainder is names, attribute and index access, calls and
+    operators, with balanced delimiters, at least one call, no
+    top-level assignment and no compound header; and every call
+    it makes resolves to a name whose behaviour is fixed by
+    what the file shows: a function or class defined in this
+    file, a name this file imports, an attribute of a visible
+    receiver chain, or a builtin whose behaviour is fixed by
+    its name (the dynamic-execution builtins are excluded: what
+    they run is chosen by data). A bare call to any other name
+    stays unaccounted, as it always has: what that name does
+    cannot be known from this file. The same expression is
+    already accounted when it follows return or an assignment
+    target; standing alone as a statement (a method-call chain
+    such as open(...).write(...) or os.remove(...)) it is the
+    same ordinary structure."""
+    body = _strip_literals(line)
+    if body is None:
+        return False
+    body = body.split("#", 1)[0].strip()
+    if not body or "(" not in body or body.endswith(":"):
+        return False
+    first = re.match(r"[A-Za-z_]\w*", body)
+    if not first or first.group(0).lower() in COMPOUND_LEADS:
+        return False
+    depth = 0
+    for ch in body:
+        if ch not in _EXPR_CHARS:
+            return False
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth -= 1
+            if depth < 0:
+                return False
+        elif ch == "=" and depth == 0:
+            return False
+    if depth != 0:
+        return False
+    for m in re.finditer(r"([A-Za-z_]\w*)\s*\(", body):
+        if m.start() > 0 and body[m.start() - 1] == ".":
+            continue
+        callee = m.group(1)
+        if callee in COMPOUND_LEADS or callee in ("lambda",):
+            return False
+        if callee not in known_names and callee not in _SAFE_BUILTINS:
+            return False
+    return True
+
+
+def _data_line(line):
+    """True when the line is a data line: whitespace-separated
+    literal tokens (bare words, numbers, versions, URLs, paths,
+    flag tokens) with no call, quote, operator, substitution,
+    glob or chaining character. Such a line can only name
+    things: read as data it declares exactly those tokens, and
+    read as a command its program and arguments are the same
+    literal tokens, so nothing it can do is hidden from the
+    ledger. Hostile atoms are flagged before this rule is
+    reached, and interpreter-proxy invocations are capped by
+    the verdict's own proxy rule, not by legibility."""
+    if any(c in _DATA_FORBIDDEN for c in line):
+        return False
+    toks = line.split()
+    if not toks:
+        return False
+    return all(_DATA_TOKEN_RE.match(t) for t in toks)
 
 
 def _inner_command(line):
@@ -575,18 +708,37 @@ def script_line_ledger(text):
     """Per-line accounting of a script against the KMS allowlist.
     Every line ends up: blank or comment, KMS-allowlisted (slmgr and
     ospp.vbs licence lines, GVLK installation, KMS reactivation task),
-    structural (imports, assignments, prints, control flow), flagged
-    (download, tamper, non-licensing persistence, exfiltration), or
-    unaccounted. One flagged download, tamper or exfiltration line is
-    proof; the allowlist defines the whole legitimate job of an
-    activation script, so unaccounted lines block its NO."""
-    out = {"lines": 0, "allowlisted": 0, "structural": 0, "flagged": [], "unaccounted": []}
+    structural (imports, assignments, prints, control flow, ordinary
+    statement keywords, expression statements), data (a semicolon
+    comment, or a line of literal data tokens that can only name
+    things), flagged (download, tamper, non-licensing persistence,
+    exfiltration), or unaccounted. One flagged download, tamper or
+    exfiltration line is proof; the allowlist defines the whole
+    legitimate job of an activation script, so unaccounted lines
+    block its NO."""
+    out = {"lines": 0, "allowlisted": 0, "structural": 0, "data": 0, "flagged": [], "unaccounted": []}
     # A call to a function defined in this same script is accounted
     # by transitivity: the body's own lines are ledgered individually
     # below, so the call line adds no behaviour the ledger has not
-    # already classified. A call to an undefined name stays
+    # already classified. The same holds for a class defined here
+    # and for a name this file imports: the import line names the
+    # module it comes from, so the callee's identity is fixed by
+    # what the file shows. A call to any other bare name stays
     # unaccounted: what it does cannot be known from this file.
-    defined = set(re.findall(r"^\s*def\s+([A-Za-z_]\w*)\s*\(", text, re.M))
+    known = set(re.findall(r"^\s*def\s+([A-Za-z_]\w*)\s*\(", text, re.M))
+    known |= set(re.findall(r"^\s*class\s+([A-Za-z_]\w*)", text, re.M))
+    for mimp in re.finditer(r"^\s*(?:from\s+\S+\s+)?import\s+(.+)$", text, re.M):
+        for item in mimp.group(1).strip().strip("()").split(","):
+            item = item.strip()
+            if not item:
+                continue
+            malias = re.match(r"([A-Za-z_][\w\.]*)\s+as\s+([A-Za-z_]\w*)$", item)
+            if malias:
+                known.add(malias.group(2))
+            else:
+                mname = re.match(r"([A-Za-z_]\w*)", item)
+                if mname:
+                    known.add(mname.group(1))
     for n, raw in enumerate(text.splitlines(), 1):
         line = raw.strip()
         if not line:
@@ -613,15 +765,85 @@ def script_line_ledger(text):
         if kind:
             out["flagged"].append({"line": n, "kind": kind, "text": line[:160]})
             continue
+        if line.startswith(";"):
+            # A leading semicolon is a comment in the INI, registry
+            # and assembler dialects. The flagged scan above has
+            # already run over the whole line, so a hostile atom
+            # after the semicolon is flagged, never commented away;
+            # what remains is a comment when the rest of the line
+            # is itself accounted as data or structure.
+            rest = line[1:].strip()
+            if not rest or _data_line(rest) or _expression_statement(rest, known) \
+                    or any(r.match(rest) for r in STRUCT_RES):
+                out["data"] += 1
+                continue
         if any(r.match(line) for r in STRUCT_RES):
             out["structural"] += 1
             continue
         mcall = re.match(r"([A-Za-z_]\w*)\s*\(.*\)\s*;?$", line)
-        if mcall and mcall.group(1) in defined:
+        if mcall and mcall.group(1) in known:
             out["structural"] += 1
+            continue
+        if _expression_statement(line, known):
+            out["structural"] += 1
+            continue
+        if _data_line(line):
+            out["data"] += 1
             continue
         out["unaccounted"].append({"line": n, "text": line[:160]})
     return out
+
+
+# Errors that mean content was swallowed or structure is missing:
+# no per-line classification can account for what the parser never
+# saw, so a failure of one of these classes is never attributable
+# to data lines.
+_PARSE_HARD_ERRORS = ("unterminated", "was never closed", "eof",
+                      "indented block")
+
+
+def script_parse_failure_attribution(text):
+    """Decide whether a Python parse failure is fully explained
+    by non-code lines. Returns (explained, neutralised), where
+    neutralised is the list of 1-based line numbers that had to
+    be replaced by a bare pass at the same indentation for the
+    source to compile. A failure is explained only when every
+    line that must be neutralised is a plain statement line: not
+    a compound-statement header and not a decorator, and no
+    error is of the unterminated-string, unclosed-delimiter, EOF
+    or indented-block class. A malformed code line (a broken def
+    header, a swallowed string) is genuinely unexamined
+    structure and is never explained away."""
+    lines = text.split("\n")
+    neutralised = []
+    seen = set()
+    cur = text
+    for _ in range(128):
+        try:
+            ast.parse(cur)
+            return True, neutralised
+        except SyntaxError as e:
+            msg = (e.msg or "").lower()
+            if any(h in msg for h in _PARSE_HARD_ERRORS):
+                return False, neutralised
+            ln = e.lineno
+            if ln is None or ln < 1 or ln > len(lines) or ln in seen:
+                return False, neutralised
+            seen.add(ln)
+            raw = lines[ln - 1]
+            stripped = raw.strip()
+            if not stripped or stripped.startswith("@"):
+                return False, neutralised
+            lead = re.match(r"[A-Za-z_]\w*", stripped)
+            if lead and lead.group(0).lower() in COMPOUND_LEADS:
+                return False, neutralised
+            indent = raw[:len(raw) - len(raw.lstrip())]
+            lines[ln - 1] = indent + "pass"
+            neutralised.append(ln)
+            cur = "\n".join(lines)
+        except Exception:
+            return False, neutralised
+    return False, neutralised
 
 
 def _scripts(report, caps, blob, low):

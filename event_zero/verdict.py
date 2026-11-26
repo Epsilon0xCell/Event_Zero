@@ -50,7 +50,7 @@ from .evasion import analyze_evasion
 from .stringsx import extract_all
 from .virt import analyze_virtualization, trace_entry_stub
 from .capabilities import match_capabilities
-from .families import family_findings, miner_disclosed
+from .families import family_findings, miner_disclosed, script_parse_failure_attribution
 from .containers import EXTRA_CONTAINER_KINDS, detect_extra_kind, extract_to as _extract_extra_to, firmware_regions, carve_pe_images
 from .bytecode import bytecode_report, split_macho_fat, is_jar_signature_member
 from .coverage3 import byte_ownership, dual_parser, polyglot_identities, image_identity_accounted, driver_capabilities
@@ -2038,6 +2038,28 @@ def enumerate_subject(path, workdir):
         except Exception as e:
             blockers.append(f"Archive {rel} could not be fully enumerated: {e}. Its contents are unaccounted, so no NO verdict can cover them.")
             failed_containers.append(rel)
+            # The member-semantics gate judges the archive's own
+            # bytes, so its classification must not depend on
+            # whether this host's filesystem could extract the
+            # members: a stream-qualified name cannot be written
+            # as a file on Windows at all, and a backslash name is
+            # written as a nested path there, so extraction fails
+            # on that host for reasons the archive itself fully
+            # determines. Run the gate on the bytes here and
+            # attach its divergences to this container's record,
+            # so the member kinds are reported identically on
+            # every host even when enumeration failed.
+            if kind in ("zip", "tar"):
+                try:
+                    _fdivs = member_semantics(data, kind)
+                except Exception:
+                    _fdivs = None
+                if _fdivs:
+                    entry_blockers.setdefault(rel, []).extend(
+                        f"{rel}: archive member semantics: member {_dv['member']!r} diverges from its listing ({_dv['kind']}): {_dv['detail']}. "
+                        "The container is accounted by its member list, but an extractor writes the member's extraction semantics, not the listing; a member whose written form differs from its listed form is unaccounted, so this container caps at unaccounted. This is a semantics finding, not a conviction. "
+                        "Next step: rebuild the container with the member under a name and form whose extraction matches its listing, or extract it with a tool that reports the divergence and run the verdict on the extracted folder."
+                        for _dv in _fdivs)
             return True
         expanded_containers.append(rel)
         installer["extracted"] = True
@@ -3020,8 +3042,39 @@ def verdict(path, reference=None, known_bad=None, enrich_known_bad=False):
                 _sa = rep.get("script_analysis") or {}
                 _inc = []
                 if _sa.get("parse_error"):
-                    _inc.append(("script-parse-failure",
-                                 f"the {_sa.get('language') or 'script'} parser could not parse this source ({_sa['parse_error']}), so the file's structure was not fully examined and the source accounting rests on the line ledger alone"))
+                    # Wave 10 parse-failure attribution: the cap
+                    # below exists because a parse failure meant
+                    # structure nobody examined. When the line
+                    # ledger accounts for every line AND the
+                    # failure is attributable to non-code lines
+                    # (each successive error line is a plain
+                    # statement line whose neutralisation reaches
+                    # a clean compile; see
+                    # script_parse_failure_attribution), the
+                    # failure is fully explained by accounted data
+                    # lines: the ledger's accounting is not a
+                    # fallback for an unexamined file, it is the
+                    # completed accounting of a file whose
+                    # non-code lines are exactly what the parser
+                    # choked on. The cap then does not fire. A
+                    # malformed code line, a swallowed string or
+                    # any ledger-unaccounted line keeps the cap.
+                    _explained = False
+                    if _sa.get("language") == "Python" \
+                            and ff["script_ledger"] is not None \
+                            and not ff["script_ledger"]["unaccounted"]:
+                        _src = rep.get("script_source_full") or rep.get("script_source_excerpt")
+                        if _src:
+                            _explained, _neutralised = script_parse_failure_attribution(_src)
+                    if _explained:
+                        rec["script_parse_attribution"] = (
+                            "the Python parser failed on this source, but the failure is attributable to "
+                            f"non-code line(s) {', '.join(str(_n) for _n in _neutralised)} that the line ledger "
+                            "accounts for, so the parse failure is explained by accounted data lines and does "
+                            "not cap the verdict")
+                    else:
+                        _inc.append(("script-parse-failure",
+                                     f"the {_sa.get('language') or 'script'} parser could not parse this source ({_sa['parse_error']}), so the file's structure was not fully examined and the source accounting rests on the line ledger alone"))
                 if rec["format"] == "PE" and "sections" not in (rep.get("format") or {}):
                     _inc.append(("binary-parse-failure",
                                  "the PE parser could not read this file's section table, so the binary was not fully decoded"))

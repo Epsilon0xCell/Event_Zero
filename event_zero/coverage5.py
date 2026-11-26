@@ -339,9 +339,34 @@ def zip_member_semantics(zf, data):
     bytes (the second view: local headers and the central
     directory as stored)."""
     infos = zf.infolist()
+    # The gate judges the member names as stored in the archive.
+    # The zipfile listing is not the stored name on every host:
+    # ZipInfo rewrites the host separator in member names (on
+    # Windows a stored name containing backslashes comes back
+    # with forward slashes), which would make the classification
+    # of the same archive depend on the host OS. The names are
+    # therefore read from the central directory bytes, decoded
+    # with the same codepage rule zipfile uses but with no
+    # separator rewriting; the listing name is the fallback where
+    # the central walk is unavailable.
+    central_raw = None
+    start_dir = getattr(zf, "start_dir", None)
+    if start_dir is not None:
+        central_raw = _zip_central_names(data, start_dir,
+                                         len(infos))
+    stored_names = []
+    for i, info in enumerate(infos):
+        nm = info.filename
+        if central_raw is not None and i < len(central_raw):
+            try:
+                nm = central_raw[i].decode(
+                    "utf-8" if info.flag_bits & 0x800 else "cp437")
+            except Exception:
+                nm = info.filename
+        stored_names.append(nm)
     members = []
     divergences = []
-    for info in infos:
+    for i, info in enumerate(infos):
         mode = (info.external_attr >> 16) & 0xFFFF
         is_link = (info.create_system == 3
                    and stat.S_IFMT(mode) == stat.S_IFLNK)
@@ -351,7 +376,7 @@ def zip_member_semantics(zf, data):
                 linkname = zf.read(info).decode("utf-8", "replace")
             except Exception:
                 linkname = None
-        members.append({"name": info.filename,
+        members.append({"name": stored_names[i],
                         "is_dir": info.is_dir(),
                         "kind": "symlink" if is_link else
                                 ("dir" if info.is_dir() else "file"),
@@ -359,7 +384,7 @@ def zip_member_semantics(zf, data):
         if not info.is_dir() and not (info.flag_bits & 0x800):
             if any(ord(c) > 127 for c in info.orig_filename):
                 divergences.append(
-                    {"member": info.filename,
+                    {"member": stored_names[i],
                      "kind": "name-encoding-divergence",
                      "detail": "the member name is stored "
                                "without the UTF-8 flag and "
@@ -375,12 +400,8 @@ def zip_member_semantics(zf, data):
     # from the central directory, but streaming extractors read
     # the local headers, so a member whose local header names
     # it differently or sizes it differently is written
-    # differently by those extractors.
-    central_raw = None
-    start_dir = getattr(zf, "start_dir", None)
-    if start_dir is not None:
-        central_raw = _zip_central_names(data, start_dir,
-                                         len(infos))
+    # differently by those extractors. (central_raw was walked
+    # once, above, for the stored names.)
     for i, info in enumerate(infos):
         ho = info.header_offset
         if ho + 30 > len(data) or data[ho:ho + 4] != b"PK\x03\x04":
@@ -393,7 +414,7 @@ def zip_member_semantics(zf, data):
         if central_raw is not None and i < len(central_raw):
             if local_name != central_raw[i]:
                 divergences.append(
-                    {"member": info.filename,
+                    {"member": stored_names[i],
                      "kind": "local-central-name-divergence",
                      "detail": f"the member's local header "
                                f"names it {local_name!r} while "
@@ -407,7 +428,7 @@ def zip_member_semantics(zf, data):
             if lcsize != info.compress_size or \
                     lusize != info.file_size:
                 divergences.append(
-                    {"member": info.filename,
+                    {"member": stored_names[i],
                      "kind": "local-central-size-divergence",
                      "detail": f"the member's local header "
                                f"declares compressed size "
@@ -422,7 +443,7 @@ def zip_member_semantics(zf, data):
                                f"describes"})
         if (lflags ^ info.flag_bits) & 0x9:
             divergences.append(
-                {"member": info.filename,
+                {"member": stored_names[i],
                  "kind": "local-central-flag-divergence",
                  "detail": "the member's local header "
                            "general-purpose flags differ from "
