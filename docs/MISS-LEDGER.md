@@ -115,3 +115,8 @@ The ledger held no entries before 2026-11-23. An empty ledger is a statement abo
 ## Status addendum 2026-11-25 (shard 0 run 7, engine 130f2a4)
 
 - Run 7 produced no verdicts: all 250 downloads failed (247 HTTP 429, 3 HTTP 502; per-IP quota on shared egress, exhausted before the run began). Entries 007 and 008 were not re-judged and remain OPEN. Fix wave 4's real-sample confirmation is still outstanding and rides the next run after the quota window resets.
+
+## Status addendum 2026-11-25 (shard 0 run 8, engine 0346ddb)
+
+- Run 45744740001 (engine b473a1f) failed at the campaign image build (wave 9 pinning defect in Dockerfile.campaign, fixed in 0346ddb); it produced no verdicts and re-judged nothing.
+- EZ-BYPASS-2026-007, 008: re-judged on the real samples by the current engine in run 45745957476: both returned NO ACCOUNTED again. Fix wave 4's confirmation is now answered in the negative: the wave closes its fourteen synthetic shapes, not the real files. Both entries remain OPEN. A further fix wave must be scoped from the samples' actual structure, obtained through the campaign runner under the standing rule that sample bytes never leave the runner.
